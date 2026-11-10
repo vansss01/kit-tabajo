@@ -78,7 +78,11 @@ terminal es siempre UTF-8. En Windows se usan los mismos CSV/JSON/XLSX.
 | `validar` | Columnas, vacíos, unicidad, tipos, fechas y rangos mediante JSON |
 | `transformar` | Selección, filtros, orden, agrupación, conversión y deduplicación explícitas |
 | `exportar` | CSV, JSON y XLSX con resultados, incidencias y resumen separados |
+| `consultar` | Consultas SQL de solo lectura sobre una o varias tablas |
+| `bitacora` | Anotaciones diarias de la práctica y borrador del informe |
 | `limpiar` | Lista o borra (`--apply`) ejecuciones y registros antiguos |
+
+Para aprender: [ejercicios con datos mineros ficticios](docs/EJERCICIOS.md).
 
 Lee [el índice compacto](docs/TOOLS_INDEX.md) y solo el manual de la herramienta
 necesaria. `python -B kit.py SUBCOMANDO --help` describe sus opciones.

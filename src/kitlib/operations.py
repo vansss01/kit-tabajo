@@ -1,11 +1,13 @@
 """Operaciones declarativas; no eval, exec, SQL ni expresiones de Python."""
 import json
+import re
+import sqlite3
 from collections import Counter
 from dataclasses import replace
 from decimal import Decimal, localcontext
 from typing import Any
 
-from kitlib.tableio import Table, convert, empty, infer, issue, number
+from kitlib.tableio import Table, convert, empty, infer, issue, literal, number
 
 TYPES = {"string", "integer", "number", "date", "boolean"}
 
@@ -92,7 +94,7 @@ def compare(before, after, keys):
 def validate_config(config, defaults):
     if set(config) - {"columns", "unique_keys"} or not isinstance(config.get("columns"), dict):
         raise ValueError("Reglas: columns (objeto) y unique_keys (lista opcional)")
-    allowed = {"required", "nonempty", "unique", "type", "min", "max", "date_format", "decimal"}
+    allowed = {"required", "nonempty", "unique", "type", "min", "max", "date_format", "decimal", "allowed"}
     for col, spec in config["columns"].items():
         if not isinstance(spec, dict) or set(spec) - allowed:
             raise ValueError(f"Regla inválida en {col}")
@@ -101,6 +103,9 @@ def validate_config(config, defaults):
         for flag in ("required", "nonempty", "unique"):
             if flag in spec and not isinstance(spec[flag], bool):
                 raise ValueError(f"{flag} debe ser booleano")
+        if "allowed" in spec and (not isinstance(spec["allowed"], list) or not spec["allowed"]
+                                  or not all(isinstance(v, str) for v in spec["allowed"])):
+            raise ValueError("allowed debe ser una lista no vacía de textos")
         if spec.get("decimal", ".") not in (".", ","):
             raise ValueError("decimal debe ser . o ,")
         if "date_format" in spec and not isinstance(spec["date_format"], str):
@@ -139,6 +144,7 @@ def validate(table, config, opts):
         counts = Counter(r[col] for r in table.rows if not empty(r[col]))
         rule_opts = replace(opts, decimal=spec.get("decimal", opts.decimal),
                             date_format=spec.get("date_format", opts.date_format))
+        permitted = set(spec["allowed"]) if "allowed" in spec else None
         kind = spec.get("type")
         limits = {b: typed(spec[b], kind, rule_opts) for b in ("min", "max") if b in spec}
         checked: dict[Any, tuple[str, ...]] = {}  # resultado por valor distinto: los valores se repiten
@@ -165,6 +171,8 @@ def validate(table, config, opts):
             else:
                 if spec.get("unique") and counts[value] > 1:
                     codes.append("valor_no_unico")
+                if permitted is not None and value not in permitted:
+                    codes.append("valor_no_permitido")
                 if kind is not None:
                     if value not in checked:
                         checked[value] = type_codes(value)
@@ -342,3 +350,63 @@ def transform(table, plan, opts):
             current = copy_table(current, output, names)
         history.append({"operacion": op, "antes": count_before, "despues": len(current.rows)})
     return {"validos": current}, [], {"filas_salida": len(current.rows), "pasos": history}
+
+
+SQL_ALLOWED = {sqlite3.SQLITE_SELECT, sqlite3.SQLITE_READ, sqlite3.SQLITE_FUNCTION, sqlite3.SQLITE_RECURSIVE}
+
+
+def query(tables, sql, numeric, opts):
+    """Una consulta SELECT sobre tablas cargadas en SQLite en memoria; nada se escribe ni se adjunta."""
+    if not isinstance(sql, str) or not sql.strip():
+        raise ValueError("--sql requiere una consulta SELECT")
+    known = {c for table in tables.values() for c in table.columns}
+    if set(numeric) - known:
+        raise ValueError("Columnas de --numeric inexistentes: " + ", ".join(sorted(set(numeric) - known)))
+
+    def quote(name):
+        return '"' + name.replace('"', '""') + '"'
+
+    issues: list[dict] = []
+    not_numeric = 0
+    db = sqlite3.connect(":memory:")
+    try:
+        for name, table in tables.items():
+            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,40}", name):
+                raise ValueError("Nombre de tabla: letras ASCII, dígitos y guion bajo, sin empezar por dígito")
+            if not table.columns:
+                raise ValueError(f"La tabla {name} no tiene encabezado legible")
+            issues.extend(table.issues)
+            db.execute("CREATE TABLE {} ({})".format(quote(name), ", ".join(
+                quote(c) + (" REAL" if c in numeric else " TEXT") for c in table.columns)))
+            rows = []
+            for row in table.rows:
+                values = []
+                for col in table.columns:
+                    value = row[col]
+                    if col in numeric:
+                        try:
+                            value = None if empty(value) else float(number(value, opts.decimal))
+                        except ValueError:
+                            value = None
+                            not_numeric += 1
+                    values.append(value)
+                rows.append(values)
+            db.executemany("INSERT INTO {} VALUES ({})".format(quote(name), ", ".join("?" * len(table.columns))), rows)
+        db.set_authorizer(lambda action, *_: sqlite3.SQLITE_OK if action in SQL_ALLOWED else sqlite3.SQLITE_DENY)
+        cursor = db.execute(sql)
+        if cursor.description is None:
+            raise ValueError("Solo se admite una consulta SELECT")
+        names: list[str] = []
+        for item in cursor.description:
+            base = item[0] or "columna"
+            name, n = base, 2
+            while name in names:
+                name, n = f"{base}_{n}", n + 1
+            names.append(name)
+        output = [dict(zip(names, [format(v, ".12g") if isinstance(v, float) else literal(v) for v in record], strict=True))
+                  for record in cursor]
+    except sqlite3.Error as exc:
+        raise ValueError("SQL no válido o no permitido: " + str(exc)[:160]) from exc
+    finally:
+        db.close()
+    return {"validos": Table(names, output)}, issues, {"filas_salida": len(output), "valores_no_numericos": not_numeric}

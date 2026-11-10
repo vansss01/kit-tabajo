@@ -1,0 +1,18 @@
+{
+  "columns": {
+    "fecha": {
+      "required": true,
+      "type": "date"
+    },
+    "equipo": {
+      "required": true,
+      "nonempty": true
+    },
+    "litros": {
+      "required": true,
+      "nonempty": true,
+      "type": "integer",
+      "min": "0"
+    }
+  }
+}

@@ -1,11 +1,20 @@
 # Estado del proyecto
 
-Actualizado: 2026-11-10. Versión 1.3.0. Repositorio: `github.com/vansss01/kit-tabajo` (privado).
-Comprobado en Linux y Windows (Python 3.11 y 3.14) por CI en cada cambio: 36 pruebas,
+Actualizado: 2026-11-10. Versión 1.4.0. Repositorio: `github.com/vansss01/kit-tabajo` (privado).
+Comprobado en Linux y Windows (Python 3.11 y 3.14) por CI en cada cambio: 40 pruebas,
 Ruff y mypy con `scripts/check.py`, flujo `scripts/demo.py`, instalación sin red y
 lanzadores `kit`/`kit.cmd`. Sin dependencia de proveedores de IA.
 
-Comandos: inspeccionar, comparar, consolidar, validar, transformar, exportar, limpiar.
+Comandos: inspeccionar, comparar, consolidar, validar, transformar, exportar, consultar,
+bitacora, limpiar.
+
+## Cambios de 1.4.0
+
+- `consultar`: una sentencia SELECT sobre SQLite en memoria; un autorizador deniega todo lo demás.
+- `bitacora`: anotaciones en `data/bitacora/bitacora.csv` (privado, sin respaldo en Git) e informe.
+- Regla `allowed` en `validar` (`valor_no_permitido`).
+- `examples/minera/` y `docs/EJERCICIOS.md`: datos ficticios con errores inyectados y respuestas
+  verificadas; `scripts/datos_mineros.py` los regenera en otra carpeta.
 
 ## Cambios de 1.3.0
 

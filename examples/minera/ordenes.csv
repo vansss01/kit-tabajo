@@ -1,0 +1,601 @@
+orden;equipo;tipo;prioridad;fecha_apertura;fecha_cierre;horas;estado;tecnico;descripcion
+OT-000001;PERF-004;correctiva;baja;2026-10-18;;6,7;abierta;T-07;Falla eléctrica
+OT-000002;CAEX-010;correctiva;media;2026-10-27;2026-10-27;7,6;cerrada;T-17;Cambio de correa
+OT-000003;CAEX-017;correctiva;media;2026-10-12;;12,4;en proceso;T-16;Inspección estructural
+OT-000004;CAEX-019;preventiva;baja;2026-10-18;2026-10-18;2,0;cerrada;T-17;Falla eléctrica
+OT-000005;CAEX-012;inspección;baja;2026-10-15;;7,9;en proceso;T-03;Falla eléctrica
+OT-000006;CAEX-013;correctiva;media;2026-10-29;2026-10-29;7,5;cerrada;T-01;Revisión de frenos
+OT-000007;CAEX-006;correctiva;alta;2026-10-01;2026-10-05;2,4;cerrada;T-02;Calibración de sensores
+OT-000008;CORR-001;preventiva;alta;2026-10-31;2026-11-06;10,8;cerrada;T-16;Fuga hidráulica
+OT-000009;CAEX-009;inspección;baja;2026-10-18;2026-10-22;8,3;cerrada;T-03;Inspección estructural
+OT-000010;CARG-004;preventiva;media;22/10/2026;2026-10-23;13,0;cerrada;T-17;Cambio de neumático
+OT-000011;PALA-001;inspección;alta;2026-10-13;2026-10-13;5,9;cerrada;T-12;Cambio de filtros
+OT-000012;CORR-004;preventiva;media;2026-10-01;2026-10-03;2,4;cerrada;T-15;Reparación de motor
+OT-000013;CAEX-010;correctiva;media;2026-10-20;;10,2;abierta;T-15;Reparación de motor
+OT-000014;CARG-002;preventiva;alta;2026-10-08;2026-10-08;14,8;cerrada;T-02;Calibración de sensores
+OT-000015;PALA-005;inspección;media;2026-10-30;;8,0;abierta;T-01;Fuga hidráulica
+OT-000016;PERF-005;inspección;alta;2026-10-21;2026-10-27;10,7;cerrada;T-06;Inspección estructural
+OT-000017;CAEX-006;preventiva;alta;2026-10-09;2026-10-12;3,2;cerrada;T-15;Cambio de correa
+OT-000018;CAEX-019;correctiva;media;2026-10-25;;8,0;abierta;T-04;Calibración de sensores
+OT-000019;CAEX-007;correctiva;media;2026-10-26;2026-10-28;15,3;cerrada;T-15;Lubricación general
+OT-000020;CORR-003;preventiva;alta;2026-10-14;2026-10-20;13,6;cerrada;T-12;Calibración de sensores
+OT-000021;CAEX-014;preventiva;baja;2026-10-22;2026-10-26;9,1;cerrada;T-07;Reparación de motor
+OT-000022;CARG-002;preventiva;baja;2026-10-10;2026-10-15;2,0;cerrada;T-14;Fuga hidráulica
+OT-000023;CAEX-023;correctiva;alta;2026-10-04;2026-10-10;10,3;cerrada;T-17;Lubricación general
+OT-000024;CAEX-019;inspección;alta;2026-10-09;2026-10-09;4,5;cerrada;T-01;Inspección estructural
+OT-000025;CAEX-017;preventiva;alta;2026-10-28;;2,0;en proceso;T-01;Falla eléctrica
+OT-000026;CARG-003;inspección;baja;2026-10-04;2026-10-08;5,4;cerrada;T-15;Reparación de motor
+OT-000027;CAEX-003;inspección;media;2026-10-21;2026-10-25;3,8;cerrada;T-15;Inspección estructural
+OT-000028;CORR-004;preventiva;media;2026-10-22;;15,6;abierta;T-09;Inspección estructural
+OT-000029;CAEX-023;preventiva;baja;2026-10-10;;14,1;en proceso;T-10;Lubricación general
+OT-000030;CAEX-008;preventiva;media;2026-10-10;;9,6;abierta;T-01;Calibración de sensores
+OT-000031;CAEX-004;correctiva;alta;2026-10-31;2026-11-04;10,1;cerrada;T-04;Cambio de filtros
+OT-000032;CORR-002;inspección;media;2026-10-05;2026-10-09;-3,0;cerrada;T-05;Lubricación general
+OT-000033;PALA-003;correctiva;baja;2026-10-14;2026-10-15;3,3;cerrada;T-01;Calibración de sensores
+OT-000034;CAEX-010;preventiva;alta;2026-10-22;2026-10-24;8,9;cerrada;T-14;Falla eléctrica
+OT-000035;CARG-004;preventiva;alta;2026-10-31;2026-11-05;1,1;cerrada;T-17;Falla eléctrica
+OT-000043;CAEX-021;preventiva;baja;2026-10-11;2026-10-17;10,2;cerrada;T-08;Cambio de correa
+OT-000037;CORR-004;correctiva;alta;2026-10-02;;12,1;en proceso;T-13;Lubricación general
+OT-000038;CARG-002;correctiva;media;2026-10-31;;3,6;abierta;T-12;Cambio de correa
+OT-000039;PERF-002;inspección;media;2026-10-21;2026-10-27;5,3;cerrada;T-06;Inspección estructural
+OT-000040;CAEX-023;correctiva;baja;2026-10-05;2026-10-05;11,4;cerrada;T-02;Fuga hidráulica
+OT-000041;CAEX-017;preventiva;baja;2026-10-03;2026-10-07;16,0;cerrada;T-01;Calibración de sensores
+OT-000042;CARG-004;preventiva;alta;2026-10-07;;6,6;abierta;T-18;Calibración de sensores
+OT-000043;PERF-004;preventiva;alta;2026-10-26;2026-10-27;6,5;cerrada;T-18;Falla eléctrica
+OT-000044;CORR-003;correctiva;alta;2026-10-10;2026-10-14;5,0;cerrada;T-18;Falla eléctrica
+OT-000045;CAEX-013;inspección;media;2026-10-12;2026-10-15;13,6;cerrada;T-16;Inspección estructural
+OT-000046;CARG-001;preventiva;media;2026-10-12;;3,3;abierta;T-18;Fuga hidráulica
+OT-000047;PERF-004;correctiva;baja;2026-10-06;2026-10-06;12,4;cerrada;T-12;Revisión de frenos
+OT-000048;CAEX-010;correctiva;media;2026-10-12;2026-10-16;2,1;cerrada;T-11;Cambio de correa
+OT-000049;CAEX-005;preventiva;media;2026-10-04;;10,5;abierta;T-12;Cambio de correa
+OT-000050;PERF-005;preventiva;media;2026-10-30;2026-11-03;13,1;cerrada;T-12;Revisión de frenos
+OT-000051;CAEX-006;correctiva;baja;2026-10-03;;4,6;abierta;T-08;Fuga hidráulica
+OT-000052;CAEX-022;preventiva;baja;2026-10-11;2026-10-15;10,7;cerrada;T-16;Inspección estructural
+OT-000060;PERF-001;preventiva;media;2026-10-11;2026-10-17;5,9;cerrada;T-12;Inspección estructural
+OT-000054;PALA-001;preventiva;media;2026-10-27;;9,3;abierta;T-05;Inspección estructural
+OT-000055;CAEX-021;preventiva;baja;2026-10-09;2026-10-09;4,6;cerrada;T-18;Falla eléctrica
+OT-000056;CARG-002;correctiva;media;2026-10-08;2026-10-09;9,4;cerrada;T-13;Inspección estructural
+OT-000057;CORR-004;preventiva;alta;2026-10-01;2026-10-03;12,4;cerrada;T-16;Calibración de sensores
+OT-000058;CORR-002;preventiva;baja;2026-10-17;2026-10-19;11,7;cerrada;T-01;Falla eléctrica
+OT-000059;CAEX-009;preventiva;media;2026-10-18;;6,9;abierta;T-16;Cambio de correa
+OT-000060;CAEX-015;correctiva;media;2026-10-11;2026-10-17;15,1;cerrada;T-11;Cambio de filtros
+OT-000061;PERF-004;preventiva;media;2026-10-25;2026-10-28;1,7;cerrada;T-07;Calibración de sensores
+OT-000062;CAEX-010;preventiva;media;2026-10-25;2026-10-25;7,7;cerrada;T-06;Falla eléctrica
+OT-000063;PERF-005;correctiva;media;2026-10-03;2026-10-08;2,2;cerrada;T-09;Inspección estructural
+OT-000064;PERF-004;inspección;baja;2026-10-02;2026-10-07;14,6;cerrada;T-11;Lubricación general
+OT-000065;CAEX-017;correctiva;media;2026-10-12;2026-10-15;4,4;cerrada;T-16;Fuga hidráulica
+OT-000066;CAEX-017;correctiva;media;2026-10-01;2026-10-03;6,2;cerrada;T-17;Inspección estructural
+OT-000067;CAEX-271;inspección;baja;2026-10-10;2026-10-10;10,5;cerrada;T-17;Calibración de sensores
+OT-000068;PERF-002;correctiva;baja;2026-10-25;;15,6;abierta;T-11;Cambio de correa
+OT-000069;CAEX-012;preventiva;media;2026-10-11;2026-10-13;890,6;cerrada;T-09;Calibración de sensores
+OT-000070;CORR-001;preventiva;media;2026-10-17;;3,8;abierta;T-15;Cambio de neumático
+OT-000071;PERF-005;preventiva;media;2026-10-07;2026-10-13;13,9;cerrada;T-16;Fuga hidráulica
+OT-000072;CAEX-021;preventiva;media;2026-10-18;2026-10-24;8,8;cerrada;T-18;Cambio de neumático
+OT-000073;CAEX-010;correctiva;alta;2026-10-05;2026-10-10;13,1;cerrada;T-02;Cambio de filtros
+OT-000074;CAEX-012;preventiva;baja;2026-10-09;;11,2;abierta;T-05;Cambio de correa
+OT-000075;CAEX-012;correctiva;media;2026-10-06;2026-10-06;10,2;cerrada;T-18;Cambio de filtros
+OT-000076;CARG-001;preventiva;media;2026-10-10;2026-10-12;6,8;cerrada;T-11;Fuga hidráulica
+OT-000077;CAEX-001;preventiva;media;2026-10-23;2026-10-26;13,6;cerrada;T-09;Lubricación general
+OT-000078;CAEX-013;inspección;alta;2026-10-25;2026-10-29;10,8;cerrada;T-07;Fuga hidráulica
+OT-000079;CAEX-014;preventiva;media;2026-10-08;2026-10-11;14,0;cerrada;T-14;Cambio de correa
+OT-000080;CAEX-020;correctiva;media;2026-10-28;2026-10-29;15,2;cerrada;T-16;Revisión de frenos
+OT-000081;CAEX-013;preventiva;alta;2026-10-29;;11,6;en proceso;T-06;Revisión de frenos
+OT-000082;CAEX-013;inspección;baja;2026-10-06;2026-10-09;7,1;cerrada;T-18;Fuga hidráulica
+OT-000083;CORR-001;correctiva;media;2026-10-21;;6,2;en proceso;T-01;Cambio de correa
+OT-000084;CAEX-023;correctiva;alta;2026-10-17;2026-10-19;12,8;cerrada;T-18;Cambio de neumático
+OT-000085;CORR-001;correctiva;baja;2026-10-12;2026-10-16;10,9;cerrada;T-11;Falla eléctrica
+OT-000086;PERF-001;preventiva;baja;2026-10-31;2026-11-03;8,6;cerrada;T-17;Revisión de frenos
+OT-000087;CAEX-006;correctiva;alta;2026-10-27;2026-10-27;14,8;cerrada;T-04;Inspección estructural
+OT-000088;PERF-001;correctiva;media;2026-10-26;2026-10-30;2,9;cerrada;T-11;Fuga hidráulica
+OT-000089;CAEX-011;correctiva;media;2026-10-01;2026-10-01;15,6;cerrada;T-03;Reparación de motor
+OT-000090;CAEX-022;correctiva;media;2026-10-17;2026-10-23;7,8;cerrada;T-11;Cambio de correa
+OT-000098;PERF-004;inspección;media;2026-10-23;2026-10-24;1,1;cerrada;T-08;Reparación de motor
+OT-000092;CAEX-008;correctiva;media;2026-10-06;2026-10-12;8,0;cerrada;T-01;Cambio de correa
+OT-000093;CAEX-003;correctiva;baja;2026-10-31;2026-11-05;5,1;cerrada;T-17;Lubricación general
+OT-000094;CARG-004;preventiva;media;2026-10-09;;8,6;abierta;T-17;Revisión de frenos
+OT-000095;CARG-004;preventiva;alta;2026-10-19;2026-10-20;6,8;cerrada;T-04;Revisión de frenos
+OT-000096;PALA-002;inspección;media;2026-10-26;;1,3;en proceso;T-06;Calibración de sensores
+OT-000097;CAEX-006;preventiva;baja;2026-10-09;;1,1;en proceso;T-18;Revisión de frenos
+OT-000098;CAEX-003;preventiva;baja;2026-10-29;2026-11-03;15,4;cerrada;T-15;Calibración de sensores
+OT-000099;CAEX-013;correctiva;baja;2026-10-21;;1,2;en proceso;T-03;Fuga hidráulica
+OT-000100;CAEX-001;preventiva;media;2026-10-21;2026-10-22;7,8;cerrada;T-09;Revisión de frenos
+OT-000101;CARG-001;preventiva;media;2026-10-29;;9,5;abierta;T-08;Cambio de correa
+OT-000102;CAEX-015;correctiva;media;2026-10-27;2026-10-29;4,3;cerrada;T-01;Inspección estructural
+OT-000103;CORR-004;correctiva;alta;2026-10-13;2026-10-16;3,1;cerrada;T-07;Calibración de sensores
+OT-000104;CORR-002;correctiva;media;2026-10-25;2026-10-27;0,8;cerrada;T-03;Fuga hidráulica
+OT-000105;CAEX-016;correctiva;media;2026-10-31;2026-11-04;11,2;cerrada;T-11;Fuga hidráulica
+OT-000106;CAEX-001;correctiva;alta;2026-10-16;2026-10-17;11,3;cerrada;T-14;Reparación de motor
+OT-000107;CAEX-006;correctiva;media;2026-10-11;2026-10-13;10,6;cerrada;T-08;Revisión de frenos
+OT-000108;CAEX-020;correctiva;media;2026-10-13;;15,9;abierta;T-06;Falla eléctrica
+OT-000109;CAEX-022;inspección;alta;2026-10-24;2026-10-24;7,6;cerrada;T-04;Cambio de neumático
+OT-000110;CHAN-001;inspección;baja;2026-10-22;2026-10-23;7,9;cerrada;T-03;Fuga hidráulica
+OT-000111;CAEX-010;preventiva;media;2026-10-01;2026-10-03;7,4;cerrada;T-10;Fuga hidráulica
+OT-000112;PALA-005;correctiva;alta;2026-10-13;2026-10-13;13,4;cerrada;T-15;Revisión de frenos
+OT-000113;PALA-005;correctiva;baja;2026-10-28;2026-10-30;13,4;cerrada;T-09;Cambio de correa
+OT-000114;CAEX-019;inspección;baja;2026-10-24;2026-10-27;2,1;cerrada;T-18;Cambio de filtros
+OT-000115;CAEX-019;correctiva;baja;2026-10-07;2026-10-12;6,8;cerrada;T-11;Fuga hidráulica
+OT-000116;CAEX-009;correctiva;media;2026-10-26;2026-10-29;6,6;cerrada;T-18;Falla eléctrica
+OT-000117;CAEX-017;preventiva;baja;2026-10-30;2026-11-02;4,3;cerrada;T-17;Falla eléctrica
+OT-000118;CAEX-013;preventiva;baja;2026-10-02;;10,9;abierta;T-05;Cambio de correa
+OT-000119;CAEX-004;correctiva;baja;2026-10-13;2026-10-18;12,9;cerrada;T-17;Lubricación general
+OT-000120;CAEX-015;inspección;media;2026-10-18;2026-10-21;-5,6;cerrada;T-17;Falla eléctrica
+OT-000121;PERF-004;preventiva;baja;2026-10-26;2026-10-30;12,1;cerrada;T-17;Cambio de neumático
+OT-000122;PALA-001;correctiva;baja;2026-10-01;2026-10-04;13,7;cerrada;T-08;Calibración de sensores
+OT-000123;CAEX-002;preventiva;media;2026-10-19;2026-10-25;8,1;cerrada;T-13;Cambio de correa
+OT-000124;CAEX-013;preventiva;media;2026-10-27;2026-10-31;15,7;cerrada;T-04;Cambio de neumático
+OT-000125;CAEX-023;correctiva;baja;2026-10-13;2026-10-17;10,2;cerrada;T-14;Cambio de neumático
+OT-000126;CAEX-007;inspección;baja;2026-10-11;2026-10-11;10,7;cerrada;T-15;Inspección estructural
+OT-000127;CAEX-013;inspección;media;2026-10-04;2026-10-10;8,0;cerrada;T-06;Revisión de frenos
+OT-000128;PALA-005;correctiva;baja;2026-10-03;2026-10-04;2,0;cerrada;T-18;Inspección estructural
+OT-000129;CAEX-006;preventiva;media;2026-10-25;;14,1;en proceso;T-03;Cambio de correa
+OT-000130;CAEX-023;correctiva;baja;2026-10-16;2026-10-19;6,8;cerrada;T-14;Revisión de frenos
+OT-000131;PERF-005;preventiva;alta;2026-10-09;;15,2;abierta;T-01;Fuga hidráulica
+OT-000132;CAEX-017;correctiva;media;2026-10-20;2026-10-22;2,1;cerrada;T-08;Lubricación general
+OT-000133;PALA-003;inspección;alta;2026-10-30;;12,4;abierta;T-09;Lubricación general
+OT-000134;CARG-004;preventiva;baja;2026-10-14;;9,9;abierta;T-06;Calibración de sensores
+OT-000135;CHAN-002;preventiva;media;2026-10-14;2026-10-18;6,9;cerrada;T-09;Cambio de neumático
+OT-000136;CARG-004;preventiva;media;2026-10-23;;8,5;en proceso;T-09;Falla eléctrica
+OT-000137;CAEX-016;preventiva;alta;2026-10-04;;9,7;abierta;T-11;Revisión de frenos
+OT-000138;PALA-004;correctiva;media;2026-10-22;2026-10-27;11,0;cerrada;T-12;Inspección estructural
+OT-000139;CAEX-021;correctiva;media;2026-10-25;2026-10-29;12,3;cerrada;T-13;Lubricación general
+OT-000140;CAEX-001;preventiva;media;2026-10-26;2026-10-29;9,8;cerrada;T-10;Calibración de sensores
+OT-000141;CAEX-008;correctiva;media;2026-10-18;;6,5;abierta;T-09;Cambio de filtros
+OT-000142;CAEX-015;preventiva;baja;2026-10-07;2026-10-07;15,0;cerrada;T-18;Cambio de correa
+OT-000143;PERF-005;correctiva;alta;2026-10-04;2026-10-08;2,5;cerrada;T-14;Cambio de neumático
+OT-000144;CAEX-007;correctiva;alta;2026-10-04;2026-10-04;9,6;cerrada;T-13;Cambio de filtros
+OT-000145;CARG-002;correctiva;baja;2026-10-05;2026-10-11;13,9;cerrada;T-14;Lubricación general
+OT-000146;PALA-005;preventiva;alta;2026-10-18;2026-10-24;5,3;cerrada;T-09;Calibración de sensores
+OT-000147;CAEX-004;preventiva;baja;2026-10-06;2026-10-11;6,9;cerrada;T-16;Cambio de correa
+OT-000148;CAEX-001;preventiva;baja;2026-10-21;2026-10-27;12,8;cerrada;T-14;Cambio de neumático
+OT-000149;PERF-001;correctiva;alta;2026-10-09;;5,5;en proceso;T-10;Cambio de filtros
+OT-000150;PALA-001;preventiva;media;2026-10-29;2026-11-01;1,7;cerrada;T-01;Lubricación general
+OT-000151;CARG-002;preventiva;media;2026-10-19;2026-10-21;1,9;cerrada;T-18;Calibración de sensores
+OT-000152;CAEX-005;correctiva;media;2026-10-04;;5,9;abierta;T-05;Fuga hidráulica
+OT-000153;CORR-004;preventiva;media;2026-10-05;2026-10-07;10,5;cerrada;T-12;Cambio de neumático
+OT-000154;CAEX-024;correctiva;baja;2026-10-07;;9,7;abierta;T-10;Calibración de sensores
+OT-000155;CAEX-023;correctiva;media;2026-10-02;;4,8;en proceso;T-02;Falla eléctrica
+OT-000156;CAEX-007;preventiva;alta;2026-10-05;2026-10-08;15,5;cerrada;T-14;Revisión de frenos
+OT-000157;CAEX-009;inspección;baja;2026-10-16;2026-10-18;13,4;cerrada;T-03;Falla eléctrica
+OT-000158;CORR-002;preventiva;media;2026-10-25;2026-10-26;1,0;cerrada;T-11;Cambio de neumático
+OT-000159;CAEX-007;preventiva;baja;2026-10-01;2026-10-03;13,5;cerrada;T-11;Calibración de sensores
+OT-000160;CAEX-023;correctiva;media;2026-10-24;2026-10-24;8,1;cerrada;T-16;Inspección estructural
+OT-000161;CAEX-024;preventiva;baja;2026-10-02;2026-10-04;9,1;cerrada;T-17;Lubricación general
+OT-000162;CAEX-006;correctiva;baja;2026-10-26;2026-11-01;12,7;cerrada;T-14;Cambio de correa
+OT-000170;CHAN-001;preventiva;alta;2026-10-30;2026-11-04;10,7;cerrada;T-13;Revisión de frenos
+OT-000164;CAEX-023;inspección;media;2026-10-23;;4,3;en proceso;T-08;Cambio de neumático
+OT-000165;PERF-001;inspección;alta;2026-10-09;;1,1;en proceso;T-17;Cambio de correa
+OT-000166;CORR-002;preventiva;alta;12/10/2026;2026-10-18;9,8;cerrada;T-06;Falla eléctrica
+OT-000167;PALA-004;correctiva;media;2026-10-25;2026-10-28;6,6;cerrada;T-12;Cambio de neumático
+OT-000168;CARG-003;correctiva;baja;2026-10-20;2026-10-24;4,6;cerrada;T-11;Cambio de neumático
+OT-000169;CAEX-022;correctiva;baja;2026-10-24;;12,0;en proceso;T-06;Revisión de frenos
+OT-000170;CAEX-015;inspección;media;2026-10-15;2026-10-20;7,7;cerrada;T-15;Cambio de filtros
+OT-000171;CAEX-019;correctiva;media;2026-10-31;2026-11-05;4,8;cerrada;T-15;Lubricación general
+OT-000172;PALA-001;inspección;media;2026-10-23;;12,0;abierta;T-14;Revisión de frenos
+OT-000173;CAEX-008;correctiva;media;2026-10-04;2026-10-06;2,5;cerrada;T-11;Reparación de motor
+OT-000174;CAEX-017;correctiva;media;2026-10-30;2026-10-31;11,0;cerrada;T-06;Reparación de motor
+OT-000175;CAEX-018;correctiva;media;2026-10-30;2026-11-02;11,6;cerrada;T-03;Calibración de sensores
+OT-000176;PALA-002;preventiva;media;2026-10-05;2026-10-07;1,9;cerrada;T-12;Inspección estructural
+OT-000177;CARG-002;preventiva;alta;2026-10-25;2026-10-25;0,7;cerrada;T-02;Lubricación general
+OT-000178;PERF-003;preventiva;alta;2026-10-21;2026-10-21;15,1;cerrada;T-15;Cambio de filtros
+OT-000179;CHAN-001;preventiva;media;2026-10-07;;3,9;abierta;T-12;Cambio de correa
+OT-000180;PERF-005;inspección;media;2026-10-02;2026-10-04;11,3;cerrada;T-04;Inspección estructural
+OT-000181;CAEX-005;inspección;media;2026-10-31;;4,2;abierta;T-03;Revisión de frenos
+OT-000182;PERF-004;preventiva;alta;2026-10-01;2026-10-02;13,7;cerrada;T-01;Cambio de neumático
+OT-000183;CAEX-020;preventiva;alta;2026-10-01;;7,4;en proceso;T-03;Inspección estructural
+OT-000184;CAEX-012;correctiva;media;2026-10-16;2026-10-18;1,2;cerrada;T-05;Inspección estructural
+OT-000185;CAEX-006;correctiva;baja;2026-10-15;2026-10-20;13,9;cerrada;T-15;Cambio de correa
+OT-000186;PERF-003;correctiva;alta;2026-10-01;;11,5;abierta;T-06;Cambio de neumático
+OT-000187;CAEX-005;correctiva;baja;2026-10-20;;3,5;abierta;T-02;Fuga hidráulica
+OT-000188;PERF-004;preventiva;media;2026-10-16;2026-10-16;14,1;cerrada;T-05;Reparación de motor
+OT-000189;CHAN-001;preventiva;media;2026-10-28;;8,1;abierta;T-01;Inspección estructural
+OT-000190;CAEX-021;preventiva;baja;2026-10-16;;-3,7;abierta;T-13;Cambio de neumático
+OT-000191;PERF-003;preventiva;baja;2026-10-27;2026-10-30;2,8;cerrada;T-11;Reparación de motor
+OT-000192;CAEX-006;preventiva;alta;2026-10-15;2026-10-19;14,4;cerrada;T-06;Inspección estructural
+OT-000193;PALA-003;preventiva;alta;2026-10-09;2026-10-14;13,1;cerrada;T-01;Reparación de motor
+OT-000194;CAEX-001;correctiva;baja;2026-10-26;;15,0;en proceso;T-10;Fuga hidráulica
+OT-000195;CAEX-019;preventiva;alta;2026-10-21;2026-10-26;4,0;cerrada;T-15;Cambio de filtros
+OT-000196;CHAN-001;correctiva;media;2026-10-26;;6,4;abierta;T-04;Calibración de sensores
+OT-000197;PALA-005;preventiva;alta;2026-10-17;2026-10-21;2,4;cerrada;T-18;Cambio de filtros
+OT-000198;CORR-001;preventiva;baja;2026-10-27;2026-10-28;6,5;cerrada;T-12;Inspección estructural
+OT-000199;CORR-002;correctiva;baja;2026-10-24;;13,0;en proceso;T-15;Inspección estructural
+OT-000200;CAEX-009;preventiva;baja;2026-10-23;2026-10-27;6,7;cerrada;T-04;Fuga hidráulica
+OT-000201;PALA-002;preventiva;alta;2026-10-04;2026-10-06;3,1;cerrada;T-07;Calibración de sensores
+OT-000202;CARG-004;preventiva;baja;2026-10-13;;3,7;en proceso;T-08;Fuga hidráulica
+OT-000203;CAEX-021;inspección;alta;2026-10-16;2026-10-19;3,6;cerrada;T-12;Revisión de frenos
+OT-000204;CAEX-004;preventiva;baja;2026-10-02;;11,6;abierta;T-03;Cambio de correa
+OT-000205;CAEX-008;preventiva;baja;2026-10-03;;4,7;en proceso;T-08;Lubricación general
+OT-000206;CAEX-024;preventiva;baja;2026-10-03;2026-10-07;10,7;cerrada;T-18;Cambio de filtros
+OT-000207;CAEX-014;preventiva;alta;2026-10-25;2026-10-27;3,5;cerrada;T-01;Fuga hidráulica
+OT-000208;CAEX-007;preventiva;alta;2026-10-06;2026-10-07;6,2;cerrada;T-04;Revisión de frenos
+OT-000209;CHAN-001;correctiva;baja;2026-10-09;2026-10-10;13,0;cerrada;T-07;Falla eléctrica
+OT-000210;PERF-005;preventiva;media;2026-10-04;2026-10-10;8,4;cerrada;T-03;Cambio de neumático
+OT-000211;CAEX-008;inspección;alta;2026-10-12;;3,2;abierta;T-07;Calibración de sensores
+OT-000212;CAEX-014;correctiva;baja;2026-10-29;2026-11-01;12,7;cerrada;T-15;Cambio de correa
+OT-000213;CAEX-001;preventiva;baja;2026-10-13;2026-10-18;4,9;cerrada;T-13;Calibración de sensores
+OT-000214;CAEX-010;preventiva;baja;2026-10-23;2026-10-28;7,2;cerrada;T-03;Fuga hidráulica
+OT-000215;CORR-001;inspección;media;2026-10-20;;11,8;abierta;T-15;Inspección estructural
+OT-000216;PERF-001;preventiva;media;2026-10-13;2026-10-19;6,6;cerrada;T-02;Lubricación general
+OT-000217;PALA-002;preventiva;media;2026-10-11;2026-10-15;9,3;cerrada;T-02;Lubricación general
+OT-000218;CAEX-015;preventiva;media;2026-10-14;2026-10-15;12,7;cerrada;T-06;Inspección estructural
+OT-000219;PERF-001;preventiva;media;2026-10-18;;14,8;abierta;T-13;Falla eléctrica
+OT-000220;CHAN-001;preventiva;baja;2026-10-09;2026-10-15;14,1;cerrada;T-15;Fuga hidráulica
+OT-000221;CAEX-016;correctiva;baja;2026-10-01;2026-10-05;13,3;cerrada;T-13;Cambio de filtros
+OT-000222;CARG-004;inspección;media;2026-10-16;2026-10-20;6,8;cerrada;T-10;Calibración de sensores
+OT-000223;CAEX-012;preventiva;baja;2026-10-02;2026-10-06;4,4;cerrada;T-14;Fuga hidráulica
+OT-000224;CORR-001;correctiva;media;2026-10-26;2026-10-30;9,4;cerrada;T-08;Reparación de motor
+OT-000225;CAEX-002;correctiva;media;2026-10-16;2026-10-16;12,7;cerrada;T-14;Cambio de filtros
+OT-000226;CAEX-009;preventiva;alta;2026-10-01;2026-10-05;8,1;cerrada;T-03;Inspección estructural
+OT-000227;PERF-005;preventiva;alta;2026-10-31;2026-11-04;8,2;cerrada;T-05;Cambio de filtros
+OT-000228;CAEX-010;preventiva;media;2026-10-23;2026-10-29;1,5;cerrada;T-15;Cambio de correa
+OT-000229;PALA-001;preventiva;alta;2026-10-09;2026-10-15;3,7;cerrada;T-14;Cambio de correa
+OT-000230;CAEX-011;preventiva;alta;2026-10-29;2026-11-02;6,3;cerrada;T-07;Falla eléctrica
+OT-000231;CHAN-001;inspección;media;2026-10-10;2026-10-16;2,6;cerrada;T-12;Fuga hidráulica
+OT-000232;CARG-003;preventiva;media;2026-10-03;2026-10-07;3,1;cerrada;T-05;Inspección estructural
+OT-000233;CARG-004;preventiva;baja;2026-10-23;2026-10-26;7,7;cerrada;T-03;Cambio de neumático
+OT-000234;CAEX-008;preventiva;media;2026-10-17;2026-10-23;12,0;cerrada;T-16;Revisión de frenos
+OT-000235;CAEX-009;correctiva;baja;2026-10-12;2026-10-17;6,3;cerrada;T-06;Cambio de filtros
+OT-000236;PALA-001;inspección;media;2026-10-16;2026-10-18;8,3;cerrada;T-16;Revisión de frenos
+OT-000237;CAEX-019;preventiva;media;2026-10-16;2026-10-17;12,8;abierto;T-14;Falla eléctrica
+OT-000238;CAEX-005;preventiva;media;2026-10-11;2026-10-17;15,2;cerrada;T-10;Inspección estructural
+OT-000239;CARG-003;preventiva;media;2026-10-02;;10,3;abierta;T-10;Lubricación general
+OT-000240;CAEX-003;preventiva;media;2026-10-24;;11,5;abierta;T-11;Revisión de frenos
+OT-000241;CAEX-001;preventiva;baja;2026-10-29;2026-10-29;1,5;cerrada;T-12;Inspección estructural
+OT-000242;CAEX-002;correctiva;baja;2026-10-02;2026-10-07;14,4;cerrada;T-17;Revisión de frenos
+OT-000243;CHAN-002;preventiva;baja;2026-10-20;2026-10-25;0,7;cerrada;T-02;Revisión de frenos
+OT-000244;CAEX-022;correctiva;baja;2026-10-19;;15,1;abierta;T-10;Inspección estructural
+OT-000245;PERF-003;preventiva;media;2026-10-03;2026-10-05;10,1;cerrada;T-05;Revisión de frenos
+OT-000246;CAEX-019;correctiva;baja;2026-10-02;2026-10-04;13,7;cerrada;T-06;Revisión de frenos
+OT-000247;CAEX-004;preventiva;media;2026-10-18;2026-10-22;4,4;cerrada;T-03;Falla eléctrica
+OT-000248;CAEX-015;preventiva;media;2026-10-06;2026-10-11;9,3;cerrada;T-15;Reparación de motor
+OT-000249;CAEX-007;preventiva;media;2026-10-11;;15,2;abierta;T-05;Falla eléctrica
+OT-000250;PERF-004;preventiva;media;2026-10-15;2026-10-20;15,8;cerrada;T-17;Cambio de filtros
+OT-000251;PERF-005;inspección;baja;2026-10-24;2026-10-26;12,1;cerrada;T-05;Lubricación general
+OT-000252;;preventiva;media;2026-10-06;2026-10-08;15,6;cerrada;T-07;Falla eléctrica
+OT-000253;CAEX-006;preventiva;media;2026-10-01;2026-10-04;6,1;cerrada;T-14;Reparación de motor
+OT-000254;CORR-002;preventiva;media;2026-10-23;2026-10-26;10,7;cerrada;T-10;Cambio de neumático
+OT-000255;CAEX-006;inspección;media;2026-10-08;2026-10-12;0,9;cerrada;T-09;Cambio de correa
+OT-000256;CORR-004;inspección;media;2026-10-15;2026-10-16;10,5;cerrada;T-03;Calibración de sensores
+OT-000257;CAEX-018;preventiva;media;2026-10-01;2026-10-07;1,5;cerrada;T-08;Falla eléctrica
+OT-000258;PALA-004;correctiva;media;2026-10-02;;15,1;en proceso;T-04;Falla eléctrica
+OT-000259;CORR-004;inspección;media;2026-10-07;;4,8;abierta;T-13;Revisión de frenos
+OT-000260;CAEX-023;preventiva;media;2026-10-17;2026-10-20;14,7;cerrada;T-05;Falla eléctrica
+OT-000261;CAEX-005;preventiva;alta;2026-10-23;2026-10-25;15,7;cerrada;T-01;Fuga hidráulica
+OT-000262;CARG-002;preventiva;media;2026-10-17;;5,6;abierta;T-18;Cambio de filtros
+OT-000263;CORR-001;correctiva;media;2026-10-26;2026-10-28;11,0;cerrada;T-18;Revisión de frenos
+OT-000264;PERF-004;correctiva;media;2026-10-27;2026-10-31;9,4;cerrada;T-13;Revisión de frenos
+OT-000265;CORR-002;preventiva;media;2026-10-16;2026-10-20;6,9;cerrada;T-01;Lubricación general
+OT-000266;CAEX-019;correctiva;alta;2026-10-12;;13,6;en proceso;T-14;Cambio de correa
+OT-000267;PERF-003;correctiva;alta;2026-10-02;2026-10-07;6,6;cerrada;T-06;Falla eléctrica
+OT-000268;PERF-001;preventiva;media;2026-10-25;2026-10-29;8,6;cerrada;T-07;Inspección estructural
+OT-000269;CAEX-013;preventiva;alta;2026-10-21;2026-10-27;1,8;cerrada;T-06;Fuga hidráulica
+OT-000270;CAEX-021;correctiva;alta;2026-10-20;2026-10-26;8,7;cerrada;T-16;Cambio de correa
+OT-000271;CAEX-022;correctiva;media;2026-10-15;2026-10-21;9,6;cerrada;T-01;Revisión de frenos
+OT-000272;CARG-004;inspección;alta;2026-10-31;;10,0;abierta;T-17;Cambio de neumático
+OT-000273;CAEX-018;preventiva;alta;2026-10-05;2026-10-08;11,8;cerrada;T-07;Lubricación general
+OT-000274;CARG-003;preventiva;media;2026-10-28;2026-10-30;7,5;cerrada;T-13;Inspección estructural
+OT-000275;CAEX-020;correctiva;media;2026-10-16;;7,7;abierta;T-05;Cambio de neumático
+OT-000276;CAEX-018;preventiva;baja;2026-10-03;2026-10-09;15,1;cerrada;T-18;Cambio de correa
+OT-000277;PALA-005;preventiva;baja;2026-10-16;2026-10-17;12,8;cerrada;T-10;Cambio de neumático
+OT-000278;PALA-003;preventiva;media;2026-10-27;2026-11-02;5,3;cerrada;T-07;Revisión de frenos
+OT-000279;CAEX-013;preventiva;alta;2026-10-31;2026-11-01;12,8;cerada;T-07;Calibración de sensores
+OT-000280;CHAN-002;inspección;baja;2026-10-04;2026-10-09;4,9;cerrada;T-10;Revisión de frenos
+OT-000281;CARG-001;preventiva;alta;2026-10-26;;10,6;abierta;T-03;Fuga hidráulica
+OT-000282;CAEX-002;correctiva;baja;2026-10-12;2026-10-13;10,3;cerrada;T-13;Lubricación general
+OT-000283;CORR-004;correctiva;baja;2026-10-29;2026-11-04;6,5;cerrada;T-13;Reparación de motor
+OT-000284;CHAN-002;inspección;alta;2026-10-11;2026-10-13;13,0;cerrada;T-02;Lubricación general
+OT-000285;PALA-002;preventiva;media;2026-10-05;2026-10-11;7,2;cerrada;T-11;Lubricación general
+OT-000286;CORR-001;correctiva;alta;2026-10-03;;15,7;en proceso;T-02;Cambio de correa
+OT-000287;CAEX-021;inspección;baja;2026-10-03;2026-10-06;7,5;cerrada;T-06;Fuga hidráulica
+OT-000288;PERF-005;correctiva;baja;2026-10-07;;1,2;abierta;T-06;Fuga hidráulica
+OT-000289;CAEX-017;correctiva;alta;2026-10-13;;9,6;abierta;T-06;Cambio de neumático
+OT-000290;CAEX-014;preventiva;baja;2026-10-08;2026-10-10;13,6;cerrada;T-01;Inspección estructural
+OT-000291;CAEX-009;preventiva;media;2026-10-04;;5,5;en proceso;T-11;Falla eléctrica
+OT-000292;CAEX-017;preventiva;media;2026-10-18;;10,7;abierta;T-03;Reparación de motor
+OT-000293;CAEX-021;inspección;baja;2026-10-31;;14,0;en proceso;T-07;Reparación de motor
+OT-000294;CAEX-006;correctiva;baja;2026-10-28;2026-11-01;3,5;cerrada;T-14;Revisión de frenos
+OT-000295;PALA-005;preventiva;media;2026-10-21;2026-10-25;7,4;cerrada;T-05;Inspección estructural
+OT-000296;PERF-005;correctiva;alta;2026-10-17;2026-10-20;11,9;cerrada;T-04;Calibración de sensores
+OT-000297;CORR-003;correctiva;alta;2026-10-07;;5,8;abierta;T-18;Fuga hidráulica
+OT-000298;CAEX-016;correctiva;baja;2026-10-26;2026-10-28;7,8;cerrada;T-01;Calibración de sensores
+OT-000299;PALA-001;inspección;media;2026-10-01;2026-10-05;4,0;cerrada;T-14;Falla eléctrica
+OT-000300;PERF-003;preventiva;media;2026-10-27;2026-10-28;10,3;cerrada;T-01;Falla eléctrica
+OT-000301;CAEX-007;correctiva;media;2026-10-07;2026-10-09;4,8;cerrada;T-05;Fuga hidráulica
+OT-000302;CAEX-007;inspección;alta;2026-10-11;;1,7;en proceso;T-11;Cambio de correa
+OT-000303;CAEX-023;correctiva;baja;2026-10-13;2026-10-19;15,4;cerrada;T-01;Lubricación general
+OT-000304;CAEX-006;correctiva;media;2026-10-18;2026-10-23;5,9;cerrada;T-07;Calibración de sensores
+OT-000305;CARG-004;correctiva;alta;2026-10-08;;15,1;abierta;T-16;Cambio de filtros
+OT-000306;PALA-005;preventiva;alta;2026-10-20;2026-10-20;15,7;cerrada;T-13;Cambio de filtros
+OT-000307;PERF-002;inspección;media;2026-10-04;2026-10-07;4,7;cerrada;T-15;Reparación de motor
+OT-000308;;correctiva;media;2026-10-15;;10,8;en proceso;T-04;Cambio de correa
+OT-000309;CAEX-004;preventiva;media;2026-10-24;2026-10-27;2,4;cerrada;T-13;Lubricación general
+OT-000310;PALA-001;preventiva;media;2026-10-23;2026-10-28;9,0;cerrada;T-15;Lubricación general
+OT-000311;CAEX-018;preventiva;baja;2026-10-09;;8,1;abierta;T-07;Cambio de neumático
+OT-000312;CORR-003;correctiva;media;2026-10-21;2026-10-23;10,9;cerrada;T-07;Cambio de filtros
+OT-000313;CAEX-020;preventiva;alta;2026-10-31;;14,9;abierta;T-04;Calibración de sensores
+OT-000314;CAEX-014;preventiva;media;2026-10-27;;14,5;abierta;T-11;Falla eléctrica
+OT-000315;CAEX-020;correctiva;media;2026-10-01;2026-10-06;3,3;cerrada;T-14;Calibración de sensores
+OT-000316;CAEX-019;preventiva;baja;2026-10-16;2026-10-20;3,6;cerrada;T-03;Cambio de correa
+OT-000317;CAEX-023;preventiva;alta;2026-10-08;2026-10-11;12,3;cerrada;T-16;Fuga hidráulica
+OT-000318;CORR-004;preventiva;alta;2026-10-12;2026-10-14;5,3;cerrada;T-16;Fuga hidráulica
+OT-000319;CAEX-004;inspección;alta;2026-10-24;2026-10-24;10,7;cerrada;T-06;Inspección estructural
+OT-000320;PALA-005;correctiva;media;2026-10-13;;7,4;en proceso;T-14;Inspección estructural
+OT-000321;CAEX-005;inspección;media;2026-10-29;2026-11-01;8,0;cerrada;T-07;Revisión de frenos
+OT-000322;CAEX-007;correctiva;media;2026-10-14;2026-10-18;15,9;cerrada;T-01;Reparación de motor
+OT-000323;PERF-002;correctiva;baja;2026-10-27;2026-11-02;13,3;cerrada;T-10;Reparación de motor
+OT-000324;CAEX-009;preventiva;baja;2026-10-13;;10,2;en proceso;T-02;Falla eléctrica
+OT-000325;CARG-002;preventiva;baja;2026-10-15;2026-10-21;14,9;CERRADA;T-01;Cambio de correa
+OT-000326;CHAN-001;preventiva;media;2026-10-26;2026-10-29;1,1;cerrada;T-07;Reparación de motor
+OT-000327;CAEX-017;preventiva;baja;2026-10-25;;5,9;en proceso;T-04;Reparación de motor
+OT-000328;CAEX-016;correctiva;media;2026-10-14;2026-10-17;3,8;cerrada;T-04;Reparación de motor
+OT-000329;CAEX-243;correctiva;baja;2026-10-29;2026-11-01;15,6;cerrada;T-03;Cambio de neumático
+OT-000330;CHAN-001;correctiva;media;2026-10-16;2026-10-18;13,4;cerrada;T-04;Inspección estructural
+OT-000331;CAEX-009;inspección;baja;2026-10-06;;5,0;en proceso;T-06;Revisión de frenos
+OT-000332;CAEX-002;correctiva;baja;2026-10-22;2026-10-27;11,8;cerrada;T-10;Lubricación general
+OT-000333;CAEX-009;correctiva;baja;2026-10-24;2026-10-29;13,0;cerrada;T-09;Lubricación general
+OT-000334;CAEX-022;inspección;media;2026-10-05;2026-10-10;15,6;cerrada;T-11;Revisión de frenos
+OT-000335;PALA-005;preventiva;alta;2026-10-30;;3,5;en proceso;T-07;Calibración de sensores
+OT-000336;CAEX-010;correctiva;media;2026-10-03;;8,9;abierta;T-11;Inspección estructural
+OT-000337;CAEX-007;correctiva;baja;2026-10-17;;15,6;en proceso;T-03;Cambio de filtros
+OT-000338;CAEX-016;inspección;baja;2026-10-09;2026-10-09;4,9;cerrada;T-17;Cambio de correa
+OT-000339;CAEX-023;preventiva;baja;2026-10-12;2026-10-12;10,0;cerrada;T-15;Lubricación general
+OT-000340;PERF-002;correctiva;alta;2026-10-15;2026-10-19;1,6;cerrada;T-17;Revisión de frenos
+OT-000341;CAEX-009;preventiva;baja;2026-10-02;2026-10-03;3,7;cerrada;T-14;Lubricación general
+OT-000342;PERF-003;preventiva;baja;2026-10-26;2026-10-29;8,2;cerrada;T-14;Fuga hidráulica
+OT-000343;CARG-001;correctiva;baja;2026-10-29;;14,8;abierta;T-06;Cambio de filtros
+OT-000344;CAEX-016;preventiva;baja;2026-10-23;2026-10-29;6,7;cerrada;T-17;Calibración de sensores
+OT-000345;CAEX-020;inspección;alta;2026-10-04;2026-10-10;6,7;cerrada;T-01;Cambio de filtros
+OT-000346;CAEX-006;preventiva;media;2026-10-03;;11,3;en proceso;T-13;Inspección estructural
+OT-000347;CORR-002;preventiva;media;2026-10-04;2026-10-04;9,3;cerrada;T-08;Fuga hidráulica
+OT-000348;;correctiva;baja;2026-10-18;2026-10-24;1,2;cerrada;T-09;Inspección estructural
+OT-000349;CAEX-009;inspección;media;2026-10-12;2026-10-12;11,3;cerrada;T-09;Reparación de motor
+OT-000350;CARG-002;preventiva;media;2026-10-03;2026-10-08;15,9;cerrada;T-13;Fuga hidráulica
+OT-000351;CAEX-022;correctiva;baja;2026-10-02;2026-10-08;12,2;cerrada;T-08;Fuga hidráulica
+OT-000352;CAEX-013;preventiva;media;2026-10-16;2026-10-22;8,8;cerrada;T-04;Cambio de filtros
+OT-000353;CAEX-019;correctiva;alta;2026-10-31;2026-11-04;4,9;cerrada;T-06;Revisión de frenos
+OT-000354;CAEX-015;preventiva;media;2026-10-29;2026-10-29;7,8;cerrada;T-04;Cambio de filtros
+OT-000355;CAEX-016;inspección;baja;2026-10-31;;7,5;abierta;T-13;Revisión de frenos
+OT-000356;CAEX-021;preventiva;media;2026-10-20;;5,8;abierta;T-05;Revisión de frenos
+OT-000357;CAEX-006;correctiva;media;2026-10-29;2026-11-04;8,0;cerrada;T-05;Calibración de sensores
+OT-000358;CAEX-007;correctiva;baja;2026-10-21;2026-10-21;7,6;cerrada;T-04;Inspección estructural
+OT-000359;CAEX-005;inspección;media;2026-10-28;;15,3;en proceso;T-04;Inspección estructural
+OT-000360;CAEX-023;correctiva;baja;2026-10-18;2026-10-20;14,1;cerrada;T-03;Reparación de motor
+OT-000361;CAEX-013;preventiva;alta;2026-10-11;2026-10-15;8,8;cerrada;T-10;Cambio de neumático
+OT-000362;CAEX-020;inspección;alta;21/10/2026;;10,3;en proceso;T-04;Reparación de motor
+OT-000363;CAEX-017;correctiva;media;2026-10-01;2026-10-01;;cerrada;T-05;Cambio de filtros
+OT-000364;CAEX-002;correctiva;media;2026-10-31;;11,6;abierta;T-03;Calibración de sensores
+OT-000365;CAEX-022;inspección;alta;2026-10-01;2026-10-02;9,3;cerrada;T-13;Lubricación general
+OT-000366;CORR-002;preventiva;media;2026-10-05;2026-10-06;2,9;cerrada;T-07;Falla eléctrica
+OT-000367;PALA-001;preventiva;media;2026-10-02;;5,1;abierta;T-16;Cambio de correa
+OT-000368;PALA-001;preventiva;alta;2026-10-01;2026-10-02;11,0;cerrada;T-02;Cambio de filtros
+OT-000369;CAEX-002;correctiva;media;2026-10-04;;15,4;en proceso;T-02;Cambio de correa
+OT-000370;CAEX-001;correctiva;media;2026-10-31;2026-11-05;5,8;cerrada;T-07;Cambio de correa
+OT-000371;CAEX-007;preventiva;media;2026-10-20;;14,4;abierta;T-04;Cambio de correa
+OT-000372;CAEX-021;correctiva;baja;2026-10-06;2026-10-11;4,9;cerrada;T-02;Falla eléctrica
+OT-000373;CAEX-016;correctiva;baja;2026-10-12;2026-10-17;1,9;cerrada;T-01;Cambio de filtros
+OT-000374;PALA-004;preventiva;media;2026-10-23;2026-10-24;10,3;cerrada;T-04;Calibración de sensores
+OT-000375;CAEX-014;preventiva;baja;2026-10-14;2026-10-19;13,8;cerrada;T-04;Cambio de neumático
+OT-000376;CHAN-001;correctiva;baja;2026-10-06;;10,3;abierta;T-14;Cambio de correa
+OT-000377;CAEX-007;correctiva;media;2026-10-19;2026-10-24;5,1;cerrada;T-05;Revisión de frenos
+OT-000378;PERF-001;inspección;alta;2026-10-24;2026-10-30;13,4;cerrada;T-16;Lubricación general
+OT-000379;CAEX-003;correctiva;alta;2026-10-26;2026-10-31;;cerrada;T-08;Cambio de filtros
+OT-000380;CAEX-018;correctiva;media;2026-10-30;2026-11-01;10,1;cerrada;T-15;Lubricación general
+OT-000381;CAEX-013;inspección;media;2026-10-02;2026-10-05;12,9;cerrada;T-12;Revisión de frenos
+OT-000382;PERF-004;preventiva;media;2026-10-10;;4,7;abierta;T-03;Cambio de filtros
+OT-000383;CAEX-003;correctiva;alta;2026-10-07;;2,9;abierta;T-18;Cambio de filtros
+OT-000384;PALA-004;correctiva;media;2026-10-17;;1,4;abierta;T-13;Cambio de neumático
+OT-000385;CAEX-019;preventiva;alta;2026-10-10;;6,9;abierta;T-11;Cambio de correa
+OT-000386;CAEX-024;preventiva;baja;2026-10-05;2026-10-05;10,5;cerrada;T-04;Inspección estructural
+OT-000387;CAEX-001;preventiva;alta;2026-10-15;2026-10-17;5,6;cerrada;T-03;Cambio de correa
+OT-000388;CORR-001;preventiva;media;2026-10-02;2026-10-07;10,6;cerrada;T-12;Cambio de neumático
+OT-000389;CAEX-009;preventiva;baja;2026-10-17;2026-10-21;8,6;cerrada;T-18;Cambio de neumático
+OT-000390;PERF-003;preventiva;baja;2026-10-10;;6,6;abierta;T-07;Falla eléctrica
+OT-000391;CAEX-003;inspección;alta;2026-10-19;2026-10-25;8,1;cerrada;T-05;Reparación de motor
+OT-000392;CAEX-005;preventiva;media;2026-10-13;;5,4;abierta;T-16;Revisión de frenos
+OT-000393;CAEX-011;preventiva;alta;2026-10-29;2026-10-31;8,5;cerrada;T-16;Calibración de sensores
+OT-000394;CORR-004;correctiva;baja;2026-10-12;2026-10-13;5,7;cerrada;T-07;Reparación de motor
+OT-000395;CHAN-002;preventiva;baja;2026-10-11;2026-10-15;2,7;cerrada;T-13;Reparación de motor
+OT-000396;CHAN-002;preventiva;media;2026-10-25;2026-10-25;7,4;cerrada;T-01;Fuga hidráulica
+OT-000397;CAEX-010;preventiva;media;2026-10-15;2026-10-17;3,0;cerrada;T-09;Falla eléctrica
+OT-000398;CAEX-018;correctiva;media;2026-10-24;2026-10-25;12,9;cerrada;T-11;Reparación de motor
+OT-000399;CORR-002;preventiva;baja;2026-10-13;2026-10-15;1,0;cerrada;T-11;Falla eléctrica
+OT-000400;PERF-004;preventiva;media;2026-10-18;2026-10-24;2,6;cerrada;T-18;Inspección estructural
+OT-000401;CAEX-012;preventiva;media;2026-10-04;2026-10-10;11,7;cerrada;T-10;Reparación de motor
+OT-000402;PERF-001;inspección;baja;23/10/2026;2026-10-23;3,7;cerrada;T-08;Falla eléctrica
+OT-000403;PALA-001;correctiva;media;2026-10-19;;6,7;abierta;T-15;Calibración de sensores
+OT-000404;CAEX-020;preventiva;media;2026-10-28;2026-10-31;15,1;cerrada;T-14;Falla eléctrica
+OT-000405;PERF-005;preventiva;media;2026-10-17;2026-10-20;11,8;cerrada;T-05;Cambio de filtros
+OT-000406;CAEX-005;correctiva;alta;2026-10-30;2026-11-01;15,7;cerrada;T-01;Cambio de filtros
+OT-000407;CAEX-018;correctiva;alta;2026-10-11;2026-10-17;5,6;cerrada;T-04;Falla eléctrica
+OT-000408;CHAN-001;preventiva;media;2026-10-24;;3,3;en proceso;T-10;Revisión de frenos
+OT-000409;CAEX-004;preventiva;baja;2026-10-01;2026-10-03;5,1;cerrada;T-17;Inspección estructural
+OT-000410;CARG-004;preventiva;media;2026-10-01;2026-10-01;13,2;cerrada;T-17;Cambio de neumático
+OT-000411;CAEX-024;preventiva;media;2026-10-04;2026-10-06;11,2;cerrada;T-09;Lubricación general
+OT-000412;CAEX-010;preventiva;media;2026-10-08;;10,2;en proceso;T-03;Revisión de frenos
+OT-000413;CAEX-001;preventiva;media;2026-10-16;2026-10-18;8,7;cerrada;T-05;Cambio de filtros
+OT-000414;CAEX-018;preventiva;media;2026-10-10;2026-10-10;9,7;cerrada;T-01;Revisión de frenos
+OT-000415;CAEX-007;correctiva;media;2026-10-24;2026-10-26;15,5;cerrada;T-18;Reparación de motor
+OT-000416;CARG-003;correctiva;media;2026-10-15;2026-10-21;12,2;cerrada;T-02;Fuga hidráulica
+OT-000417;CARG-002;correctiva;baja;2026-10-26;2026-10-26;15,8;cerrada;T-09;Revisión de frenos
+OT-000418;CAEX-024;correctiva;media;2026-10-21;2026-10-25;11,5;cerrada;T-08;Cambio de filtros
+OT-000419;CHAN-002;correctiva;media;2026-10-31;2026-11-04;9,6;cerrada;T-03;Cambio de filtros
+OT-000420;CAEX-018;preventiva;media;2026-10-01;;9,1;abierta;T-13;Lubricación general
+OT-000421;PALA-002;preventiva;media;2026-10-18;2026-10-23;3,6;cerrada;T-09;Calibración de sensores
+OT-000422;PERF-005;inspección;alta;2026-10-04;2026-10-07;2,3;cerrada;T-06;Reparación de motor
+OT-000423;CAEX-018;correctiva;media;2026-10-13;;8,8;en proceso;T-01;Falla eléctrica
+OT-000424;CAEX-008;correctiva;baja;2026-10-02;;14,5;abierta;T-17;Inspección estructural
+OT-000425;CAEX-012;preventiva;baja;2026-10-24;2026-10-29;1,5;cerrada;T-15;Falla eléctrica
+OT-000426;CORR-004;correctiva;media;2026-10-08;;13,4;abierta;T-16;Cambio de filtros
+OT-000427;CAEX-018;correctiva;media;2026-10-14;2026-10-15;4,2;cerrada;T-06;Cambio de correa
+OT-000428;PERF-002;preventiva;baja;2026-10-30;2026-10-31;12,6;cerrada;T-06;Reparación de motor
+OT-000429;PALA-002;correctiva;media;2026-10-27;2026-10-31;8,7;cerrada;T-16;Cambio de filtros
+OT-000430;CAEX-017;preventiva;media;2026-10-08;2026-10-11;6,2;cerrada;T-11;Lubricación general
+OT-000431;CHAN-002;correctiva;media;2026-10-09;2026-10-09;0,5;cerrada;T-08;Reparación de motor
+OT-000432;CAEX-010;preventiva;alta;2026-10-25;2026-10-31;3,7;cerrada;T-03;Cambio de correa
+OT-000433;CAEX-004;correctiva;media;2026-10-27;2026-10-31;13,7;cerrada;T-09;Cambio de correa
+OT-000434;CORR-003;preventiva;alta;2026-10-28;2026-10-31;4,6;cerrada;T-18;Lubricación general
+OT-000435;CAEX-014;preventiva;alta;2026-10-01;2026-10-07;3,8;Cerrada;T-10;Cambio de filtros
+OT-000436;PERF-005;correctiva;baja;2026-10-29;2026-10-29;6,1;cerrada;T-06;Calibración de sensores
+OT-000437;PALA-003;preventiva;alta;2026-10-31;;12,8;abierta;T-15;Cambio de correa
+OT-000438;PERF-002;preventiva;alta;2026-10-19;2026-10-20;7,9;cerrada;T-09;Falla eléctrica
+OT-000439;CAEX-007;preventiva;alta;2026-10-14;;2,9;abierta;T-16;Reparación de motor
+OT-000440;CAEX-015;correctiva;alta;2026-10-02;2026-10-05;8,3;cerrada;T-04;Lubricación general
+OT-000441;CAEX-017;correctiva;baja;2026-10-26;;0,9;en proceso;T-18;Cambio de filtros
+OT-000442;CORR-003;inspección;baja;2026-10-21;;12,6;en proceso;T-06;Cambio de neumático
+OT-000443;CAEX-018;preventiva;media;2026-10-06;;15,9;en proceso;T-11;Falla eléctrica
+OT-000444;CAEX-020;preventiva;media;2026-10-08;;12,3;abierta;T-06;Cambio de filtros
+OT-000445;CAEX-020;correctiva;alta;2026-10-04;;9,6;en proceso;T-07;Fuga hidráulica
+OT-000446;CAEX-018;preventiva;media;2026-10-23;2026-10-25;3,5;cerrada;T-07;Calibración de sensores
+OT-000447;CAEX-011;correctiva;baja;2026-10-30;2026-11-04;3,9;cerrada;T-16;Falla eléctrica
+OT-000448;CAEX-024;preventiva;alta;2026-10-26;;3,3;en proceso;T-05;Fuga hidráulica
+OT-000449;CAEX-019;correctiva;alta;2026-10-06;;12,8;abierta;T-07;Cambio de filtros
+OT-000450;CORR-002;preventiva;media;2026-10-09;;1,1;abierta;T-07;Lubricación general
+OT-000451;CAEX-022;preventiva;media;2026-10-19;2026-10-23;9,6;cerrada;T-18;Falla eléctrica
+OT-000452;CARG-001;correctiva;media;2026-10-12;2026-10-13;12,6;cerrada;T-17;Falla eléctrica
+OT-000453;CAEX-020;inspección;baja;2026-10-04;;5,3;en proceso;T-07;Fuga hidráulica
+OT-000454;CORR-001;preventiva;media;2026-10-01;2026-10-03;1,3;cerrada;T-17;Calibración de sensores
+OT-000455;CAEX-006;correctiva;media;2026-10-19;2026-10-25;1,1;cerrada;T-09;Revisión de frenos
+OT-000456;PALA-001;preventiva;media;2026-10-20;;4,8;en proceso;T-14;Calibración de sensores
+OT-000457;CAEX-013;preventiva;alta;2026-10-03;;6,4;abierta;T-04;Cambio de correa
+OT-000458;CAEX-008;inspección;baja;2026-10-29;2026-10-29;1,3;cerrada;T-14;Cambio de filtros
+OT-000459;CAEX-014;preventiva;alta;2026-10-06;2026-10-07;4,6;cerrada;T-09;Reparación de motor
+OT-000460;CARG-003;correctiva;media;2026-10-27;2026-10-29;2,0;cerrada;T-03;Inspección estructural
+OT-000461;CAEX-015;preventiva;media;2026-10-10;2026-10-11;10,0;cerrada;T-09;Cambio de neumático
+OT-000462;CAEX-019;preventiva;media;2026-10-06;2026-10-10;10,3;cerrada;T-08;Cambio de correa
+OT-000463;PALA-001;preventiva;baja;2026-10-01;2026-10-01;15,9;cerrada;T-07;Reparación de motor
+OT-000464;CAEX-020;preventiva;baja;2026-10-24;;2,9;abierta;T-12;Cambio de filtros
+OT-000465;PERF-002;inspección;media;2026-10-03;;2,9;abierta;T-13;Cambio de neumático
+OT-000466;PALA-002;correctiva;media;2026-10-31;2026-11-05;10,3;cerrada;T-10;Calibración de sensores
+OT-000467;CAEX-004;correctiva;media;2026-10-25;;14,5;en proceso;T-03;Cambio de neumático
+OT-000468;PERF-003;inspección;baja;2026-10-29;2026-10-29;16,0;cerrada;T-09;Revisión de frenos
+OT-000469;PERF-003;preventiva;media;2026-10-22;2026-10-24;4,8;cerrada;T-13;Inspección estructural
+OT-000470;CAEX-015;preventiva;baja;2026-10-21;2026-10-24;8,3;cerrada;T-04;Cambio de filtros
+OT-000471;CARG-003;correctiva;media;2026-10-06;;10,9;abierta;T-03;Calibración de sensores
+OT-000472;CAEX-015;correctiva;baja;2026-10-21;;4,9;en proceso;T-09;Falla eléctrica
+OT-000473;CAEX-013;inspección;media;2026-10-28;;11,7;en proceso;T-01;Cambio de neumático
+OT-000474;CAEX-008;correctiva;media;2026-10-02;2026-10-04;15,9;cerrada;T-12;Cambio de correa
+OT-000475;CAEX-001;inspección;alta;2026-10-27;2026-10-28;1,5;cerrada;T-07;Inspección estructural
+OT-000476;CAEX-013;correctiva;baja;2026-10-30;2026-10-30;5,3;cerrada;T-03;Calibración de sensores
+OT-000477;CAEX-006;preventiva;baja;2026-10-14;2026-10-16;12,3;cerrada;T-07;Inspección estructural
+OT-000478;CAEX-013;preventiva;media;2026-10-26;;7,3;en proceso;T-02;Calibración de sensores
+OT-000479;CAEX-011;inspección;media;2026-10-18;;5,4;en proceso;T-10;Cambio de correa
+OT-000480;CAEX-009;correctiva;media;2026-10-31;2026-10-31;5,2;cerrada;T-05;Fuga hidráulica
+OT-000481;CAEX-009;correctiva;baja;2026-10-31;2026-11-01;13,8;cerrada;T-18;Calibración de sensores
+OT-000482;CAEX-006;preventiva;media;2026-10-17;2026-10-19;9,0;cerrada;T-05;Lubricación general
+OT-000483;CORR-004;correctiva;media;2026-10-26;2026-10-28;15,0;cerrada;T-11;Falla eléctrica
+OT-000484;CORR-003;preventiva;media;2026-10-19;2026-10-22;8,3;cerrada;T-06;Falla eléctrica
+OT-000485;CAEX-015;preventiva;media;2026-10-25;2026-10-28;5,2;cerrada;T-16;Inspección estructural
+OT-000486;CAEX-017;preventiva;media;2026-10-21;2026-10-25;5,7;cerrada;T-17;Calibración de sensores
+OT-000487;CAEX-005;inspección;baja;2026-10-23;2026-10-27;15,5;cerrada;T-13;Cambio de neumático
+OT-000488;PERF-003;preventiva;media;2026-10-22;2026-10-27;10,2;cerrada;T-10;Fuga hidráulica
+OT-000489;CHAN-001;preventiva;media;2026-10-12;2026-10-14;4,5;cerrada;T-12;Inspección estructural
+OT-000490;PERF-001;inspección;baja;2026-10-06;2026-10-12;16,0;cerrada;T-15;Falla eléctrica
+OT-000491;CAEX-009;inspección;alta;2026-10-11;;10,0;abierta;T-08;Fuga hidráulica
+OT-000492;CAEX-022;preventiva;baja;2026-10-11;2026-10-15;3,8;cerrada;T-18;Fuga hidráulica
+OT-000493;PALA-001;preventiva;baja;2026-10-17;2026-10-22;14,7;cerrada;T-18;Reparación de motor
+OT-000494;CARG-001;inspección;media;2026-10-30;2026-11-03;7,9;cerrada;T-08;Calibración de sensores
+OT-000495;CORR-002;inspección;alta;2026-10-07;2026-10-08;3,0;cerrada;T-06;Cambio de filtros
+OT-000496;CHAN-002;correctiva;baja;2026-10-02;2026-10-06;5,5;cerrada;T-16;Calibración de sensores
+OT-000497;CAEX-011;preventiva;alta;2026-10-12;2026-10-14;12,3;cerrada;T-15;Cambio de correa
+OT-000498;PERF-002;preventiva;media;2026-10-17;2026-10-23;12,0;cerrada;T-15;Revisión de frenos
+OT-000499;CAEX-003;correctiva;media;2026-10-31;2026-11-06;2,4;cerrada;T-11;Calibración de sensores
+OT-000500;PALA-003;correctiva;alta;2026-10-10;2026-10-16;6,0;cerrada;T-02;Falla eléctrica
+OT-000501;PERF-005;correctiva;media;2026-10-01;2026-10-01;4,5;cerrada;T-14;Calibración de sensores
+OT-000502;CAEX-015;correctiva;baja;2026-10-14;2026-10-14;4,6;cerrada;T-07;Calibración de sensores
+OT-000503;PERF-004;correctiva;alta;2026-10-03;2026-10-07;1,7;cerrada;T-02;Cambio de neumático
+OT-000504;CAEX-010;preventiva;baja;2026-10-28;2026-10-31;4,0;cerrada;T-16;Reparación de motor
+OT-000505;CAEX-013;preventiva;media;2026-10-13;;12,0;abierta;T-12;Cambio de correa
+OT-000506;CAEX-015;preventiva;media;2026-10-13;;15,7;abierta;T-16;Calibración de sensores
+OT-000507;CAEX-010;correctiva;media;28/10/2026;2026-10-28;2,8;cerrada;T-03;Cambio de neumático
+OT-000508;CAEX-018;correctiva;baja;2026-10-05;;13,2;abierta;T-10;Cambio de filtros
+OT-000509;CAEX-019;inspección;alta;2026-10-21;2026-10-22;362,7;cerrada;T-09;Inspección estructural
+OT-000510;PALA-005;correctiva;alta;2026-10-17;;6,1;en proceso;T-02;Lubricación general
+OT-000511;CAEX-017;preventiva;alta;2026-10-08;2026-10-11;5,2;cerrada;T-10;Falla eléctrica
+OT-000512;PERF-003;preventiva;alta;2026-10-29;2026-11-03;9,5;cerrada;T-10;Revisión de frenos
+OT-000513;CORR-001;preventiva;alta;2026-10-11;;8,2;abierta;T-03;Falla eléctrica
+OT-000514;PALA-003;preventiva;baja;2026-10-04;;9,3;abierta;T-02;Revisión de frenos
+OT-000515;CAEX-011;preventiva;alta;2026-10-09;2026-10-11;14,3;cerrada;T-14;Reparación de motor
+OT-000516;CARG-001;inspección;baja;2026-10-26;2026-10-29;1,4;cerrada;T-18;Cambio de neumático
+OT-000517;PALA-004;preventiva;media;2026-10-19;;12,1;abierta;T-05;Calibración de sensores
+OT-000518;CORR-001;correctiva;baja;2026-10-11;;10,2;en proceso;T-12;Calibración de sensores
+OT-000519;PERF-003;correctiva;baja;2026-10-10;;15,1;abierta;T-14;Lubricación general
+OT-000520;CAEX-017;preventiva;alta;2026-10-10;2026-10-11;6,2;cerrada;T-13;Cambio de filtros
+OT-000521;CHAN-001;preventiva;baja;2026-10-09;;3,3;en proceso;T-16;Cambio de correa
+OT-000522;CAEX-023;preventiva;alta;28/10/2026;;10,2;en proceso;T-16;Falla eléctrica
+OT-000523;PERF-002;correctiva;media;2026-10-16;;12,9;en proceso;T-08;Fuga hidráulica
+OT-000524;PALA-003;correctiva;media;2026-10-05;;10,8;abierta;T-18;Cambio de neumático
+OT-000525;PERF-002;correctiva;alta;2026-10-12;2026-10-14;3,9;cerrada;T-15;Cambio de neumático
+OT-000526;CAEX-013;correctiva;baja;2026-10-22;;5,9;abierta;T-08;Falla eléctrica
+OT-000527;CAEX-023;preventiva;baja;2026-10-07;2026-10-12;14,7;cerrada;T-06;Fuga hidráulica
+OT-000528;PERF-003;correctiva;media;2026-10-05;2026-10-08;7,5;cerrada;T-11;Inspección estructural
+OT-000529;CAEX-024;preventiva;baja;2026-10-28;;3,0;en proceso;T-12;Inspección estructural
+OT-000530;PERF-005;preventiva;media;2026-10-23;2026-10-23;8,2;cerrada;T-01;Revisión de frenos
+OT-000531;CAEX-249;inspección;baja;2026-10-30;2026-11-01;9,6;cerrada;T-07;Lubricación general
+OT-000532;CARG-001;preventiva;media;2026-10-04;2026-10-07;13,4;cerrada;T-11;Cambio de filtros
+OT-000533;CAEX-013;correctiva;media;2026-10-02;2026-10-04;11,9;cerrada;T-18;Revisión de frenos
+OT-000534;CARG-003;preventiva;baja;2026-10-24;;11,4;abierta;T-15;Reparación de motor
+OT-000535;CAEX-022;preventiva;baja;2026-10-19;2026-10-24;3,8;cerrada;T-12;Cambio de correa
+OT-000536;CAEX-024;correctiva;baja;2026-10-04;2026-10-07;2,3;cerrada;T-02;Inspección estructural
+OT-000537;CAEX-013;preventiva;media;2026-10-14;2026-10-19;5,8;cerrada;T-06;Cambio de correa
+OT-000538;CAEX-002;inspección;media;2026-10-25;2026-10-26;5,6;cerrada;T-16;Cambio de filtros
+OT-000539;PALA-005;correctiva;alta;2026-10-17;;4,4;abierta;T-15;Calibración de sensores
+OT-000540;CAEX-012;correctiva;baja;2026-10-23;;13,0;en proceso;T-15;Fuga hidráulica
+OT-000541;CAEX-016;preventiva;alta;2026-10-07;2026-10-08;6,6;cerrada;T-01;Revisión de frenos
+OT-000542;CAEX-023;correctiva;media;2026-10-07;2026-10-09;8,5;cerrada;T-12;Falla eléctrica
+OT-000543;PALA-001;correctiva;media;2026-10-24;2026-10-29;5,9;cerrada;T-13;Falla eléctrica
+OT-000544;CAEX-013;preventiva;baja;2026-10-04;2026-10-04;7,6;cerrada;T-14;Fuga hidráulica
+OT-000545;CHAN-001;inspección;baja;2026-10-24;2026-10-29;2,0;cerrada;T-11;Cambio de filtros
+OT-000546;PALA-005;preventiva;media;2026-10-23;2026-10-25;2,8;cerrada;T-10;Cambio de neumático
+OT-000547;PALA-002;correctiva;media;2026-10-24;2026-10-29;7,9;cerrada;T-18;Inspección estructural
+OT-000548;CAEX-003;preventiva;alta;2026-10-16;2026-10-17;1,5;cerrada;T-16;Inspección estructural
+OT-000549;CHAN-001;correctiva;media;2026-10-23;2026-10-27;4,4;cerrada;T-13;Cambio de neumático
+OT-000550;PERF-002;preventiva;baja;2026-10-15;;8,6;abierta;T-11;Cambio de neumático
+OT-000551;PERF-002;correctiva;alta;2026-10-01;2026-10-02;10,3;cerrada;T-06;Fuga hidráulica
+OT-000552;CAEX-007;inspección;alta;2026-10-26;2026-10-28;5,6;cerrada;T-16;Cambio de filtros
+OT-000553;PALA-001;correctiva;media;2026-10-10;2026-10-12;14,6;cerrada;T-01;Calibración de sensores
+OT-000554;CAEX-006;correctiva;media;2026-10-01;2026-10-07;6,2;cerrada;T-02;Cambio de filtros
+OT-000555;CAEX-016;correctiva;baja;2026-10-14;;2,5;abierta;T-01;Calibración de sensores
+OT-000556;CAEX-008;preventiva;media;2026-10-17;2026-10-18;15,3;cerrada;T-08;Lubricación general
+OT-000557;CAEX-007;correctiva;alta;2026-10-27;2026-10-28;9,6;cerrada;T-18;Falla eléctrica
+OT-000558;PERF-003;preventiva;alta;2026-10-31;2026-11-01;2,0;cerrada;T-14;Inspección estructural
+OT-000559;;correctiva;media;2026-10-15;2026-10-16;8,2;cerrada;T-13;Falla eléctrica
+OT-000560;CAEX-021;correctiva;baja;2026-10-24;2026-10-30;14,0;cerrada;T-04;Revisión de frenos
+OT-000561;CAEX-007;preventiva;baja;2026-10-26;2026-10-31;2,9;cerrada;T-09;Inspección estructural
+OT-000562;CAEX-015;correctiva;media;2026-10-11;;15,6;abierta;T-12;Fuga hidráulica
+OT-000563;PERF-002;preventiva;baja;2026-10-05;2026-10-05;14,7;cerrada;T-18;Calibración de sensores
+OT-000571;CAEX-011;preventiva;media;2026-10-09;2026-10-12;5,7;cerrada;T-09;Cambio de correa
+OT-000565;CORR-001;preventiva;media;2026-10-04;2026-10-04;7,4;cerrada;T-13;Cambio de filtros
+OT-000566;CAEX-023;inspección;baja;2026-10-15;2026-10-21;1,9;cerrada;T-01;Calibración de sensores
+OT-000567;CARG-002;preventiva;baja;2026-10-02;;15,4;abierta;T-08;Revisión de frenos
+OT-000568;PERF-002;preventiva;media;2026-10-20;;15,9;abierta;T-09;Cambio de filtros
+OT-000569;CAEX-021;correctiva;alta;2026-10-04;2026-10-08;3,1;cerrada;T-09;Cambio de filtros
+OT-000570;CARG-004;preventiva;baja;2026-10-01;2026-10-03;11,9;cerrada;T-17;Cambio de correa
+OT-000571;PERF-001;preventiva;media;2026-10-31;;7,2;abierta;T-03;Inspección estructural
+OT-000572;CORR-003;correctiva;alta;2026-10-09;2026-10-12;14,3;cerrada;T-01;Cambio de filtros
+OT-000573;PALA-004;preventiva;alta;2026-10-12;2026-10-14;6,2;cerrada;T-11;Falla eléctrica
+OT-000574;CAEX-022;preventiva;media;2026-10-25;;4,6;abierta;T-18;Cambio de neumático
+OT-000575;CAEX-012;preventiva;media;2026-10-16;2026-10-16;3,3;cerrada;T-16;Revisión de frenos
+OT-000576;PALA-002;preventiva;media;2026-10-27;2026-10-30;3,2;cerrada;T-14;Cambio de filtros
+OT-000577;CAEX-002;preventiva;media;2026-10-31;2026-11-02;0,7;cerrada;T-03;Reparación de motor
+OT-000578;PERF-005;preventiva;baja;2026-10-31;2026-11-02;12,1;cerrada;T-03;Falla eléctrica
+OT-000579;PERF-005;preventiva;baja;2026-10-16;;13,7;abierta;T-10;Fuga hidráulica
+OT-000580;PALA-001;correctiva;media;2026-10-25;2026-10-30;9,4;cerrada;T-07;Lubricación general
+OT-000581;CAEX-014;preventiva;alta;2026-10-02;;6,7;abierta;T-04;Cambio de filtros
+OT-000582;PERF-004;inspección;media;2026-10-24;;11,0;en proceso;T-16;Calibración de sensores
+OT-000583;PERF-005;preventiva;media;2026-10-26;2026-10-28;6,1;cerrada;T-05;Lubricación general
+OT-000584;CAEX-017;inspección;baja;2026-10-05;2026-10-05;2,9;cerrada;T-09;Falla eléctrica
+OT-000585;CAEX-020;inspección;alta;2026-10-20;;11,4;en proceso;T-12;Cambio de filtros
+OT-000586;CAEX-014;preventiva;alta;2026-10-11;2026-10-15;11,7;cerrada;T-07;Fuga hidráulica
+OT-000587;CAEX-012;preventiva;media;2026-10-29;2026-10-30;749,6;cerrada;T-15;Lubricación general
+OT-000588;CAEX-016;correctiva;media;2026-10-15;2026-10-20;2,3;cerrada;T-07;Lubricación general
+OT-000589;PALA-004;preventiva;media;2026-10-05;2026-10-05;4,5;cerrada;T-09;Reparación de motor
+OT-000590;CORR-002;correctiva;baja;2026-10-04;;9,9;en proceso;T-11;Calibración de sensores
+OT-000591;PERF-003;correctiva;media;2026-10-20;;9,0;abierta;T-05;Falla eléctrica
+OT-000592;PERF-002;preventiva;alta;2026-10-23;2026-10-23;1,9;cerrada;T-06;Cambio de filtros
+OT-000593;CAEX-016;correctiva;alta;2026-10-18;;11,0;abierta;T-02;Falla eléctrica
+OT-000594;CAEX-016;correctiva;media;2026-10-22;;2,4;abierta;T-13;Falla eléctrica
+OT-000595;PERF-001;correctiva;alta;2026-10-10;;3,7;abierta;T-08;Fuga hidráulica
+OT-000596;CAEX-018;preventiva;media;2026-10-15;2026-10-18;14,3;cerrada;T-02;Reparación de motor
+OT-000597;CAEX-011;correctiva;media;2026-10-09;2026-10-15;2,0;cerrada;T-10;Cambio de neumático
+OT-000598;PALA-003;preventiva;alta;2026-10-21;;8,3;abierta;T-04;Cambio de correa
+OT-000599;CARG-004;preventiva;baja;2026-10-05;2026-10-10;4,9;cerrada;T-15;Reparación de motor
+OT-000600;CORR-002;preventiva;alta;2026-10-06;2026-10-12;6,0;cerrada;T-03;Cambio de neumático

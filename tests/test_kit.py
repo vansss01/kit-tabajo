@@ -285,7 +285,8 @@ class KitTests(unittest.TestCase):
         self.assertEqual(back.warnings, [])
 
     def test_help_all_commands(self):
-        for command in ([], ["inspeccionar"], ["comparar"], ["consolidar"], ["validar"], ["transformar"], ["exportar"], ["limpiar"]):
+        for command in ([], ["inspeccionar"], ["comparar"], ["consolidar"], ["validar"], ["transformar"], ["exportar"], ["limpiar"],
+                        ["consultar"], ["bitacora"]):
             result = subprocess.run([sys.executable, "-B", str(ROOT / "kit.py"), *command, "--help"], capture_output=True)
             self.assertEqual(result.returncode, 0)
 
@@ -405,6 +406,74 @@ class KitTests(unittest.TestCase):
         self.assertTrue((logs / "storage.json").exists())
         with self.assertRaises(ValueError):
             clean(1, True, ROOT.parent, logs)
+
+    def test_sql_query_join_numeric_and_read_only(self):
+        orders = self.csv("orden;equipo;horas\nA;0007;2,5\nB;0007;x\nC;0099;1,0\n", "ordenes.csv")
+        fleet = self.csv("equipo;area\n0007;Mina\n", "flota.csv")
+        common = ("--delimiter", ";", "--decimal", ",")
+        result = self.cli("consultar", orders, *common, "--numeric", "horas", "--tabla", f"flota={fleet}", "--sql",
+                          "SELECT t.equipo, f.area, SUM(t.horas) AS horas FROM t LEFT JOIN flota f ON f.equipo = t.equipo "
+                          "GROUP BY t.equipo ORDER BY t.equipo", expected=1)
+        self.assertEqual(result["resultado"]["filas"], [{"equipo": "0007", "area": "Mina", "horas": "2.5"},
+                                                        {"equipo": "0099", "area": None, "horas": "1"}])
+        self.assertEqual(result["advertencias_por_codigo"], {"valores_no_numericos_cargados_como_null": 1})
+        hidden = self.cli("consultar", orders, *common, "--show", "0", "--sql", "SELECT orden FROM t")
+        self.assertNotIn("resultado", hidden)
+        target = self.folder / "fuga.db"
+        for sql in ("DROP TABLE t", "DELETE FROM t", f"ATTACH '{target.as_posix()}' AS x", "SELECT 1; SELECT 2",
+                    "PRAGMA table_info(t)", "CREATE TABLE z AS SELECT * FROM t", "no es sql"):
+            self.assertIn("SQL", self.cli("consultar", orders, *common, "--sql", sql, expected=2)["error"])
+        self.assertFalse(target.exists())
+
+    def test_allowed_values_rule(self):
+        t = self.read("id;estado\n1;abierta\n2;Cerrada\n3;\n")
+        tables, issues, _ = validate(t, {"columns": {"estado": {"allowed": ["abierta", "cerrada"]}}}, self.opts)
+        self.assertEqual([(i["codigo"], i["fila"]) for i in issues], [("valor_no_permitido", 3)])
+        with self.assertRaises(ValueError):
+            validate(t, {"columns": {"estado": {"allowed": []}}}, self.opts)
+
+    def test_logbook_appends_and_builds_weekly_report(self):
+        book = self.folder / "bitacora.csv"
+
+        def run(*extra, expected=0):
+            result = subprocess.run([sys.executable, "-B", str(ROOT / "kit.py"), "bitacora", *extra, "--archivo", str(book),
+                                     "--json"], text=True, capture_output=True, cwd=ROOT, encoding="utf-8")
+            self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
+            return json.loads(result.stdout)
+
+        run("Inducción; con punto y coma", "--horas", "4", "--fecha", "2026-12-01", "--etiqueta", "Inducción")
+        first = book.read_bytes()
+        self.assertEqual(run("Planilla de órdenes", "--horas", "2,5", "--fecha", "2026-12-09")["anotaciones"], 2)
+        self.assertTrue(book.read_bytes().startswith(first))
+        self.assertEqual(run("--ver")["anotaciones"][0]["texto"], "Inducción; con punto y coma")
+        summary = run("--informe")
+        self.assertEqual((summary["semanas"], summary["dias"], summary["horas"]), (2, 2, "6.5"))
+        text = (Path(summary["ruta_resultados"]) / "informe_practica.md").read_text(encoding="utf-8")
+        self.assertIn("### Semana 2 (2026-12-07 a 2026-12-13)", text)
+        self.assertIn("| inducción | 1 | 4 |", text)
+        run("x", "--horas", "30", expected=2)
+        run("x", "--fecha", "01/12/2026", expected=2)
+        run(expected=2)
+        self.assertEqual(len(book.read_text(encoding="utf-8").splitlines()), 3)
+
+    def test_mining_practice_data_matches_its_declared_errors(self):
+        target = self.folder / "minera"
+        subprocess.run([sys.executable, "-B", str(ROOT / "scripts" / "datos_mineros.py"), "--output", str(target)],
+                       check=True, capture_output=True, cwd=ROOT)
+        declared = json.loads((target / "respuestas.json").read_text(encoding="utf-8"))["errores_inyectados"]
+        codes = self.cli("validar", target / "ordenes.csv", "--delimiter", ";", "--rules", target / "reglas_ordenes.json",
+                         expected=1)["incidencias_por_codigo"]
+        self.assertEqual(codes["valor_no_unico"], 2 * declared["orden_duplicada"])
+        self.assertEqual(codes["campo_vacio"], declared["equipo_vacio"] + declared["horas_vacias"])
+        self.assertEqual(codes["tipo_o_fecha_invalido"], declared["fecha_formato_dia_mes_año"])
+        self.assertEqual(codes["valor_no_permitido"], declared["estado_mal_escrito"])
+        self.assertEqual((codes["fuera_de_rango_min"], codes["fuera_de_rango_max"]),
+                         (declared["horas_negativas"], declared["horas_sobre_72"]))
+        counts = self.cli("comparar", target / "flota_anterior.csv", target / "flota.csv", "--delimiter", ";",
+                          "--key", "equipo")["conteos"]
+        self.assertEqual((counts["nuevos"], counts["eliminados"], counts["modificados"]), (2, 1, 6))
+        self.cli("inspeccionar", target / "flota_excel_windows.csv", "--delimiter", ";", expected=2)
+        self.cli("inspeccionar", target / "flota_excel_windows.csv", "--delimiter", ";", "--encoding", "cp1252")
 
 
 if __name__ == "__main__":

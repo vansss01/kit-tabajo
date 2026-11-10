@@ -26,6 +26,8 @@ Configuración JSON: `columns` es obligatorio. `unique_keys` es opcional.
   mayúsculas). Tipo no implica conversión ni relleno. Vacíos requieren `nonempty`.
 - `min`/`max`: límites inclusivos para integer/number/date. Usa cadenas para números
   exactos y fechas; formato de los límites igual al de los valores de esa regla.
+- `allowed`: lista de textos admitidos, exactos (mayúsculas y tildes incluidas); otro valor
+  no vacío produce `valor_no_permitido`.
 - `decimal` y `date_format`: sobrescriben opciones de CLI para esa columna.
 - Propiedades desconocidas/tipos de regla inválidos son error, para evitar ignorar typos.
 

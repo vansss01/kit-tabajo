@@ -1,0 +1,20 @@
+{
+  "semilla": 2026,
+  "errores_inyectados": {
+    "orden_duplicada": 5,
+    "equipo_vacio": 4,
+    "equipo_inexistente": 3,
+    "fecha_formato_dia_mes_año": 6,
+    "horas_negativas": 3,
+    "horas_sobre_72": 3,
+    "estado_mal_escrito": 4,
+    "horas_vacias": 2,
+    "litros_vacios": 5,
+    "litros_negativos": 4
+  },
+  "flota_vs_anterior": {
+    "nuevos": 2,
+    "eliminados": 1,
+    "modificados": 6
+  }
+}

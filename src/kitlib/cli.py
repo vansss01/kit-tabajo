@@ -10,8 +10,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from kitlib import __version__
-from kitlib.operations import compare, inspect_table, transform, validate
+from kitlib import __version__, bitacora
+from kitlib.operations import compare, inspect_table, query, transform, validate
 from kitlib.runtime import ROOT, inside
 from kitlib.tableio import (Options, Table, csv_write, excel_write, fingerprint, issue,
                          json_write, load_config, read_table, sheet_names, table_json)
@@ -29,7 +29,8 @@ def parser():
         ("consolidar", "Unir tablas compatibles con procedencia"),
         ("validar", "Validar reglas JSON sin corregir"),
         ("transformar", "Aplicar un plan JSON limitado"),
-        ("exportar", "Crear resultados CSV, JSON y Excel organizado")]:
+        ("exportar", "Crear resultados CSV, JSON y Excel organizado"),
+        ("consultar", "Consultar una o varias tablas con SQL (solo SELECT)")]:
         cmd = sub.add_parser(name, help=helptext, description=helptext)
         cmd.add_argument("input", type=Path, help="Archivo de entrada; carpeta para consolidar")
         cmd.add_argument("--delimiter", default=",", help="Separador CSV explícito (predeterminado: coma; TAB admite tabulación)")
@@ -56,6 +57,14 @@ def parser():
             cmd.add_argument("--rules", type=Path, required=name == "validar", help="Reglas JSON de validación")
         if name == "transformar":
             cmd.add_argument("--plan", type=Path, required=True, help="Plan JSON declarativo")
+        if name == "consultar":
+            cmd.add_argument("--sql", required=True, help="Consulta SELECT; la tabla de entrada se llama t")
+            cmd.add_argument("--name", default="t", help="Nombre SQL de la tabla de entrada (t)")
+            cmd.add_argument("--tabla", action="append", default=[], metavar="NOMBRE=ARCHIVO",
+                             help="Tabla adicional para JOIN; repetible")
+            cmd.add_argument("--numeric", nargs="+", default=[], metavar="COLUMNA",
+                             help="Columnas a cargar como número según --decimal; el resto es texto")
+            cmd.add_argument("--show", type=int, default=20, help="Filas del resultado a mostrar (0–100)")
         if name == "exportar":
             cmd.add_argument("--format", choices=["all", "xlsx", "csv", "json"], default="all")
             cmd.add_argument("--safe-csv", action="store_true", help="Añadir apóstrofo a textos que Excel podría ejecutar como fórmula")
@@ -65,6 +74,7 @@ def parser():
     cmd.add_argument("--apply", action="store_true", help="Borrar de verdad; sin esta opción no se elimina nada")
     cmd.add_argument("--json", action="store_true", help="Resumen compacto JSON en stdout")
     cmd.set_defaults(verbose=False)
+    bitacora.add_parser(sub)
     return p
 
 
@@ -190,6 +200,13 @@ def emit(summary, args, detail=None):
         for key in ("incidencias_por_codigo", "advertencias_por_codigo", "conteos"):
             if summary.get(key):
                 print(key + ": " + ", ".join(f"{k}={v}" for k, v in summary[key].items()))
+        shown = summary.get("resultado")
+        if shown and shown["filas"]:
+            widths = [min(40, max(len(c), *(len(str(r[c] or "")) for r in shown["filas"]))) for c in shown["columnas"]]
+            for values in [shown["columnas"], *([r[c] for c in shown["columnas"]] for r in shown["filas"])]:
+                print("  ".join(str("" if v is None else v)[:w].ljust(w) for v, w in zip(values, widths, strict=True)).rstrip())
+            if summary["conteos"]["filas_salida"] > len(shown["filas"]):
+                print(f"… {summary['conteos']['filas_salida'] - len(shown['filas'])} filas más en validos.csv")
         for item in summary.get("tablas", []):
             print(f"{item['hoja'] or 'tabla'} ({item['filas']} filas, {item['alcance']}): " + ", ".join(item["columnas"]))
         if args.verbose and detail is not None:
@@ -202,6 +219,15 @@ def execute(args):
     if len(args.delimiter) != 1 or args.delimiter in '\r\n"':
         raise ValueError("--delimiter requiere un carácter válido")
     opts = Options(args.delimiter, args.encoding, args.decimal, args.date_format, args.sheet)
+    extra_tables: list[tuple[str, Path]] = []
+    if args.command == "consultar":
+        if not 0 <= args.show <= 100:
+            raise ValueError("--show debe estar entre 0 y 100")
+        for item in args.tabla:
+            name, separator, location = item.partition("=")
+            if not separator or not name or not location or name == args.name or name in dict(extra_tables):
+                raise ValueError("--tabla requiere NOMBRE=ARCHIVO con nombres distintos")
+            extra_tables.append((name, Path(location)))
     if args.command == "inspeccionar" and (not 0 <= args.sample <= 20 or (args.limit is not None and args.limit < 1)):
         raise ValueError("--sample debe estar entre 0 y 20; --limit debe ser positivo")
     run_name = args.run_name or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + args.command + "-" + uuid4().hex[:10]
@@ -219,6 +245,7 @@ def execute(args):
         paths, excluded = candidates(args)
     elif args.command == "comparar":
         paths.append(args.after.resolve())
+    paths += [location.resolve() for _, location in extra_tables]
     config_paths = [getattr(args, name) for name in ("rules", "plan") if getattr(args, name, None)]
     try:
         sources = [fingerprint(p) for p in paths]
@@ -243,7 +270,16 @@ def execute(args):
             table = read_table(args.input, opts)
             processed = table.scanned
             warnings.extend({"origen": table.source, "codigo": w} for w in table.warnings)
-            if args.command == "comparar":
+            if args.command == "consultar":
+                loaded = {args.name: table}
+                for name, location in extra_tables:
+                    loaded[name] = read_table(location, opts)
+                    processed += loaded[name].scanned
+                    warnings.extend({"origen": loaded[name].source, "codigo": w} for w in loaded[name].warnings)
+                tables, issues, details = query(loaded, args.sql, set(args.numeric), opts)
+                if details["valores_no_numericos"]:
+                    warnings.append({"origen": table.source, "codigo": "valores_no_numericos_cargados_como_null"})
+            elif args.command == "comparar":
                 after = read_table(args.after, replace(opts, sheet=args.after_sheet or opts.sheet))
                 processed += after.scanned
                 warnings.extend({"origen": after.source, "codigo": w} for w in after.warnings)
@@ -309,6 +345,11 @@ def execute(args):
         else:
             extras["conteos"] = {k: len(v) if isinstance(v, list) else v for k, v in details.items()
                                  if isinstance(v, (int, str, list)) and k != "pasos"}
+        if args.command == "consultar" and args.show:
+            result = tables["validos"]
+            extras["resultado"] = {"columnas": [c[:60] for c in result.columns[:30]],
+                                   "filas": [{c[:60]: (v[:80] if isinstance(v, str) else v) for c, v in list(r.items())[:30]}
+                                             for r in result.rows[:args.show]]}
         emit({**summary, **extras}, args, detail)
         return code
     except Exception as exc:
@@ -331,6 +372,8 @@ def main(argv=None):
                       f"{result['bytes_antiguos']} bytes. Conservadas: {result['ejecuciones_conservadas']} "
                       f"ejecuciones y {result['registros_conservados']} registros.")
             return 0
+        if args.command == "bitacora":
+            return bitacora.run(args)
         return execute(args)
     except Exception as exc:
         # No volcar valores de celdas, configuraciones ni traceback por terminal.
@@ -344,6 +387,9 @@ def main(argv=None):
             message = "No existe un archivo de entrada, reglas o plan. Revise las rutas y las comillas."
         if isinstance(exc, FileExistsError):
             message = "La salida ya existe. Use otro --run-name; no se sobrescribió."
+        if args.command in ("limpiar", "bitacora") and not args.json:
+            print(message)
+            return 2
         emit({"estado": "error", "codigo_salida": 2, "filas_procesadas": 0,
               "incidencias": 0, "advertencias": 0, "error": message,
               "ruta_resultados": str(args.failed_results) if hasattr(args, "failed_results") else None}, args)

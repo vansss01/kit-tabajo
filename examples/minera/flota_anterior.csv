@@ -1,0 +1,44 @@
+equipo;tipo;modelo;area;año;estado
+CAEX-001;camión;Camión de extracción 300 t;Mina;2020;operativo
+CAEX-002;camión;Camión de extracción 300 t;Mina;2022;en mantención
+CAEX-003;camión;Camión de extracción 300 t;Mina;2013;en mantención
+CAEX-004;camión;Camión de extracción 300 t;Mina;2021;en mantención
+CAEX-005;camión;Camión de extracción 300 t;Mina;2018;operativo
+CAEX-006;camión;Camión de extracción 300 t;Mina;2020;operativo
+CAEX-007;camión;Camión de extracción 300 t;Mina;2024;en mantención
+CAEX-008;camión;Camión de extracción 300 t;Mina;2024;operativo
+CAEX-009;camión;Camión de extracción 300 t;Mina;2019;operativo
+CAEX-010;camión;Camión de extracción 300 t;Mina;2021;operativo
+CAEX-099;camión;Camión de extracción 300 t;Mina;2009;fuera de servicio
+CAEX-011;camión;Camión de extracción 300 t;Mina;2016;operativo
+CAEX-012;camión;Camión de extracción 300 t;Mina;2019;operativo
+CAEX-013;camión;Camión de extracción 300 t;Mina;2022;operativo
+CAEX-014;camión;Camión de extracción 300 t;Mina;2017;operativo
+CAEX-015;camión;Camión de extracción 300 t;Mina;2016;operativo
+CAEX-016;camión;Camión de extracción 300 t;Mina;2017;operativo
+CAEX-017;camión;Camión de extracción 300 t;Mina;2023;en mantención
+CAEX-018;camión;Camión de extracción 300 t;Mina;2013;operativo
+CAEX-019;camión;Camión de extracción 300 t;Mina;2013;operativo
+CAEX-020;camión;Camión de extracción 300 t;Mina;2016;en mantención
+CAEX-021;camión;Camión de extracción 300 t;Mina;2014;operativo
+CAEX-022;camión;Camión de extracción 300 t;Mina;2023;en mantención
+CAEX-023;camión;Camión de extracción 300 t;Mina;2016;operativo
+CAEX-024;camión;Camión de extracción 300 t;Mina;2023;operativo
+PALA-001;pala;Pala eléctrica;Mina;2019;operativo
+PALA-002;pala;Pala eléctrica;Mina;2018;en mantención
+PALA-003;pala;Pala eléctrica;Mina;2020;en mantención
+PALA-004;pala;Pala eléctrica;Mina;2013;operativo
+PALA-005;pala;Pala eléctrica;Mina;2024;operativo
+PERF-001;perforadora;Perforadora;Mina;2021;operativo
+PERF-002;perforadora;Perforadora;Mina;2018;operativo
+PERF-003;perforadora;Perforadora;Mina;2016;en mantención
+PERF-004;perforadora;Perforadora;Mina;2021;en mantención
+PERF-005;perforadora;Perforadora;Mina;2019;en mantención
+CARG-001;cargador;Cargador frontal;Mina;2024;en mantención
+CARG-002;cargador;Cargador frontal;Mina;2015;en mantención
+CARG-003;cargador;Cargador frontal;Mina;2025;operativo
+CARG-004;cargador;Cargador frontal;Mina;2023;operativo
+CHAN-001;chancador;Chancador;Planta;2022;operativo
+CHAN-002;chancador;Chancador;Planta;2021;operativo
+CORR-001;correa;Correa transportadora;Planta;2014;operativo
+CORR-002;correa;Correa transportadora;Planta;2015;operativo
