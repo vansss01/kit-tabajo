@@ -29,7 +29,9 @@ def inspect_table(table, opts, sample):
     stats = {}
     for col in table.columns:
         values = [r[col] for r in table.rows]
-        kinds = Counter(infer(v, opts) for v in values)
+        kinds: Counter = Counter()
+        for value, count in Counter(values).items():  # inferir una vez por valor distinto
+            kinds[infer(value, opts)] += count
         stats[col] = {"tipos_inferidos": dict(kinds), "nulos_o_vacios": sum(empty(v) for v in values)}
     keys = [tuple(r[c] for c in table.columns) for r in table.rows]
     return {"origen": table.source, "hoja": table.sheet,
@@ -77,9 +79,9 @@ def compare(before, after, keys):
         fields = [c for c in before.columns if c not in keys and left[key][c] != right[key][c]]
         modified += bool(fields)
         unchanged += not fields
+        label = json.dumps(dict(zip(keys, key, strict=True)), ensure_ascii=False) if fields else ""
         for col in fields:
-            changes.append({"clave": json.dumps(dict(zip(keys, key, strict=True)), ensure_ascii=False),
-                            "campo": col, "antes": left[key][col], "despues": right[key][col]})
+            changes.append({"clave": label, "campo": col, "antes": left[key][col], "despues": right[key][col]})
     changes.sort(key=lambda r: (r["clave"], r["campo"]))
     return {"nuevos": copy_table(after, new), "eliminados": copy_table(before, removed),
             "cambios": Table(["clave", "campo", "antes", "despues"], changes)}, [], {
@@ -137,6 +139,22 @@ def validate(table, config, opts):
         counts = Counter(r[col] for r in table.rows if not empty(r[col]))
         rule_opts = replace(opts, decimal=spec.get("decimal", opts.decimal),
                             date_format=spec.get("date_format", opts.date_format))
+        kind = spec.get("type")
+        limits = {b: typed(spec[b], kind, rule_opts) for b in ("min", "max") if b in spec}
+        checked: dict[Any, tuple[str, ...]] = {}  # resultado por valor distinto: los valores se repiten
+
+        def type_codes(value):
+            try:
+                current = typed(value, kind, rule_opts)
+            except (ValueError, TypeError):
+                return ("tipo_o_fecha_invalido",)
+            found = []
+            if "min" in limits and current < limits["min"]:
+                found.append("fuera_de_rango_min")
+            if "max" in limits and current > limits["max"]:
+                found.append("fuera_de_rango_max")
+            return tuple(found)
+
         for idx, row in enumerate(table.rows):
             rowno = table.row_numbers[idx] if table.row_numbers else idx + 2
             value = row[col]
@@ -147,19 +165,10 @@ def validate(table, config, opts):
             else:
                 if spec.get("unique") and counts[value] > 1:
                     codes.append("valor_no_unico")
-                if "type" in spec:
-                    kind = spec["type"]
-                    try:
-                        converted = convert(value, kind, rule_opts)
-                        typed = Decimal(converted) if kind in ("integer", "number") else converted
-                        for bound, op in (("min", "min"), ("max", "max")):
-                            if bound in spec:
-                                limit = convert(spec[bound], kind, rule_opts)
-                                limit = Decimal(limit) if kind in ("integer", "number") else limit
-                                if (op == "min" and typed < limit) or (op == "max" and typed > limit):
-                                    codes.append("fuera_de_rango_" + bound)
-                    except (ValueError, TypeError):
-                        codes.append("tipo_o_fecha_invalido")
+                if kind is not None:
+                    if value not in checked:
+                        checked[value] = type_codes(value)
+                    codes.extend(checked[value])
             for code in codes:
                 bad_rows.add(idx)
                 issues.append(issue(code, rowno, col, table.source))

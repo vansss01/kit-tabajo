@@ -199,6 +199,8 @@ def execute(args):
     run_name = args.run_name or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + args.command + "-" + uuid4().hex[:10]
     if not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", run_name):
         raise ValueError("--run-name admite letras ASCII, dígitos, guion y guion bajo (1–100)")
+    if re.fullmatch(r"(?i)con|prn|aux|nul|com\d|lpt\d", run_name):
+        raise ValueError("--run-name no puede ser un nombre reservado de Windows")
     args.output.mkdir(parents=True, exist_ok=True)
     run = inside(args.output / run_name)
     run.mkdir(exist_ok=False)

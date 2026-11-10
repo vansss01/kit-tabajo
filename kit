@@ -1,0 +1,8 @@
+#!/bin/sh
+# Lanzador Linux/macOS: ./kit COMANDO ... (usa el entorno local sin activarlo)
+root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if [ ! -x "$root/.venv/bin/python" ]; then
+    echo "Falta el entorno local. Ejecute: python3 -B scripts/setup.py" >&2
+    exit 2
+fi
+exec "$root/.venv/bin/python" -B "$root/kit.py" "$@"

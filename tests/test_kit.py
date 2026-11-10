@@ -269,6 +269,20 @@ class KitTests(unittest.TestCase):
         self.cli("inspeccionar", p, "--sample", "21", expected=2)
         self.cli("exportar", self.folder / "inexistente.csv", expected=2)
         self.cli("inspeccionar", self.csv("", "vacio.csv"), expected=1)
+        self.cli("inspeccionar", p, "--run-name", "NUL", expected=2)
+
+    def test_table_json_is_one_row_per_line_and_excel_keeps_error_like_text(self):
+        table = Table(["id", "v"], [{"id": "001", "v": "#N/A"}, {"id": "002", "v": None}])
+        from kitlib.tableio import table_json
+        table_json(self.folder / "t.json", table)
+        text = (self.folder / "t.json").read_text(encoding="utf-8")
+        self.assertEqual(len(text.splitlines()), 5)
+        self.assertEqual(json.loads(text), {"columns": table.columns, "rows": table.rows})
+        self.assertEqual(read_table(self.folder / "t.json").rows, table.rows)
+        excel_write(self.folder / "t.xlsx", {"datos": table})
+        back = read_table(self.folder / "t.xlsx")
+        self.assertEqual(back.rows, table.rows)
+        self.assertEqual(back.warnings, [])
 
     def test_help_all_commands(self):
         for command in ([], ["inspeccionar"], ["comparar"], ["consolidar"], ["validar"], ["transformar"], ["exportar"], ["limpiar"]):

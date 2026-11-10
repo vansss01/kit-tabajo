@@ -19,6 +19,7 @@ python -B scripts/demo.py
 python -B scripts/check.py
 ```
 
+Atajo sin activar nada: `./kit inspeccionar ...` (Linux) o `kit inspeccionar ...` (Windows).
 `source ./env.sh` activa el entorno y configura cachés y temporales locales.
 También puedes usar `.venv/bin/python -B kit.py ...` sin activar: la entrada configura
 las rutas antes de importar las bibliotecas de trabajo. Los resultados indican su
@@ -56,13 +57,16 @@ En PowerShell, desde la carpeta situada en el disco de datos:
 
 ```powershell
 py -3 -B scripts/setup.py --offline
-& '.\.venv-win\Scripts\python.exe' -B kit.py --help
-& '.\.venv-win\Scripts\python.exe' -B scripts/demo.py
+.\kit --help
+.\kit inspeccionar 'examples\entradas\turno A.csv' --delimiter ';' --decimal ','
 ```
 
-El script crea `.venv-win` separado. No requiere cambiar la política de ejecución de
-PowerShell. Windows no se probó en esta sesión; no se promete compatibilidad de las
-ruedas de desarrollo Linux con Windows. En Windows se usan los mismos CSV/JSON/XLSX.
+El script crea `.venv-win` separado y `kit.cmd` lo usa sin activarlo. No requiere cambiar
+la política de ejecución de PowerShell. Pruebas, demo, instalación sin red y lanzador se
+ejecutan en Windows en cada cambio (GitHub Actions). `--offline` instala las dependencias
+de ejecución, que son Python puro; `--offline --dev` (Ruff, mypy) solo sirve en el
+Linux/Python de las ruedas archivadas: en Windows usa `--dev` con red. La salida por
+terminal es siempre UTF-8. En Windows se usan los mismos CSV/JSON/XLSX.
 
 ## Herramientas
 

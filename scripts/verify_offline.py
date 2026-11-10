@@ -25,11 +25,11 @@ with tempfile.TemporaryDirectory(prefix="reconstruccion sin red-", dir=ROOT / "t
         subprocess.run([str(python), "-B", "-m", "pip", "check"], stdout=log, stderr=subprocess.STDOUT, check=True)
     completed = subprocess.run([str(python), "-B", str(ROOT / "kit.py"), "inspeccionar",
                                 str(ROOT / "examples/equipos.csv"), "--delimiter", ";", "--json"],
-                               capture_output=True, text=True, check=True)
+                               capture_output=True, text=True, check=True, encoding="utf-8")
     summary = json.loads(completed.stdout)
     assert summary["filas_procesadas"] == 3
-    versions = subprocess.check_output([str(python), "-B", "-m", "pip", "freeze"], text=True)
-    assert versions.strip() == (ROOT / "requirements-dev.lock").read_text().strip()
+    versions = subprocess.check_output([str(python), "-B", "-m", "pip", "freeze"], text=True, encoding="utf-8")
+    assert versions.strip() == (ROOT / "requirements-dev.lock").read_text(encoding="utf-8").strip()
     record = {"estado": "ok", "sin_indice_de_red": True, "entorno_nuevo": True,
               "plataforma": platform.platform(), "python": sys.version,
               "dependencias": versions.splitlines(), "prueba_cli": summary}

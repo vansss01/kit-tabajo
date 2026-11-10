@@ -1,10 +1,21 @@
 # Estado del proyecto
 
-Actualizado: 2026-11-10. Versión 1.1.0. Repositorio: `github.com/vansss01/kit-tabajo` (privado).
-Implementado y comprobado en Linux (Python 3.14): 35 pruebas, Ruff y mypy OK con
-`scripts/check.py`; flujo completo con `scripts/demo.py`. Sin dependencia de proveedores de IA.
+Actualizado: 2026-11-10. Versión 1.2.0. Repositorio: `github.com/vansss01/kit-tabajo` (privado).
+Comprobado en Linux y Windows (Python 3.11 y 3.14) por CI en cada cambio: 36 pruebas,
+Ruff y mypy con `scripts/check.py`, flujo `scripts/demo.py`, instalación sin red y
+lanzadores `kit`/`kit.cmd`. Sin dependencia de proveedores de IA.
 
 Comandos: inspeccionar, comparar, consolidar, validar, transformar, exportar, limpiar.
+
+## Cambios de 1.2.0
+
+- Lanzadores `./kit` y `kit.cmd`; salida UTF-8 en Windows; `--run-name` rechaza nombres
+  reservados de Windows.
+- Rendimiento medido con 300 000 filas × 6 columnas (16 MB), antes → después:
+  inspeccionar 12 → 2 s, validar 14 → 4,5 s, comparar (1,5 M de cambios) 23 → 13 s,
+  consolidar 600 000 filas 11 → 8 s, exportar CSV 1,5 s, exportar con XLSX 28 → 25 s.
+  Memoria máxima ≈ 750 MB. XLSX sigue siendo lo lento: usar `--format csv` si no hace falta.
+- Tablas JSON de salida con una fila por línea (mismo contenido, menos tamaño).
 
 ## Cambios de 1.1.0
 
@@ -18,7 +29,7 @@ Comandos: inspeccionar, comparar, consolidar, validar, transformar, exportar, li
 
 ## Límites vigentes
 
-- Tablas completas en memoria; sin benchmark para archivos masivos.
+- Tablas completas en memoria (≈ 2,5 KB por fila en la medición): no apto para millones de filas.
 - No lee XLS/XLSB/ODS ni libros cifrados; no conserva macros, fórmulas ni estilos.
 - Sin transacción atómica por carpeta: `FAILED.json` o falta de `report.json` = no usar.
 - Ejemplos y reglas son ficticios; adaptar reglas con quien conozca el proceso real.

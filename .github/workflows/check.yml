@@ -21,3 +21,17 @@ jobs:
       - run: python -m pip install -r requirements-dev.lock
       - run: python -B scripts/check.py
       - run: python -B scripts/demo.py
+      - name: Instalación documentada, también sin red
+        shell: bash
+        run: |
+          python -B scripts/setup.py --dev
+          python -m pip download -q --only-binary=:all: -d vendor -r requirements.txt
+          rm -rf .venv .venv-win
+          python -B scripts/setup.py --offline
+      - name: Lanzador Windows
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: kit inspeccionar "examples\entradas\turno A.csv" --delimiter ";" --decimal "," --json
+      - name: Lanzador Linux
+        if: runner.os != 'Windows'
+        run: ./kit inspeccionar 'examples/entradas/turno A.csv' --delimiter ';' --decimal ',' --json

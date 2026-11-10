@@ -4,8 +4,8 @@
    servidores, extensiones, Docker ni servicios de pago para usarlo.
 2. Lee `TOOLS_INDEX.md` para elegir una herramienta. Consulta solo el manual
    pertinente. Usa `python -B kit.py SUBCOMANDO --help` antes de reescribir código.
-3. Activa `env.sh` en Bash, o usa directamente el Python del entorno local.
-   En Windows usa `.venv-win/Scripts/python.exe`. Los scripts configuran sus cachés.
+3. Lanzador sin activar nada: `./kit COMANDO ...` en Linux, `kit COMANDO ...` en Windows
+   (`kit.cmd`, usa `.venv-win`). Equivale a `python -B kit.py` con el Python local.
 4. Todas las escrituras controladas deben quedar dentro de KIT TABAJO en el disco
    de datos. No fijar su punto de montaje en código. `kitlib.runtime.ROOT` lo descubre
    desde el módulo. Antes de cambiar de ubicación verifica disco y permisos reales;

@@ -1,6 +1,7 @@
 # Índice compacto
 
-Desde la raíz con el entorno activado. Ayuda: `python -B kit.py COMANDO --help`.
+Desde la raíz: `./kit COMANDO` (Linux) o `kit COMANDO` (Windows); equivale a
+`python -B kit.py COMANDO` con el entorno activado. Ayuda: `./kit COMANDO --help`.
 Opciones comunes: `--delimiter`, `--encoding`, `--decimal`, `--date-format`, `--sheet`,
 `--output`, `--run-name`, `--json`, `--verbose`. Códigos 0/1/2: éxito/incidencias/error.
 
@@ -29,5 +30,6 @@ python -B kit.py transformar 'examples/entradas/turno A.csv' --delimiter ';' --p
 python -B kit.py exportar 'examples/con incidencias.csv' --delimiter ';' --rules examples/reglas.json
 ```
 
+Tablas grandes: `exportar --format csv` evita el XLSX, que es lo más lento.
 Flujo comprobado con aserciones: `python -B scripts/demo.py`.
 Verificación completa: `python -B scripts/check.py`.

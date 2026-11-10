@@ -1,4 +1,5 @@
 """Lectura sin inferencias destructivas y escritura exclusiva de tablas."""
+import contextlib
 import csv
 import hashlib
 import json
@@ -6,6 +7,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -53,10 +55,14 @@ def literal(value):
     return str(value)
 
 
+@lru_cache(maxsize=8)
+def _number_pattern(decimal):
+    return re.compile(r"[+-]?(?:\d+(?:" + re.escape(decimal) + r"\d+)?|" + re.escape(decimal) + r"\d+)")
+
+
 def number(value, decimal="."):
     text = str(value).strip()
-    pattern = r"[+-]?(?:\d+(?:" + re.escape(decimal) + r"\d+)?|" + re.escape(decimal) + r"\d+)"
-    if not re.fullmatch(pattern, text):
+    if not _number_pattern(decimal).fullmatch(text):
         raise ValueError("Número inválido; no se admiten separadores de miles ni exponentes.")
     try:
         return Decimal(text.replace(decimal, "."))
@@ -246,52 +252,87 @@ def json_write(path, value):
 
 
 def table_json(path, table):
-    json_write(path, {"columns": table.columns, "rows": table.rows})
+    """Una fila por línea: JSON válido, compacto y escrito con el codificador rápido."""
+    with inside(path).open("x", encoding="utf-8", newline="\n") as stream:
+        stream.write('{"columns": ' + json.dumps(table.columns, ensure_ascii=False) + ',\n"rows": [')
+        separator = "\n"
+        for row in table.rows:
+            stream.write(separator + json.dumps(row, ensure_ascii=False, allow_nan=False))
+            separator = ",\n"
+        stream.write("\n]}\n")
 
 
 def csv_write(path, table, delimiter=",", safe=False):
     """CSV fiel por defecto; neutralización opcional y explícita de fórmulas."""
     protected = 0
+
+    def protect(values):
+        nonlocal protected
+        output = []
+        for value in values:
+            if isinstance(value, str) and value.lstrip().startswith(("=", "+", "-", "@")):
+                value = "'" + value
+                protected += 1
+            output.append(value)
+        return output
+
     with inside(path).open("x", encoding="utf-8", newline="") as stream:
         writer = csv.writer(stream, delimiter=delimiter)
-        for values in [table.columns] + [[r.get(c) for c in table.columns] for r in table.rows]:
-            output = []
-            for value in values:
-                if safe and isinstance(value, str) and value.lstrip().startswith(("=", "+", "-", "@")):
-                    value = "'" + value
-                    protected += 1
-                output.append(value)
-            writer.writerow(output)
+        writer.writerow(protect(table.columns) if safe else table.columns)
+        columns = table.columns
+        if safe:
+            writer.writerows(protect([r.get(c) for c in columns]) for r in table.rows)
+        else:
+            writer.writerows([r.get(c) for c in columns] for r in table.rows)
     return protected
 
 
 def excel_write(path, tables):
+    """Libro nuevo en modo de solo escritura: memoria acotada y sin fórmulas activas."""
     from openpyxl import Workbook
+    from openpyxl.cell import WriteOnlyCell
     from openpyxl.styles import Font, PatternFill
     from openpyxl.utils import get_column_letter
-    book = Workbook()
-    book.remove(book.active)
-    for name, table in tables.items():
-        if len(table.rows) > 1048575 or len(table.columns) > 16384:
-            raise ValueError("Tabla excede los límites de filas/columnas XLSX")
-        ws = book.create_sheet(name)
-        ws.freeze_panes = "A2"
-        for rowno, values in enumerate([table.columns] + [[r.get(c) for c in table.columns] for r in table.rows], 1):
-            for colno, value in enumerate(values, 1):
-                text = literal(value)
-                if text is not None and len(text) > 32767:
-                    raise ValueError("Celda excede 32767 caracteres: se rechaza para evitar truncamiento")
-                cell = ws.cell(rowno, colno, text)
-                if text is not None:
-                    cell.data_type = "s"  # conservar códigos y no activar fórmulas
-                if rowno == 1:
-                    cell.font = Font(bold=True, color="FFFFFF")
-                    cell.fill = PatternFill("solid", fgColor="244B62")
-        if table.columns:
-            ws.auto_filter.ref = ws.dimensions
-            for i, col in enumerate(table.columns, 1):
+    book = Workbook(write_only=True)
+    font, fill = Font(bold=True, color="FFFFFF"), PatternFill("solid", fgColor="244B62")
+    try:
+        for name, table in tables.items():
+            if len(table.rows) > 1048575 or len(table.columns) > 16384:
+                raise ValueError("Tabla excede los límites de filas/columnas XLSX")
+            ws = book.create_sheet(name)
+            ws.freeze_panes = "A2"
+            columns = table.columns
+            if not columns:
+                continue
+            ws.auto_filter.ref = f"A1:{get_column_letter(len(columns))}{len(table.rows) + 1}"
+            for i, col in enumerate(columns, 1):
                 width = max([len(col)] + [len(str(r.get(col) or "")) for r in table.rows[:100]])
                 ws.column_dimensions[get_column_letter(i)].width = min(48, max(12, width + 2))
-    with inside(path).open("xb") as stream:
-        book.save(stream)
+
+            def cell(value, header=False, ws=ws):
+                text = literal(value)
+                if text is None:
+                    return None
+                if len(text) > 32767:
+                    raise ValueError("Celda excede 32767 caracteres: se rechaza para evitar truncamiento")
+                if not header and text[:1] not in ("=", "#"):
+                    return text  # openpyxl lo guarda como texto; no adivina números ni fechas
+                forced = WriteOnlyCell(ws, value=text)
+                forced.data_type = "s"  # conservar códigos y no activar fórmulas ni errores
+                if header:
+                    forced.font, forced.fill = font, fill
+                return forced
+
+            ws.append([cell(c, True) for c in columns])
+            for row in table.rows:
+                ws.append([cell(row.get(c)) for c in columns])
+        with inside(path).open("xb") as stream:
+            book.save(stream)
+    except BaseException:
+        # Cerrar y borrar los temporales de cada hoja; si no, quedan generadores abiertos.
+        for ws in book.worksheets:
+            with contextlib.suppress(Exception):
+                ws.close()
+                ws._writer.cleanup()
+        raise
     book.close()
