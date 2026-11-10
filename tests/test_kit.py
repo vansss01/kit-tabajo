@@ -360,6 +360,13 @@ class KitTests(unittest.TestCase):
         p = self.csv("id;valor\n001;a\n")
         summary = self.cli("inspeccionar", p, expected=1)
         self.assertEqual(summary["advertencias_por_codigo"], {"posible_delimitador_incorrecto": 1})
+        self.assertEqual(summary["sugerencia"], "--delimiter ';'")
+        bad = self.cli("inspeccionar", self.csv("id;v\n1;año\n", "latin.csv", "cp1252"), "--delimiter", ";", expected=2)
+        self.assertIn("--encoding cp1252", bad["error"])
+        self.assertIn("No existe", self.cli("inspeccionar", self.folder / "falta.csv", expected=2)["error"])
+        before = len(list((ROOT / "logs").iterdir()))
+        self.cli("inspeccionar", p, "--delimiter", ";")
+        self.assertEqual(len(list((ROOT / "logs").iterdir())), before)
         self.assertEqual(self.cli("inspeccionar", p, "--delimiter", ";")["tablas"][0]["columnas"], ["id", "valor"])
         self.assertEqual(self.read("a,b\n1\n", Options(delimiter=",")).warnings, [])
 

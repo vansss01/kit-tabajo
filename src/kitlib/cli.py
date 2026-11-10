@@ -153,6 +153,12 @@ def consolidate(paths, opts):
         "filas_salida": len(rows), "filas_analizadas": scanned}
 
 
+def delimiter_hint(header, current):
+    """Opción sugerida a partir del encabezado; no se relee ni se adivina el contenido."""
+    best = max((d for d in ";,\t|" if d != current), key=header.count)
+    return "--delimiter " + ("TAB" if best == "\t" else "'" + best + "'")
+
+
 def bounded(value):
     if isinstance(value, dict):
         result = {str(k)[:100]: bounded(v) for k, v in list(value.items())[:20]}
@@ -179,6 +185,8 @@ def emit(summary, args, detail=None):
             print("Resultados: " + summary["ruta_resultados"])
         if summary.get("error"):
             print(summary["error"])
+        if summary.get("sugerencia"):
+            print("Sugerencia: " + summary["sugerencia"])
         for key in ("incidencias_por_codigo", "advertencias_por_codigo", "conteos"):
             if summary.get(key):
                 print(key + ": " + ", ".join(f"{k}={v}" for k, v in summary[key].items()))
@@ -280,8 +288,8 @@ def execute(args):
         report["archivos"] = sorted(p.name for p in run.iterdir() if not p.name.startswith(".")) + ["report.json", "audit.json"]
         json_write(run / "report.json", report)
         json_write(run / "audit.json", audit)
-        log = inside(ROOT / "logs" / (run_name + "-" + uuid4().hex[:8] + ".json"))
-        json_write(log, audit)
+        if not args.output.is_relative_to(ROOT / "tmp"):  # ejecuciones temporales: audit.json basta
+            json_write(inside(ROOT / "logs" / (run_name + "-" + uuid4().hex[:8] + ".json")), audit)
         detail = {"incidencias": issues[:10], "advertencias": warnings[:10]}
         # Extras solo para la terminal: evitan abrir report.json en el caso habitual.
         # Contienen códigos, conteos y nombres de columnas; nunca valores de celdas.
@@ -290,6 +298,9 @@ def execute(args):
             extras["incidencias_por_codigo"] = dict(Counter(i["codigo"] for i in issues).most_common(15))
         if warnings:
             extras["advertencias_por_codigo"] = dict(Counter(w["codigo"] for w in warnings).most_common(15))
+        if args.command != "consolidar" and len(table.columns) == 1 and any(
+                w["codigo"] == "posible_delimitador_incorrecto" for w in warnings):
+            extras["sugerencia"] = delimiter_hint(table.columns[0], args.delimiter)
         if args.command == "inspeccionar":
             detail["analisis"] = details["analisis"][:5]
             extras["tablas"] = [{"hoja": a["hoja"], "filas": a["filas_analizadas"], "alcance": a["alcance"],
@@ -326,6 +337,11 @@ def main(argv=None):
         message = f"{type(exc).__name__}: no se completó la operación. Revise rutas, opciones y esquema de configuración."
         if type(exc) is ValueError:
             message = str(exc)[:240]
+        if isinstance(exc, UnicodeError):
+            message = ("El archivo no corresponde a --encoding " + str(getattr(args, "encoding", ""))[:30]
+                       + ". Pruebe --encoding cp1252 (Excel en Windows) o utf-8.")
+        if isinstance(exc, FileNotFoundError):
+            message = "No existe un archivo de entrada, reglas o plan. Revise las rutas y las comillas."
         if isinstance(exc, FileExistsError):
             message = "La salida ya existe. Use otro --run-name; no se sobrescribió."
         emit({"estado": "error", "codigo_salida": 2, "filas_procesadas": 0,

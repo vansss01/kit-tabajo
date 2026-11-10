@@ -17,7 +17,8 @@ Opciones comunes: `--delimiter`, `--encoding`, `--decimal`, `--date-format`, `--
 
 El resumen `--json` ya trae `incidencias_por_codigo`, `advertencias_por_codigo`, `conteos` y,
 al inspeccionar, `tablas` (columnas por hoja). Abrir `report.json` solo si falta la fila exacta.
-`posible_delimitador_incorrecto` significa: repetir con el `--delimiter` correcto.
+Con `posible_delimitador_incorrecto` el resumen trae `sugerencia` con la opción a repetir.
+Si el error menciona `--encoding`, el archivo suele ser `cp1252` (Excel en Windows).
 
 Los módulos están en `src/kitlib/`. Ejemplos pequeños:
 

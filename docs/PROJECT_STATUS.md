@@ -1,11 +1,17 @@
 # Estado del proyecto
 
-Actualizado: 2026-11-10. Versión 1.2.0. Repositorio: `github.com/vansss01/kit-tabajo` (privado).
+Actualizado: 2026-11-10. Versión 1.3.0. Repositorio: `github.com/vansss01/kit-tabajo` (privado).
 Comprobado en Linux y Windows (Python 3.11 y 3.14) por CI en cada cambio: 36 pruebas,
 Ruff y mypy con `scripts/check.py`, flujo `scripts/demo.py`, instalación sin red y
 lanzadores `kit`/`kit.cmd`. Sin dependencia de proveedores de IA.
 
 Comandos: inspeccionar, comparar, consolidar, validar, transformar, exportar, limpiar.
+
+## Cambios de 1.3.0
+
+- El aviso de delimitador trae `sugerencia` (p. ej. `--delimiter ';'`). Errores de
+  codificación y de archivo inexistente tienen mensaje propio y accionable.
+- Las ejecuciones con `--output` dentro de `tmp/` (pruebas) ya no llenan `logs/`.
 
 ## Cambios de 1.2.0
 
