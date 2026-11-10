@@ -1,0 +1,32 @@
+{
+  "columns": {
+    "orden": {
+      "required": true,
+      "nonempty": true,
+      "unique": true,
+      "type": "string"
+    },
+    "equipo": {
+      "required": true,
+      "nonempty": true,
+      "type": "string"
+    },
+    "fecha": {
+      "required": true,
+      "nonempty": true,
+      "type": "date"
+    },
+    "horas": {
+      "required": true,
+      "nonempty": true,
+      "type": "number",
+      "decimal": ",",
+      "min": "0",
+      "max": "24"
+    },
+    "estado": {
+      "required": true,
+      "nonempty": true
+    }
+  }
+}

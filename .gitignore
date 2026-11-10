@@ -1,0 +1,10 @@
+/.venv*/
+/.cache/
+/.runtime/
+/tmp/
+/data/
+/results/
+/logs/
+/vendor/
+__pycache__/
+*.py[cod]

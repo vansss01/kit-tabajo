@@ -1,0 +1,42 @@
+{
+  "steps": [
+    {
+      "op": "filter",
+      "column": "estado",
+      "operator": "eq",
+      "value": "abierta"
+    },
+    {
+      "op": "group",
+      "by": [
+        "equipo"
+      ],
+      "decimal": ",",
+      "aggregates": [
+        {
+          "op": "count",
+          "as": "ordenes"
+        },
+        {
+          "op": "sum",
+          "column": "horas",
+          "as": "horas_totales"
+        }
+      ]
+    },
+    {
+      "op": "sort",
+      "columns": [
+        "equipo"
+      ]
+    },
+    {
+      "op": "select",
+      "columns": [
+        "equipo",
+        "ordenes",
+        "horas_totales"
+      ]
+    }
+  ]
+}

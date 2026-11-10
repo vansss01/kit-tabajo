@@ -1,0 +1,4 @@
+orden;equipo;fecha;horas;estado
+OT001;0007;2026-10-01;2,5;abierta
+OT002;0012;03/04/2026;-1;abierta
+OT002;;2026-10-02;25;cerrada
