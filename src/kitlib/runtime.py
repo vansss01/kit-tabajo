@@ -1,4 +1,5 @@
 import os
+import sys
 import tempfile
 from pathlib import Path
 
@@ -20,6 +21,12 @@ def configure():
     os.environ.update(PYTHONDONTWRITEBYTECODE="1", PIP_CONFIG_FILE=os.devnull,
                       PIP_DISABLE_PIP_VERSION_CHECK="1", PIP_NO_INPUT="1")
     tempfile.tempdir = str(ROOT / "tmp")
+    # Windows redirigido usa cp1252 y falla con «→» o nombres no latinos: salida UTF-8
+    # aquí y en los procesos hijos, igual que en Linux.
+    os.environ["PYTHONUTF8"] = "1"
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 
 def inside(path):

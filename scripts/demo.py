@@ -20,7 +20,7 @@ runs: list[dict] = []
 def run(command, input_path, *extra, expected=0):
     command_line = [sys.executable, "-B", str(ROOT / "kit.py"), command, str(input_path),
                     "--delimiter", ";", "--decimal", ",", "--json", *map(str, extra)]
-    result = subprocess.run(command_line, cwd=ROOT, text=True, capture_output=True)
+    result = subprocess.run(command_line, cwd=ROOT, text=True, capture_output=True, encoding="utf-8")
     if result.returncode != expected:
         raise RuntimeError(f"{command}: código {result.returncode}; {result.stdout[:1000]} {result.stderr[:1000]}")
     summary = json.loads(result.stdout)

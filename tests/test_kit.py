@@ -35,7 +35,7 @@ class KitTests(unittest.TestCase):
     def cli(self, command, input_path, *extra, expected=0):
         result = subprocess.run([sys.executable, "-B", str(ROOT / "kit.py"), command, str(input_path),
             "--output", str(self.folder / "salidas"), "--json", *map(str, extra)],
-            text=True, capture_output=True, cwd=ROOT)
+            text=True, capture_output=True, cwd=ROOT, encoding="utf-8")
         self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
         return json.loads(result.stdout)
 
@@ -355,7 +355,7 @@ class KitTests(unittest.TestCase):
         rules.write_text(json.dumps({"columns": {"id": {"unique": True}, "v": {"type": "integer"}}}), encoding="utf-8")
         result = subprocess.run([sys.executable, "-B", str(ROOT / "kit.py"), "validar", str(p), "--delimiter", ";",
             "--rules", str(rules), "--output", str(self.folder / "salidas"), "--json"],
-            text=True, capture_output=True, cwd=ROOT)
+            text=True, capture_output=True, cwd=ROOT, encoding="utf-8")
         summary = json.loads(result.stdout)
         self.assertEqual(summary["incidencias_por_codigo"], {"valor_no_unico": 2, "tipo_o_fecha_invalido": 1})
         self.assertEqual(summary["conteos"], {"validas": 0, "invalidas": 2, "filas_no_tabulares": 0})

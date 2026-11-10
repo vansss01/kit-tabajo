@@ -14,7 +14,8 @@ commands = [("lint", ["-m", "ruff", "check", "src", "kit.py", "scripts", "tests"
             ("pruebas", ["-m", "unittest", "discover", "-s", "tests", "-v"])]
 failed = False
 for name, command in commands:
-    result = subprocess.run([sys.executable, "-B", *command], cwd=ROOT, capture_output=True, text=True)
+    result = subprocess.run([sys.executable, "-B", *command], cwd=ROOT, capture_output=True, text=True,
+                            encoding="utf-8", errors="replace")
     (ROOT / "logs" / (name + ".log")).write_text(result.stdout + result.stderr, encoding="utf-8")
     print(name + ": " + ("OK" if result.returncode == 0 else "FALLO") + " → logs/" + name + ".log")
     if result.returncode:
