@@ -12,6 +12,11 @@ Opciones comunes: `--delimiter`, `--encoding`, `--decimal`, `--date-format`, `--
 | validar: reglas sin corregir | operations.py:validate | --rules JSON | [validación](tools/validar.md) |
 | transformar: plan declarativo | operations.py:transform | --plan JSON | [transformación](tools/transformar.md) |
 | exportar: CSV/JSON/Excel | tableio.py; cli.py:execute | --rules opcional, --format, --safe-csv | [exportación](tools/exportar.md) |
+| limpiar: ejecuciones antiguas | cli.py:clean | --keep N, --apply (sin él no borra) | [limpieza](tools/limpiar.md) |
+
+El resumen `--json` ya trae `incidencias_por_codigo`, `advertencias_por_codigo`, `conteos` y,
+al inspeccionar, `tablas` (columnas por hoja). Abrir `report.json` solo si falta la fila exacta.
+`posible_delimitador_incorrecto` significa: repetir con el `--delimiter` correcto.
 
 Los módulos están en `src/kitlib/`. Ejemplos pequeños:
 

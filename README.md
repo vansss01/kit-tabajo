@@ -74,6 +74,7 @@ ruedas de desarrollo Linux con Windows. En Windows se usan los mismos CSV/JSON/X
 | `validar` | Columnas, vacíos, unicidad, tipos, fechas y rangos mediante JSON |
 | `transformar` | Selección, filtros, orden, agrupación, conversión y deduplicación explícitas |
 | `exportar` | CSV, JSON y XLSX con resultados, incidencias y resumen separados |
+| `limpiar` | Lista o borra (`--apply`) ejecuciones y registros antiguos |
 
 Lee [el índice compacto](docs/TOOLS_INDEX.md) y solo el manual de la herramienta
 necesaria. `python -B kit.py SUBCOMANDO --help` describe sus opciones.
@@ -81,7 +82,8 @@ necesaria. `python -B kit.py SUBCOMANDO --help` describe sus opciones.
 Opciones comunes: `--delimiter ';'`, `--encoding cp1252`, `--decimal ','`,
 `--date-format '%d/%m/%Y'`, `--sheet 'Órdenes'`, `--json`, `--verbose`.
 Todas las opciones se colocan **después del subcomando**. Usa comillas en rutas con
-espacios. No hay detección automática de delimitador/codificación ni de fecha regional.
+espacios. No hay detección automática de delimitador/codificación ni de fecha regional;
+si un CSV queda en una sola columna se avisa con `posible_delimitador_incorrecto`.
 
 ## Resultados y códigos de salida
 
@@ -105,6 +107,7 @@ ejecución fallida; no reutilices sus tablas. No se reemplaza ningún resultado 
 `--output` solo admite carpetas **dentro del proyecto**, incluso tras resolver enlaces.
 
 La salida normal es compacta. `--json` entrega un único objeto resumen en stdout;
+incluye conteos por código de incidencia y nombres de columnas, nunca valores de celdas.
 `--verbose` agrega detalle acotado. La ayuda y los errores de sintaxis de argparse son
 texto y usan el código 2. Los detalles completos se consultan en los archivos.
 
@@ -154,4 +157,8 @@ Pega esta instrucción al agente que elijas:
 > el manual necesario y ejecuta scripts/check.py tras cambios de código.
 
 La documentación del proyecto es suficiente: no requiere memoria privada, historial
-ni configuración externa de ningún proveedor. [Estado real y pendientes](docs/PROJECT_STATUS.md).
+ni configuración externa de ningún proveedor. [Estado y límites](docs/PROJECT_STATUS.md);
+[evidencia de verificación de la versión 1.0.0](docs/VERIFICATION.md).
+
+En un clon nuevo desde GitHub no existe `vendor/`: usa `python3 -B scripts/setup.py --dev`
+(descarga los paquetes fijados de PyPI) en lugar de `--offline`.

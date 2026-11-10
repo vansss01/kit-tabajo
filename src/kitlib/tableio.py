@@ -178,7 +178,12 @@ def read_table(path, opts=None, limit=None):
             raise ValueError("--sheet solo se aplica a libros Excel")
         with path.open(encoding=opts.encoding, newline="") as stream:
             reader = csv.reader(stream, delimiter=opts.delimiter, strict=True)
-            return _consume(next(reader, None), reader, path, None, limit)
+            table = _consume(next(reader, None), reader, path, None, limit)
+        # Una sola columna cuyo encabezado contiene otro separador habitual: casi siempre
+        # falta --delimiter. Se avisa (código 1) sin adivinar ni releer el archivo.
+        if len(table.columns) == 1 and any(d in table.columns[0] for d in ";,\t|" if d != opts.delimiter):
+            table.warnings.append("posible_delimitador_incorrecto")
+        return table
     if suffix == ".json":
         with path.open(encoding=opts.encoding) as stream:
             data = json.load(stream)

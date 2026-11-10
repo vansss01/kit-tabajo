@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
+from kitlib.cli import clean
 from kitlib.runtime import configure, inside
 from kitlib.tableio import Options, Table, csv_write, excel_write, read_table
 from kitlib.operations import compare, inspect_table, transform, validate
@@ -270,7 +271,7 @@ class KitTests(unittest.TestCase):
         self.cli("inspeccionar", self.csv("", "vacio.csv"), expected=1)
 
     def test_help_all_commands(self):
-        for command in ([], ["inspeccionar"], ["comparar"], ["consolidar"], ["validar"], ["transformar"], ["exportar"]):
+        for command in ([], ["inspeccionar"], ["comparar"], ["consolidar"], ["validar"], ["transformar"], ["exportar"], ["limpiar"]):
             result = subprocess.run([sys.executable, "-B", str(ROOT / "kit.py"), *command, "--help"], capture_output=True)
             self.assertEqual(result.returncode, 0)
 
@@ -340,6 +341,49 @@ class KitTests(unittest.TestCase):
         grouped = {"steps": [{"op": "group", "by": [], "aggregates": [
             {"op": "min", "column": "v", "as": "menor"}, {"op": "max", "column": "v", "as": "mayor"}]}]}
         self.assertEqual(transform(result, grouped, self.opts)[0]["validos"].rows, [{"menor": "2", "mayor": "10"}])
+
+    def test_wrong_delimiter_is_warned_not_silent(self):
+        p = self.csv("id;valor\n001;a\n")
+        summary = self.cli("inspeccionar", p, expected=1)
+        self.assertEqual(summary["advertencias_por_codigo"], {"posible_delimitador_incorrecto": 1})
+        self.assertEqual(self.cli("inspeccionar", p, "--delimiter", ";")["tablas"][0]["columnas"], ["id", "valor"])
+        self.assertEqual(self.read("a,b\n1\n", Options(delimiter=",")).warnings, [])
+
+    def test_terminal_summary_has_codes_and_counts_without_cell_values(self):
+        p = self.csv("id;v\nSECRETO;1\nSECRETO;x\n")
+        rules = self.folder / "reglas.json"
+        rules.write_text(json.dumps({"columns": {"id": {"unique": True}, "v": {"type": "integer"}}}), encoding="utf-8")
+        result = subprocess.run([sys.executable, "-B", str(ROOT / "kit.py"), "validar", str(p), "--delimiter", ";",
+            "--rules", str(rules), "--output", str(self.folder / "salidas"), "--json"],
+            text=True, capture_output=True, cwd=ROOT)
+        summary = json.loads(result.stdout)
+        self.assertEqual(summary["incidencias_por_codigo"], {"valor_no_unico": 2, "tipo_o_fecha_invalido": 1})
+        self.assertEqual(summary["conteos"], {"validas": 0, "invalidas": 2, "filas_no_tabulares": 0})
+        self.assertNotIn("SECRETO", result.stdout)
+
+    def test_clean_is_dry_by_default_and_only_removes_marked_runs(self):
+        results, logs = self.folder / "results", self.folder / "logs"
+        results.mkdir()
+        logs.mkdir()
+        for i in range(4):
+            run = results / f"run{i}"
+            run.mkdir()
+            (run / ".kit-output").touch()
+            (run / "report.json").write_text("{}", encoding="utf-8")
+            (logs / f"run{i}-0123abcd.json").write_text("{}", encoding="utf-8")
+        (results / "ajena").mkdir()
+        (results / "ajena" / "datos.csv").write_text("a\n", encoding="utf-8")
+        (logs / "storage.json").write_text("{}", encoding="utf-8")
+        dry = clean(1, False, results, logs)
+        self.assertEqual((dry["ejecuciones_antiguas"], dry["registros_antiguos"], dry["aplicado"]), (3, 3, False))
+        self.assertEqual(len(list(results.iterdir())), 5)
+        clean(1, True, results, logs)
+        self.assertEqual(len([p for p in results.iterdir() if (p / ".kit-output").exists()]), 1)
+        self.assertTrue((results / "ajena" / "datos.csv").exists())
+        self.assertEqual(sorted(p.name for p in logs.iterdir() if p.name != "storage.json").__len__(), 1)
+        self.assertTrue((logs / "storage.json").exists())
+        with self.assertRaises(ValueError):
+            clean(1, True, ROOT.parent, logs)
 
 
 if __name__ == "__main__":

@@ -16,6 +16,7 @@ def configure():
         path = inside(ROOT / relative)
         path.mkdir(parents=True, exist_ok=True)
         os.environ[key] = str(path)
+    (ROOT / "logs").mkdir(exist_ok=True)  # ignorada por Git: no existe en un clon nuevo
     os.environ.update(PYTHONDONTWRITEBYTECODE="1", PIP_CONFIG_FILE=os.devnull,
                       PIP_DISABLE_PIP_VERSION_CHECK="1", PIP_NO_INPUT="1")
     tempfile.tempdir = str(ROOT / "tmp")

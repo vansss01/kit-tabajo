@@ -2,7 +2,9 @@ import argparse
 import fnmatch
 import json
 import re
+import shutil
 import sys
+from collections import Counter
 from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
@@ -57,7 +59,40 @@ def parser():
         if name == "exportar":
             cmd.add_argument("--format", choices=["all", "xlsx", "csv", "json"], default="all")
             cmd.add_argument("--safe-csv", action="store_true", help="Añadir apóstrofo a textos que Excel podría ejecutar como fórmula")
+    cmd = sub.add_parser("limpiar", help="Listar o borrar ejecuciones y registros antiguos",
+                         description="Conserva las ejecuciones y registros más recientes. Sin --apply solo informa.")
+    cmd.add_argument("--keep", type=int, default=20, help="Cantidad de ejecuciones y de registros a conservar")
+    cmd.add_argument("--apply", action="store_true", help="Borrar de verdad; sin esta opción no se elimina nada")
+    cmd.add_argument("--json", action="store_true", help="Resumen compacto JSON en stdout")
+    cmd.set_defaults(verbose=False)
     return p
+
+
+def clean(keep, apply, results, logs):
+    """Solo carpetas marcadas con .kit-output y registros de ejecución; nunca datos ni originales."""
+    if keep < 0:
+        raise ValueError("--keep no puede ser negativo")
+
+    def recent(paths):
+        return sorted(paths, key=lambda p: (p.stat().st_mtime, p.name), reverse=True)
+
+    results, logs = inside(results), inside(logs)
+    runs = recent(p for p in results.iterdir() if p.is_dir() and not p.is_symlink()
+                  and (p / ".kit-output").is_file()) if results.is_dir() else []
+    records = recent(p for p in logs.iterdir() if p.is_file() and not p.is_symlink()
+                     and re.fullmatch(r".+-[0-9a-f]{8}\.json", p.name)) if logs.is_dir() else []
+    old_runs, old_records = runs[keep:], records[keep:]
+    size = sum(f.stat().st_size for run in old_runs for f in run.rglob("*") if f.is_file() and not f.is_symlink())
+    size += sum(p.stat().st_size for p in old_records)
+    if apply:
+        for run in old_runs:
+            shutil.rmtree(inside(run))
+        for record in old_records:
+            inside(record).unlink()
+    return {"estado": "ok", "codigo_salida": 0, "comando": "limpiar", "aplicado": apply,
+            "ejecuciones_conservadas": len(runs) - len(old_runs), "ejecuciones_antiguas": len(old_runs),
+            "registros_conservados": len(records) - len(old_records), "registros_antiguos": len(old_records),
+            "bytes_antiguos": size}
 
 
 def candidates(args):
@@ -144,6 +179,11 @@ def emit(summary, args, detail=None):
             print("Resultados: " + summary["ruta_resultados"])
         if summary.get("error"):
             print(summary["error"])
+        for key in ("incidencias_por_codigo", "advertencias_por_codigo", "conteos"):
+            if summary.get(key):
+                print(key + ": " + ", ".join(f"{k}={v}" for k, v in summary[key].items()))
+        for item in summary.get("tablas", []):
+            print(f"{item['hoja'] or 'tabla'} ({item['filas']} filas, {item['alcance']}): " + ", ".join(item["columnas"]))
         if args.verbose and detail is not None:
             print(json.dumps(detail, ensure_ascii=False, indent=2))
 
@@ -241,9 +281,22 @@ def execute(args):
         log = inside(ROOT / "logs" / (run_name + "-" + uuid4().hex[:8] + ".json"))
         json_write(log, audit)
         detail = {"incidencias": issues[:10], "advertencias": warnings[:10]}
+        # Extras solo para la terminal: evitan abrir report.json en el caso habitual.
+        # Contienen códigos, conteos y nombres de columnas; nunca valores de celdas.
+        extras: dict = {}
+        if issues:
+            extras["incidencias_por_codigo"] = dict(Counter(i["codigo"] for i in issues).most_common(15))
+        if warnings:
+            extras["advertencias_por_codigo"] = dict(Counter(w["codigo"] for w in warnings).most_common(15))
         if args.command == "inspeccionar":
             detail["analisis"] = details["analisis"][:5]
-        emit(summary, args, detail)
+            extras["tablas"] = [{"hoja": a["hoja"], "filas": a["filas_analizadas"], "alcance": a["alcance"],
+                                 "columnas": [c[:60] for c in list(a["columnas"])[:40]]}
+                                for a in details["analisis"][:5]]
+        else:
+            extras["conteos"] = {k: len(v) if isinstance(v, list) else v for k, v in details.items()
+                                 if isinstance(v, (int, str, list)) and k != "pasos"}
+        emit({**summary, **extras}, args, detail)
         return code
     except Exception as exc:
         args.failed_results = run
@@ -255,6 +308,16 @@ def execute(args):
 def main(argv=None):
     args = parser().parse_args(argv)
     try:
+        if args.command == "limpiar":
+            result = clean(args.keep, args.apply, ROOT / "results", ROOT / "logs")
+            if args.json:
+                print(json.dumps(result, ensure_ascii=False))
+            else:
+                print(f"{'Eliminadas' if args.apply else 'Eliminables (use --apply)'}: "
+                      f"{result['ejecuciones_antiguas']} ejecuciones y {result['registros_antiguos']} registros, "
+                      f"{result['bytes_antiguos']} bytes. Conservadas: {result['ejecuciones_conservadas']} "
+                      f"ejecuciones y {result['registros_conservados']} registros.")
+            return 0
         return execute(args)
     except Exception as exc:
         # No volcar valores de celdas, configuraciones ni traceback por terminal.
