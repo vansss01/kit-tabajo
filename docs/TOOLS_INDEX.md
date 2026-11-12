@@ -11,10 +11,10 @@ Opciones comunes: `--delimiter`, `--encoding`, `--decimal`, `--date-format`, `--
 | comparar: altas/bajas/campos | operations.py:compare | segundo archivo, --key A B, --after-sheet | [comparación](tools/comparar.md) |
 | consolidar: unir con procedencia | cli.py:consolidate | carpeta, --glob, --recursive, --exclude | [consolidación](tools/consolidar.md) |
 | validar: reglas sin corregir | operations.py:validate | --rules JSON | [validación](tools/validar.md) |
-| transformar: plan declarativo | operations.py:transform | --plan JSON | [transformación](tools/transformar.md) |
+| transformar: plan declarativo (también rename, normalize, replace) | operations.py:transform | --plan JSON | [transformación](tools/transformar.md) |
 | exportar: CSV/JSON/Excel | tableio.py; cli.py:execute | --rules opcional, --format, --safe-csv | [exportación](tools/exportar.md) |
 | consultar: SQL solo lectura | operations.py:query | --sql, --tabla N=ARCHIVO, --numeric, --show | [consulta](tools/consultar.md) |
-| ejecutar: receta de pasos con trazabilidad | recetas.py, traza.py | --receta JSON, --entrada N=ARCHIVO, --vista-previa | [recetas](tools/ejecutar.md) |
+| ejecutar: receta de pasos con trazabilidad; pasos completar y duplicados; títulos y pies | recetas.py, traza.py | --receta JSON, --entrada N=ARCHIVO, --vista-previa | [recetas](tools/ejecutar.md) |
 | bitacora: diario e informe | bitacora.py | texto, --horas, --etiqueta, --ver, --informe | [bitácora](tools/bitacora.md) |
 | limpiar: ejecuciones antiguas | cli.py:clean | --keep N, --apply (sin él no borra) | [limpieza](tools/limpiar.md) |
 

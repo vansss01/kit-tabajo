@@ -19,6 +19,9 @@
    En `ejecutar`, revisar `manifiesto.json`: solo `completada*` es un flujo terminado.
    Usar `--vista-previa` antes de ejecutar una receta nueva; no valida datos. Para explicar
    qué pasó con una fila, leer las `trazas` del paso en el manifiesto; no reconstruir a mano.
+   No elegir por el usuario: equivalencias de `replace`, `existentes` de `completar`, `conservar`
+   de `duplicados` y `excluir_filas` se escriben solo si quien usa el kit lo decidió; si no, dejar
+   los valores por defecto (conservadores) y mostrar conflictos, ambiguas y excluidas.
 7. Preferir `--json`: su resumen suele bastar; leer `report.json` selectivamente. No imprimir archivos
    completos, credenciales, valores sensibles ni listados masivos. `--verbose` tiene
    límites; archivos de detalle y registros permanecen locales.

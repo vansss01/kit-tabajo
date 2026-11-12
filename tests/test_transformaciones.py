@@ -511,5 +511,63 @@ class EncabezadosTests(Base):
         self.assertEqual(self.runs(), [])
 
 
+class RecetaCompletaTests(Base):
+    """Las seis operaciones juntas, en una receta guardada, sobre archivos compatibles distintos."""
+    RECIPE = {
+        "version": 1, "salida": {"delimiter": ";"},
+        "entradas": {"ordenes": {"principal": True, **SEMI, "fila_encabezado": 2,
+                                 "excluir_filas": [{"columna": "Orden", "igual": "TOTAL"}]},
+                     "flota": {"ruta": "flota.csv", **SEMI}},
+        "pasos": [
+            {"nombre": "limpieza", "op": "transformar", "entrada": "ordenes", "plan": {"steps": [
+                {"op": "rename", "columns": {"Orden": "orden", "Equipo": "equipo", "Estado": "estado"}},
+                {"op": "normalize", "columns": ["orden"]},
+                {"op": "normalize", "columns": ["estado"], "case": "lower"},
+                {"op": "replace", "column": "estado", "map": {"en curso": "abierta", "cerrada": "cerrada"},
+                 "unknown": "error"}]}},
+            {"nombre": "dup", "op": "duplicados", "entrada": "limpieza.resultado", "clave": ["orden"],
+             "politica": {"incidencias": "separar"}},
+            {"nombre": "enriquecer", "op": "completar", "entrada": "dup.conservadas", "referencia": "flota",
+             "clave": ["equipo"], "columnas": ["area"], "politica": {"incidencias": "separar"}}]}
+
+    def setUp(self):
+        super().setUp()
+        self.write("flota.csv", "equipo;area\n0007;Mina\n0012;Planta\n")
+        self.recipe_path = self.write("receta.json", self.RECIPE)
+
+    def test_same_recipe_on_two_compatible_files_and_a_failure_midway(self):
+        # Semana 45: fila 3 " OT1" | 4 "OT1 " idéntica tras normalizar | 5 OT2 "EN  CURSO" → abierta
+        # | 6 OT3 0099 sin flota, horas vacías | 7 TOTAL (excluida)
+        a = self.write("semana 45.csv", "Órdenes semana 45;;;\nOrden;Equipo;Estado;horas\n OT1;0007;Abierta;2,5\n"
+                                        "OT1 ;0007;abierta;2,5\nOT2;0012;EN  CURSO;1,0\nOT3;0099;cerrada;\nTOTAL;;;3,5\n")
+        # Semana 46: fila 3 OT7 Cerrada | 4 OT8 | 5 TOTAL
+        b = self.write("semana 46.csv", "Órdenes semana 46;;;\nOrden;Equipo;Estado;horas\nOT7;0012;Cerrada;4,0\n"
+                                        "OT8;0007;abierta;0,5\nTOTAL;;;4,5\n")
+        # Semana 47: "pendiente" no tiene equivalencia y la política es error.
+        c = self.write("semana 47.csv", "Órdenes semana 47;;;\nOrden;Equipo;Estado;horas\nOT9;0007;pendiente;1,0\n")
+        before = self.hashes()
+        first = Path(self.run_cli(self.recipe_path, a, expected=1)["ruta_resultados"])
+        self.assertEqual(self.rows(first / "03-enriquecer" / "completadas.csv"), [
+            ["orden", "equipo", "estado", "horas", "area"], ["OT1", "0007", "abierta", "2,5", "Mina"],
+            ["OT2", "0012", "abierta", "1,0", "Planta"]])
+        self.assertEqual([r[3] for r in self.rows(first / "03-enriquecer" / "completadas_procedencia.csv")[1:]], ["3", "5"])
+        self.assertEqual(self.rows(first / "03-enriquecer" / "sin_coincidencia.csv")[1:], [["OT3", "0099", "cerrada", ""]])
+        self.assertEqual(self.rows(first / "02-dup" / "excluidas_procedencia.csv")[1:][0][3:],
+                         ["4", "idéntica a ordenes fila 3"])
+        self.assertEqual([r[2] for r in self.rows(first / "00-entradas" / "excluidas.csv")[1:]], ["7"])
+        second = self.run_cli(self.recipe_path, b)  # mismo archivo de receta, otra semana: sin incidencias
+        run = Path(second["ruta_resultados"])
+        self.assertEqual(self.rows(run / "03-enriquecer" / "completadas.csv")[1:], [["OT7", "0012", "cerrada", "4,0", "Planta"],
+                                                                              ["OT8", "0007", "abierta", "0,5", "Mina"]])
+        failed = self.run_cli(self.recipe_path, c, expected=2)
+        m = self.manifest(failed)
+        self.assertEqual([p["estado"] for p in m["pasos"]], ["fallido", "pendiente", "pendiente"])
+        run = Path(failed["ruta_resultados"])
+        self.assertTrue((run / "FAILED.json").exists())
+        self.assertEqual(sorted(p.name for p in run.iterdir() if p.is_dir()), ["00-entradas", "01-limpieza"])
+        self.assertFalse((run / "01-limpieza" / "resultado.csv").exists())
+        self.assertEqual(self.hashes(), before)  # originales, referencia y receta intactos
+
+
 if __name__ == "__main__":
     unittest.main()

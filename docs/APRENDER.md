@@ -64,3 +64,32 @@ resultado solo trae OT1 y `excluidas.csv` dice: `filter`, `no cumple estado eq a
   se fuerza una procedencia falsa; se dice qué filas participaron o cómo reconstruirlo.
 - *La traza también es dato.* `excluidas.csv` y `cambios_celdas.csv` llevan valores de celdas:
   se cuidan igual que la planilla original.
+
+## Etapa 3: transformaciones controladas
+
+Limpiar una planilla a mano es rápido y peligroso: se borra lo que «sobra», se elige una fila
+entre dos, se corrige un estado mal escrito… y nadie sabe después qué se tocó. Cada operación
+nueva hace una sola cosa, explícita, y deja registro.
+
+| Problema real | Operación | Ejemplo mínimo |
+|---|---|---|
+| El sistema exporta `Orden`, la planilla de ayer decía `orden` | `rename` | `{"Orden": "orden"}`; si `orden` ya existe, error en vez de pisarla |
+| `" OT1 "`, `"OT1"` y `"ot1"` son la misma orden | `normalize` | recorta, colapsa espacios y, si se pide, minúsculas; `"0042"` sigue con sus ceros |
+| `Abierta`, `ABIERTA`, `en curso` deberían ser un solo estado | `replace` | `{"en curso": "abierta"}` con `unknown`: lo que no esté en el mapa se avisa, se aparta o detiene |
+| Falta el área de cada equipo; está en la planilla de flota | `completar` | por `equipo`; `"7"` no es `"0007"`; si la flota repite un equipo, esa orden va a `ambiguas` |
+| La misma orden aparece dos veces | `duplicados` | copias idénticas → `excluidas`; datos distintos → `conflictos`, salvo política (`mas_reciente`, con empate = conflicto) |
+| El reporte trae título arriba y `TOTAL` abajo | `fila_encabezado`, `excluir_filas` | `3` y `{"columna": "orden", "igual": "TOTAL"}`; la fila 4 sigue siendo la fila 4 |
+
+**Ejemplo encadenado.** Con `" OT1"` y `"OT1 "` en las filas 3 y 4: `normalize` deja ambas en
+`OT1` (`cambios_celdas.csv` lo dice), `duplicados` ve que son idénticas y aparta la fila 4
+(«idéntica a ordenes fila 3») y `completar` le pone `Mina` desde la flota. Si en vez de idénticas
+tuvieran horas distintas, ninguna se elige: las dos van a `conflictos` para que alguien decida.
+
+**Ideas clave**
+
+- *Nada se adivina.* Un total sin condición sigue siendo una fila; un estado sin equivalencia
+  no se «parece» a otro; entre dos coincidencias no se elige una.
+- *Lo que sale no se pierde.* Cada fila apartada tiene archivo, fila real y motivo, y el kit
+  comprueba que entrada = suma de las salidas.
+- *Pisar datos es una decisión.* Sin `existentes` o `conservar` explícitos, el kit no
+  sobrescribe ni descarta información distinta.

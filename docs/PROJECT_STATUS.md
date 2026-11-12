@@ -1,13 +1,27 @@
 # Estado del proyecto
 
-Actualizado: 2026-11-12. Versión 1.5.0-etapa2 (commits locales, sin push). Repositorio: `github.com/vansss01/kit-tabajo` (privado).
-1.4.1 a 1.5.0-etapa2 están comprobadas **solo en local, Linux, Python 3.14.9**: 62 pruebas, Ruff y
-mypy con `scripts/check.py` y flujo `scripts/demo.py`. No están publicadas: la CI (Linux y Windows,
+Actualizado: 2026-11-12. Versión 1.5.0-etapa3 (commits locales, sin push). Repositorio: `github.com/vansss01/kit-tabajo` (privado).
+1.4.1 a 1.5.0-etapa3 están comprobadas **solo en local, Linux, Python 3.14.9**: 87 pruebas, Ruff y
+mypy con `scripts/check.py`, flujo `scripts/demo.py` y 48/48 mutaciones (`scripts/mutaciones.py`). No están publicadas: la CI (Linux y Windows,
 Python 3.11 y 3.14, instalación sin red y lanzadores) corrió por última vez sobre 1.4.0; Windows
 queda pendiente hasta el próximo push. Sin dependencia de proveedores de IA.
 
 Comandos: inspeccionar, comparar, consolidar, validar, transformar, exportar, consultar,
 ejecutar, bitacora, limpiar.
+
+## Cambios de 1.5.0-etapa3 (transformaciones controladas)
+
+- Plan: `rename` (sin colisiones ni ambigüedades), `normalize` (espacios y, si se pide,
+  mayúsculas; sin tildes ni tipos), `replace` (mapa exacto, `unknown` keep/exclude/error).
+- Recetas: `completar` (referencia por clave; completadas, sin_coincidencia, ambiguas,
+  clave_vacia; nunca multiplica filas ni pisa datos sin `existentes`), `duplicados` (idénticas,
+  conflictos, conservar primero/ultimo/mas_reciente explícito, empate = conflicto) y entradas
+  con `fila_encabezado` y `excluir_filas` (fila real conservada).
+- Todo deja cambios, excluidas y procedencia en la traza, e invariantes por paso.
+- Compatibilidad: `consultar` suelto recupera su salida de 1.4.1. **Cambios deliberados**:
+  claves JSON repetidas en planes, reglas y recetas son error (antes ganaba la última); en la
+  vista previa un encabezado ilegible es error (antes aviso). `transformar` suelto avisa
+  (código 1) solo si un plan usa `replace` con `unknown: keep`.
 
 ## Cambios de 1.5.0-etapa2 (trazabilidad de recetas)
 
@@ -91,6 +105,10 @@ ejecutar, bitacora, limpiar.
   Sin procedencia por fila tras `group` ni en resultados SQL; en `excluidas.csv` y
   `cambios_celdas.csv` hay valores de celdas. Los archivos de traza duplican aprox. el número
   de líneas de cada tabla intermedia (una línea por fila).
+- `completar` trata cualquier clave repetida de la referencia como ambigua, aunque las filas
+  sean idénticas (deduplicar antes). `normalize` no detecta por sí mismo claves unidas: solo
+  las cuenta (`valores_unificados`); el choque se ve en `duplicados` o `validar`.
+- `replace` con `exclude` en `transformar` suelto no guarda las filas excluidas (como `filter`).
 - Ejemplos y reglas son ficticios; adaptar reglas con quien conozca el proceso real.
 - `vendor/` (ruedas offline) es local y solo para Linux/Python 3.14; no está en Git.
 
