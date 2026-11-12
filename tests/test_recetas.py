@@ -14,7 +14,7 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-from kitlib import recetas
+from kitlib import __version__, recetas
 from kitlib.cli import main
 from kitlib.runtime import configure
 
@@ -499,7 +499,7 @@ class TrazaTests(Base):
         for path in run.rglob("*.json"):
             self.assertNotIn("\\u0000", path.read_text(encoding="utf-8"), path)
         # Manifiesto: parámetros, versión, receta y dónde están los detalles; terminal acotada y sin celdas.
-        self.assertEqual((m["version_kit"], m["parametros"]["command"]), ("1.5.0-etapa2", "ejecutar"))
+        self.assertEqual((m["version_kit"], m["parametros"]["command"]), (__version__, "ejecutar"))
         self.assertEqual(steps["limpieza"]["detalles"], "03-limpieza/report.json")
         self.assertEqual([p["excluidas"] for p in summary["pasos"]], [0, 0, 2, 0, 0])
         printed = json.dumps(summary, ensure_ascii=False)

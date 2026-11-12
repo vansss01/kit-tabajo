@@ -17,6 +17,7 @@ la transformación con código 2. No se publican resultados transformados parcia
 | convert | `column`, `type`; conversión explícita |
 | deduplicate | `keys`: conserva la primera fila por clave, solo si se solicita |
 | group | `by`: columnas o [] para total general; `aggregates`: lista |
+| rename | `columns`: `{"actual": "nuevo"}`; ver abajo |
 
 Tipos: string, integer, number, date, boolean. `decimal` y `date_format` pueden
 sobrescribirse en filter/sort/convert; group admite decimal.
@@ -50,3 +51,17 @@ Alias no pueden repetirse ni coincidir con las claves. Ejemplo:
 Números resultantes son textos decimales con punto. Sum amplía precisión; mean puede
 redondear a 28 dígitos. Las fechas convertidas son YYYY-MM-DD. No aplicar conversión
 integer a identificadores si debes conservar ceros: ese paso los quitaría explícitamente.
+
+## Renombrar (`rename`)
+
+`{"op": "rename", "columns": {"Orden": "orden", "Equipo": "equipo"}}`: solo cambia nombres de
+columnas, nunca valores; el resto conserva nombre y orden. Se rechaza (código 2) si dos columnas
+recibirían el mismo nombre, si el nombre nuevo choca con una columna que no se renombra o si
+una columna de origen no existe (mayúsculas, tildes y espacios cuentan). Un intercambio
+explícito (`{"a": "b", "b": "a"}`) es válido. En recetas la procedencia de cada fila no cambia y
+`report.json` registra el mapeo aplicado.
+
+Desde 1.5.0-etapa3, **toda** configuración JSON (planes, reglas, recetas) con una clave repetida
+en un mismo objeto es un error (`Clave JSON repetida`), en vez de quedarse en silencio con la
+última. Es un cambio de compatibilidad deliberado: una regla o mapeo duplicado casi siempre
+es una errata que antes pasaba inadvertida.

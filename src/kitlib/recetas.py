@@ -26,7 +26,7 @@ from kitlib.operations import (check_plan, compare, inspect_table, merge_tables,
                                new_trace, transform, validate, validate_config)
 from kitlib.runtime import ROOT, inside, public_message
 from kitlib.tableio import (ORIGEN, Options, Table, atomic_json, csv_write, excel_write, fingerprint, json_write,
-                            load_config, read_table, table_json)
+                            load_config, read_table, table_json, unique_keys)
 
 VERSION = 1
 NAME = re.compile(r"[a-z][a-z0-9_]{0,39}")
@@ -193,11 +193,14 @@ def cargar_receta(path, principal=None, overrides=None):
     path = Path(path).resolve()
     base = path.parent
     try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
+        raw = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_keys)
     except FileNotFoundError:
         raise
     except (UnicodeError, json.JSONDecodeError) as exc:
         raise RecipeError([error("receta_json_invalido", "La receta no es JSON UTF-8 válido: " + str(exc)[:120])]) from exc
+    except ValueError as exc:  # unique_keys
+        raise RecipeError([error("clave_json_repetida", str(exc)[:160], None, None,
+                                 "Cada nombre puede aparecer una sola vez en un mismo objeto")]) from exc
     errors: list[dict] = []
     if not isinstance(raw, dict):
         raise RecipeError([error("receta_invalida", "La receta debe ser un objeto JSON")])

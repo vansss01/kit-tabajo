@@ -211,6 +211,7 @@ SCHEMAS = {
     "convert": ({"op", "column", "type", "decimal", "date_format"}, {"column", "type"}),
     "deduplicate": ({"op", "keys"}, {"keys"}),
     "group": ({"op", "by", "aggregates", "decimal"}, {"by", "aggregates"}),
+    "rename": ({"op", "columns"}, {"columns"}),
 }
 
 
@@ -262,6 +263,15 @@ def check_step(step, opts):
             raise ValueError("Operador de filtro no admitido")
         if step["operator"] == "contains" and step.get("type", "string") != "string":
             raise ValueError("contains requiere string")
+    if op == "rename":
+        mapping = step["columns"]
+        if not isinstance(mapping, dict) or not mapping or not all(
+                isinstance(k, str) and k and isinstance(v, str) and v.strip() for k, v in mapping.items()):
+            raise ValueError("rename: columns es un objeto {\"columna actual\": \"nombre nuevo\"} no vacío")
+        targets = list(mapping.values())
+        repeated = sorted({t for t in targets if targets.count(t) > 1})
+        if repeated:
+            raise ValueError("rename: dos columnas recibirían el mismo nombre: " + ", ".join(repeated)[:120])
     if op == "sort" and not isinstance(step.get("descending", False), bool):
         raise ValueError("descending debe ser booleano")
     if op == "group":
@@ -416,7 +426,17 @@ def transform(table, plan, opts, trace=None):
                     result[spec["as"]] = None if val is None else format(val, "f")
                 output.append(result)
             current = copy_table(current, output, names)
-        history.append({"operacion": op, "antes": count_before, "despues": len(current.rows)})
+        if op == "rename":
+            mapping = step["columns"]
+            require_columns(current, list(mapping))
+            names = [mapping.get(c, c) for c in current.columns]
+            clash = sorted({n for n in names if names.count(n) > 1})
+            if clash:
+                raise ValueError("rename: el nombre nuevo choca con una columna existente: " + ", ".join(clash)[:120])
+            # La procedencia interna no está en el mapeo: se conserva tal cual.
+            current = copy_table(current, [{mapping.get(k, k): v for k, v in r.items()} for r in current.rows], names)
+        history.append({"operacion": op, "antes": count_before, "despues": len(current.rows),
+                        **({"renombradas": step["columns"]} if op == "rename" else {})})
     return {"validos": current}, [], {"filas_salida": len(current.rows), "pasos": history}
 
 

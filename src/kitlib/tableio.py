@@ -147,9 +147,19 @@ def fingerprint(path):
     return {"ruta": str(path), "bytes": path.stat().st_size, "sha256": h.hexdigest()}
 
 
+def unique_keys(pairs):
+    """object_pairs_hook de json: una clave repetida (p. ej. la misma columna dos veces en un
+    mapeo) es un error, no "gana la última" en silencio."""
+    keys = [k for k, _ in pairs]
+    repeated = sorted({k for k in keys if keys.count(k) > 1})
+    if repeated:
+        raise ValueError("Clave JSON repetida: " + ", ".join(repeated)[:120])
+    return dict(pairs)
+
+
 def load_config(path):
     with Path(path).open(encoding="utf-8") as stream:
-        config = json.load(stream)
+        config = json.load(stream, object_pairs_hook=unique_keys)
     if not isinstance(config, dict):
         raise ValueError("La configuración debe ser un objeto JSON")
     return config
