@@ -23,6 +23,10 @@ class Options:
     decimal: str = "."
     date_format: str | None = None
     sheet: str | None = None
+    # Solo recetas (CSV/XLSX): fila del encabezado (las anteriores se omiten) y condiciones
+    # explícitas para excluir pies o totales. Por defecto, el comportamiento de siempre.
+    header_row: int = 1
+    exclude_rows: tuple = ()
 
 
 @dataclass
@@ -36,6 +40,7 @@ class Table:
     scanned: int = 0
     complete: bool = True
     row_numbers: list[int] = field(default_factory=list)
+    excluded: list[tuple] = field(default_factory=list)  # (fila, motivo, valores) por exclude_rows
 
 
 # Procedencia interna de las recetas: cada fila lleva bajo esta clave (entrada, archivo, fila lógica
@@ -165,7 +170,23 @@ def load_config(path):
     return config
 
 
-def _consume(header, records, source, sheet, limit, xlsx=False):
+def _exclusion(values, columns, conditions):
+    """Motivo si la fila cumple alguna condición explícita de exclusión (pies, totales); si no, None.
+    Se mira la posición de la columna, así que también vale para filas más cortas que el encabezado."""
+    for number, cond in enumerate(conditions, 1):
+        position = columns.index(cond["columna"])
+        value = values[position] if position < len(values) else None
+        text = literal(value) or ""
+        if "igual" in cond and text == cond["igual"]:
+            return f"condición {number}: {cond['columna']} igual a «{cond['igual']}»"
+        if "empieza_con" in cond and text.startswith(cond["empieza_con"]):
+            return f"condición {number}: {cond['columna']} empieza con «{cond['empieza_con']}»"
+        if cond.get("vacia") is True and empty(value):
+            return f"condición {number}: {cond['columna']} vacía"
+    return None
+
+
+def _consume(header, records, source, sheet, limit, xlsx=False, header_row=1, conditions=()):
     table = Table([], [], str(source), sheet)
     if header is None or not header:
         table.issues.append(issue("archivo_vacio", source=str(source)))
@@ -173,13 +194,16 @@ def _consume(header, records, source, sheet, limit, xlsx=False):
     columns = [literal(v) if v is not None else "" for v in header]
     if any(empty(c) for c in columns) or len(set(columns)) != len(columns):
         table.complete = False
-        table.issues.append(issue("encabezado_vacio_o_duplicado", row=1, source=str(source)))
+        table.issues.append(issue("encabezado_vacio_o_duplicado", row=header_row, source=str(source)))
         return table
     table.columns = columns
+    missing = sorted({c["columna"] for c in conditions} - set(columns))
+    if missing:
+        raise ValueError("excluir_filas: columnas inexistentes en el encabezado: " + ", ".join(missing)[:120])
     if limit == 0:  # solo encabezado (vista previa de recetas): no se toca ninguna fila de datos
         table.complete = False
         return table
-    for rowno, values in enumerate(records, 2):
+    for rowno, values in enumerate(records, header_row + 1):  # número de fila real del archivo
         if limit is not None and table.scanned >= limit:
             table.complete = False
             break
@@ -189,6 +213,10 @@ def _consume(header, records, source, sheet, limit, xlsx=False):
                 values.pop()
             if len(values) < len(columns):
                 values += [None] * (len(columns) - len(values))
+        reason = _exclusion(values, columns, conditions) if conditions else None
+        if reason:
+            table.excluded.append((rowno, reason, [literal(v) for v in values]))
+            continue
         if len(values) != len(columns):
             table.issues.append(issue("ancho_incorrecto", rowno, source=str(source),
                                       detail=f"esperado={len(columns)}, recibido={len(values)}"))
@@ -219,13 +247,18 @@ def read_table(path, opts=None, limit=None):
             raise ValueError("--sheet solo se aplica a libros Excel")
         with path.open(encoding=opts.encoding, newline="") as stream:
             reader = csv.reader(stream, delimiter=opts.delimiter, strict=True)
-            table = _consume(next(reader, None), reader, path, None, limit)
+            for _ in range(opts.header_row - 1):  # títulos u otras filas antes del encabezado
+                next(reader, None)
+            table = _consume(next(reader, None), reader, path, None, limit, header_row=opts.header_row,
+                             conditions=opts.exclude_rows)
         # Una sola columna cuyo encabezado contiene otro separador habitual: casi siempre
         # falta --delimiter. Se avisa (código 1) sin adivinar ni releer el archivo.
         if len(table.columns) == 1 and any(d in table.columns[0] for d in ";,\t|" if d != opts.delimiter):
             table.warnings.append("posible_delimitador_incorrecto")
         return table
     if suffix == ".json":
+        if opts.header_row != 1 or opts.exclude_rows:
+            raise ValueError("fila_encabezado y excluir_filas solo se aplican a CSV y XLSX")
         with path.open(encoding=opts.encoding) as stream:
             data = json.load(stream)
         if not isinstance(data, dict) or set(data) != {"columns", "rows"}:
@@ -252,6 +285,8 @@ def read_table(path, opts=None, limit=None):
             ws = book[name]
             ws.reset_dimensions()
             iterator = ws.iter_rows()
+            for _ in range(opts.header_row - 1):
+                next(iterator, None)
             header_cells = next(iterator, None)
             header = [cell.value for cell in header_cells] if header_cells else None
             if header:
@@ -270,7 +305,8 @@ def read_table(path, opts=None, limit=None):
                             warning_set.add("codigos_numericos_con_formato_de_ceros_no_recuperado")
                     yield [cell.value for cell in cells]
 
-            table = _consume(header, records(), path, name, limit, xlsx=True)
+            table = _consume(header, records(), path, name, limit, xlsx=True, header_row=opts.header_row,
+                             conditions=opts.exclude_rows)
             table.warnings = sorted(set(table.warnings) | warning_set)
             if suffix == ".xlsm":
                 table.warnings.append("macros_no_ejecutadas_ni_conservadas")

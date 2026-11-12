@@ -67,6 +67,22 @@ def motives_by_origin(issues):
     return {k: sorted(v) for k, v in found.items()}
 
 
+def write_entry_exclusions(folder, excluded, delimiter):
+    """`00-entradas/excluidas.csv`: filas que excluir_filas dejó fuera (pies, totales), con su fila real,
+    el motivo, cuántos campos tenía y sus valores ordenados según el encabezado."""
+    business: list[str] = []
+    for _, _, columns, _ in excluded:
+        business.extend(c for c in columns if c not in business)
+    names = ["entrada", "archivo", "fila_origen", "motivo", "campos", *business]
+    rows = []
+    for entry, path, columns, (rowno, why, values) in excluded:
+        cells = dict(zip(columns, values, strict=False))
+        rows.append(dict(zip(names, [entry, str(path), str(rowno), why, str(len(values)),
+                                     *(cells.get(c) for c in business)], strict=True)))
+    csv_write(folder / "excluidas.csv", Table(names, rows), delimiter)
+    return "excluidas.csv"
+
+
 def write_excluded(folder, trace, delimiter):
     """`excluidas.csv`: filas que un filtro o una deduplicación dejó fuera, con su motivo y la
     fila tal como estaba en ese momento del plan."""

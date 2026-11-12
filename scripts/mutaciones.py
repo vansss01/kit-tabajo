@@ -22,6 +22,7 @@ NORMALIZAR = ["tests.test_transformaciones.NormalizarTests"]
 REEMPLAZAR = ["tests.test_transformaciones.ReemplazarTests"]
 COMPLETAR = ["tests.test_transformaciones.CompletarTests"]
 DUPLICADOS = ["tests.test_transformaciones.DuplicadosTests"]
+ENCABEZADOS = ["tests.test_transformaciones.EncabezadosTests"]
 MUTATIONS = [
     # Etapa 2: trazabilidad
     ("incidencias con fila intermedia", "src/kitlib/traza.py",
@@ -131,6 +132,26 @@ MUTATIONS = [
      "            winner = distinct[-1]", "            winner = distinct[0]", DUPLICADOS),
     ("duplicados sin invariante", "src/kitlib/traza.py", 'if op == "duplicados" and outputs:', "if False:",
      DUPLICADOS),
+    # Etapa 3: encabezados y pies
+    ("encabezado no omite títulos", "src/kitlib/tableio.py",
+     "            for _ in range(opts.header_row - 1):  # títulos", "            for _ in range(0):  # títulos",
+     ENCABEZADOS),
+    ("filas numeradas desde 2", "src/kitlib/tableio.py",
+     "enumerate(records, header_row + 1)", "enumerate(records, 2)", ENCABEZADOS),
+    ("exclusión sin registro", "src/kitlib/tableio.py",
+     "            table.excluded.append((rowno, reason, [literal(v) for v in values]))", "            pass", ENCABEZADOS),
+    ("empieza_con como contiene", "src/kitlib/tableio.py",
+     'text.startswith(cond["empieza_con"])', 'cond["empieza_con"] in text', ENCABEZADOS),
+    ("exclusión solo en filas completas", "src/kitlib/tableio.py",
+     "reason = _exclusion(values, columns, conditions) if conditions else None",
+     "reason = _exclusion(values, columns, conditions) if conditions and len(values) == len(columns) else None",
+     ENCABEZADOS),
+    ("JSON acepta fila_encabezado", "src/kitlib/recetas.py",
+     'elif entry.ruta.suffix.lower() == ".json" and (entry.opts.header_row != 1 or entry.opts.exclude_rows):',
+     "elif False:", ENCABEZADOS),
+    ("invariante de lectura ignora excluidas", "src/kitlib/recetas.py",
+     '"cumple": table.scanned == len(table.rows) + malformed + len(table.excluded)}',
+     '"cumple": table.scanned >= 0}', ENCABEZADOS),
 ]
 
 

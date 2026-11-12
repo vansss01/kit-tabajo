@@ -1,13 +1,19 @@
 """Transformaciones controladas (1.5.0-etapa3) por la CLI. Resultados esperados escritos a mano."""
+import contextlib
 import hashlib
+import io
 import subprocess
 import json
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_recetas import ROOT, Base  # ayudantes comunes: carpeta temporal, run_cli, rows, manifest
+from kitlib import recetas
+from kitlib.cli import main
+from kitlib.tableio import read_table
 
 SEMI = {"delimiter": ";", "decimal": ","}
 
@@ -398,6 +404,110 @@ class DuplicadosTests(Base):
                       "pasos": [{"nombre": "dup", "op": "duplicados", "entrada": "ordenes", "clave": ["orden"], **extra}]}
             error = self.run_cli(recipe, source, expected=2)["errores"][0]
             self.assertEqual((error["codigo"], error["campo"], error["paso"]), (*expected, "dup"), extra)
+        self.assertEqual(self.runs(), [])
+
+
+class EncabezadosTests(Base):
+    # 1-2 títulos | 3 encabezado | 4 OT1 | 5 OT2 | 6 OT-Fin (contiene "Fin", no empieza por él) | 7 subtotal sin orden
+    # 8 TOTAL | 9 "Fin del informe" (1 campo)
+    REPORT = ("Informe de órdenes;;;\nGenerado 2026-11-12;;;\norden;equipo;horas;estado\nOT1;0007;2,5;abierta\n"
+              "OT2;0012;1,0;cerrada\nOT-Fin;0042;0,5;abierta\n;;3,5;\nTOTAL;;3,5;\nFin del informe\n")
+    FOOTERS = [{"columna": "orden", "igual": "TOTAL"}, {"columna": "orden", "empieza_con": "Fin"}]
+
+    def recipe(self, **entry):
+        return {"version": 1, "entradas": {"o": {"principal": True, **SEMI, **entry}},
+                "pasos": [{"nombre": "v", "op": "validar", "entrada": "o",
+                           "reglas": {"columns": {"orden": {"nonempty": True}, "horas": {"type": "number"}}},
+                           "politica": {"incidencias": "separar"}}]}
+
+    def test_header_row_and_explicit_footers_keep_real_row_numbers(self):
+        source = self.write("informe.csv", self.REPORT)
+        before = hashlib.sha256(source.read_bytes()).hexdigest()
+        summary = self.run_cli(self.recipe(fila_encabezado=3, excluir_filas=self.FOOTERS), source, expected=1)
+        run = Path(summary["ruta_resultados"])
+        path = str(source.resolve())
+        self.assertEqual(self.rows(run / "00-entradas" / "excluidas.csv"), [
+            ["entrada", "archivo", "fila_origen", "motivo", "campos", "orden", "equipo", "horas", "estado"],
+            ["o", path, "8", "condición 1: orden igual a «TOTAL»", "4", "TOTAL", "", "3,5", ""],
+            ["o", path, "9", "condición 2: orden empieza con «Fin»", "1", "Fin del informe", "", "", ""]])
+        self.assertEqual([r[3] for r in self.rows(run / "01-v" / "aceptadas_procedencia.csv")[1:]], ["4", "5", "6"])
+        # El subtotal sin orden no cumple ninguna condición: no se adivina, sigue como dato y validar lo rechaza.
+        self.assertEqual(self.rows(run / "01-v" / "rechazadas_procedencia.csv")[1:], [["2", "o", path, "7", "campo_vacio"]])
+        entry = self.manifest(summary)["entradas"]["o"]
+        self.assertEqual((entry["filas_leidas"], entry["filas_tabulares"], entry["filas_excluidas_mal_formadas"],
+                          entry["filas_excluidas_por_condicion"], entry["fila_encabezado"], entry["invariante"]["cumple"]),
+                         (6, 4, 0, 2, 3, True))
+        self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(), before)
+
+    def test_without_conditions_nothing_is_dropped_silently(self):
+        source = self.write("informe.csv", self.REPORT)
+        # Solo fila_encabezado: TOTAL es una fila más y "Fin del informe" es una fila mal formada (incidencia).
+        stopped = self.run_cli(self.recipe(fila_encabezado=3), source, expected=2)
+        m = self.manifest(stopped)
+        self.assertEqual((m["error"]["paso"], m["entradas"]["o"]["incidencias_por_codigo"]),
+                         ("entrada o", {"ancho_incorrecto": 1}))
+        self.assertEqual(self.rows(Path(stopped["ruta_resultados"]) / "00-entradas" / "incidencias.csv")[1][:2],
+                         ["ancho_incorrecto", "9"])
+        # Sin fila_encabezado el título se toma como encabezado: la vista previa lo dice y no se ejecuta.
+        preview = self.run_cli(self.recipe(), source, "--vista-previa", expected=1)
+        self.assertEqual(preview["entradas"][0]["encabezado"], "invalido")
+        self.assertIn("encabezado_vacio_o_duplicado", preview["entradas"][0]["motivo"])
+
+    def test_xlsx_title_rows_and_total(self):
+        from openpyxl import Workbook
+        book = Workbook()
+        sheet = book.active
+        for row in (["Reporte mensual"], ["equipo", "horas"], ["0007", "2,5"], ["0042", "1,0"], ["Total", "3,5"]):
+            sheet.append(row)
+        source = self.folder / "reporte.xlsx"
+        book.save(source)
+        recipe = {"version": 1, "salida": {"delimiter": ";"}, "entradas": {"o": {"principal": True, "fila_encabezado": 2,
+                                                   "excluir_filas": [{"columna": "equipo", "igual": "Total"}]}},
+                  "pasos": [{"nombre": "p", "op": "transformar", "entrada": "o",
+                             "plan": {"steps": [{"op": "select", "columns": ["equipo", "horas"]}]}}]}
+        summary = self.run_cli(recipe, source, expected=0)
+        run = Path(summary["ruta_resultados"])
+        self.assertEqual(self.rows(run / "01-p" / "resultado.csv"), [["equipo", "horas"], ["0007", "2,5"], ["0042", "1,0"]])
+        self.assertEqual([r[3] for r in self.rows(run / "01-p" / "resultado_procedencia.csv")[1:]], ["3", "4"])
+        self.assertEqual(self.rows(run / "00-entradas" / "excluidas.csv")[1][2:4], ["5", "condición 1: equipo igual a «Total»"])
+
+    def test_reading_that_loses_a_row_breaks_the_invariant(self):
+        def loses_one(path, opts=None, limit=None):
+            table = read_table(path, opts, limit)
+            if table.rows:  # (sin filas en la lectura previa del encabezado)
+                table.rows.pop()
+                table.row_numbers.pop()
+            return table
+
+        source = self.write("informe.csv", self.REPORT)
+        recipe = self.write("receta.json", self.recipe(fila_encabezado=3, excluir_filas=self.FOOTERS))
+        args = ["ejecutar", str(source), "--receta", str(recipe), "--output", str(self.out), "--run-name", "pierde",
+                "--json"]
+        with mock.patch.object(recetas, "read_table", loses_one), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(main(args), 2)
+        m = json.loads((self.out / "pierde" / "manifiesto.json").read_text(encoding="utf-8"))
+        self.assertEqual((m["estado"], m["motivo"]), ("fallida", "error_de_ejecucion"))
+        self.assertIn("Invariante incumplida al leer la entrada o", m["error"]["mensaje"])
+        self.assertFalse((self.out / "pierde" / "01-v").exists())
+
+    def test_invalid_layout_options_are_actionable(self):
+        source = self.write("informe.csv", self.REPORT)
+        cases: list[tuple[dict, str]] = [({"fila_encabezado": 0}, "entradas.o.fila_encabezado"),
+                 ({"excluir_filas": [{"columna": "orden", "igual": "TOTAL", "vacia": True}]}, "entradas.o.excluir_filas"),
+                 ({"excluir_filas": [{"columna": "orden", "contiene": "TOT"}]}, "entradas.o.excluir_filas"),
+                 ({"excluir_filas": []}, "entradas.o.excluir_filas")]
+        for entry, field in cases:
+            error = self.run_cli(self.recipe(**entry), source, expected=2)["errores"][0]
+            self.assertEqual((error["codigo"], error["campo"]), ("parametro_invalido", field), entry)
+        # Condición sobre una columna que no está en el encabezado: error en vista previa, sin ejecutar.
+        missing = self.run_cli(self.recipe(fila_encabezado=3, excluir_filas=[{"columna": "Orden", "igual": "TOTAL"}]),
+                               source, "--vista-previa", expected=2)
+        self.assertEqual(missing["errores"][0]["codigo"], "encabezado_ilegible")
+        self.assertIn("columnas inexistentes en el encabezado: Orden", missing["errores"][0]["mensaje"])
+        table = self.write("tabla.json", {"columns": ["orden"], "rows": []})
+        json_error = self.run_cli(self.recipe(fila_encabezado=2), table, expected=2)["errores"][0]
+        self.assertEqual((json_error["codigo"], json_error["campo"]), ("parametro_invalido", "entradas.o"))
+        self.assertIn("solo se aplican a CSV y XLSX", json_error["mensaje"])
         self.assertEqual(self.runs(), [])
 
 

@@ -27,7 +27,8 @@ reemplaza otra. La misma receta sirve para otro archivo compatible cambiando sol
 
 - `version` es obligatoria (hoy `1`). Campos desconocidos son error, para no ignorar erratas.
 - **Entradas**: `ruta` (relativa a la receta), `principal`, `delimiter` (`"TAB"` admitido),
-  `encoding`, `decimal`, `date_format`, `sheet`, `politica`. Una entrada sin uso es error.
+  `encoding`, `decimal`, `date_format`, `sheet`, `politica`, `fila_encabezado`, `excluir_filas`.
+  Una entrada sin uso es error.
 - **Referencias**: el nombre de una entrada o `paso.salida` de un paso **anterior**; nunca rutas.
   Salidas: validar → `aceptadas`, `rechazadas`, `incidencias`; transformar y consultar →
   `resultado`; consolidar → `resultado`, `incidencias`; comparar → `nuevos`, `eliminados`,
@@ -44,6 +45,28 @@ reemplaza otra. La misma receta sirve para otro archivo compatible cambiando sol
   `revision.rechazadas`, etc.). No hay bucles, condiciones ni pasos en paralelo.
 - Operaciones de plan útiles en recetas (`rename`, `normalize`, `replace`): manual de
   [transformar](transformar.md).
+
+## Exportes con títulos y pies (`fila_encabezado`, `excluir_filas`)
+
+Para CSV o XLSX con títulos arriba y totales abajo (no JSON):
+
+```json
+"ordenes": {"principal": true, "delimiter": ";", "fila_encabezado": 3,
+            "excluir_filas": [{"columna": "orden", "igual": "TOTAL"},
+                              {"columna": "orden", "empieza_con": "Fin"}],
+            "politica": {"incidencias": "separar"}}
+```
+
+- `fila_encabezado`: número de fila del encabezado; las anteriores se omiten. Las filas de
+  datos conservan su **número real** (la primera es `fila_encabezado + 1`) en procedencia e
+  incidencias.
+- `excluir_filas`: cada condición nombra una `columna` del encabezado y **una** prueba:
+  `igual` (texto exacto), `empieza_con` o `"vacia": true`. Se mira por posición, así que
+  también sirve para un pie de un solo campo. Las filas excluidas van a
+  `00-entradas/excluidas.csv` con la fila real, el motivo y sus valores.
+- No se adivina: una fila de total que no cumple ninguna condición sigue siendo un dato (y
+  validar puede rechazarla); una fila de otro ancho sigue siendo `ancho_incorrecto`.
+- Invariante de lectura: filas leídas = tabulares + mal formadas + excluidas por condición.
 
 ## Completar desde una referencia (`completar`)
 
@@ -126,7 +149,8 @@ estable, `paso`, `campo`, `mensaje` y `sugerencia`.
 Después se leen **solo los encabezados** (CSV/XLSX; ninguna fila) y cada paso se ejecuta sobre
 tablas vacías con las mismas funciones de la ejecución real: así se detectan columnas
 inexistentes en planes, claves de comparar, `numeric` y el propio SQL. Un error aquí
-(`columnas_incompatibles`) detiene `ejecutar` antes de crear la carpeta. Las tablas JSON no se
+(`columnas_incompatibles`, o `encabezado_ilegible` si el encabezado no se puede leer) detiene
+`ejecutar` antes de crear la carpeta. Las tablas JSON no se
 pueden leer solo por el encabezado: se marcan `no_comprobado` y sus pasos `no_comprobadas`.
 
 `--vista-previa` muestra entradas, pasos, políticas, destinos y el estado de columnas de cada

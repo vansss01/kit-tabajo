@@ -57,7 +57,7 @@ SEPARABLE = {"validar", "consolidar", "completar", "duplicados"}
 # Salidas que reúnen filas apartadas: su procedencia lleva la columna "motivos".
 SEPARATED = {"rechazadas", "sin_coincidencia", "ambiguas", "clave_vacia", "excluidas", "conflictos"}
 READ_OPTIONS = {"delimiter", "encoding", "decimal", "date_format", "sheet"}
-ENTRY_KEYS = READ_OPTIONS | {"ruta", "principal", "politica", "descripcion"}
+ENTRY_KEYS = READ_OPTIONS | {"ruta", "principal", "politica", "descripcion", "fila_encabezado", "excluir_filas"}
 TOP_KEYS = {"version", "nombre", "descripcion", "entradas", "pasos", "salida"}
 FORMATS = {"csv", "json", "xlsx"}
 RESERVED = {"report", "audit", "manifiesto", "failed"}
@@ -259,7 +259,8 @@ def cargar_receta(path, principal=None, overrides=None):
                 errors.append(error("parametro_invalido", "ruta debe ser texto", None, f"{where}.ruta"))
             else:
                 route = (base / spec["ruta"]).resolve()
-        entries[name] = Entry(name, route, _options(spec, where, errors), mode, allowed)
+        entries[name] = Entry(name, route, _layout(spec, where, errors, _options(spec, where, errors)),
+                              mode, allowed)
     if len(raw_entries) == 1 and not principals:
         principals = list(raw_entries)
     if len(principals) != 1:
@@ -274,6 +275,9 @@ def cargar_receta(path, principal=None, overrides=None):
         if entry.ruta is None:
             errors.append(error("entrada_sin_ruta", "La entrada no tiene archivo", None, f"entradas.{entry.nombre}",
                                 f"Añada \"ruta\" o use --entrada {entry.nombre}=ARCHIVO"))
+        elif entry.ruta.suffix.lower() == ".json" and (entry.opts.header_row != 1 or entry.opts.exclude_rows):
+            errors.append(error("parametro_invalido", "fila_encabezado y excluir_filas solo se aplican a CSV y XLSX",
+                                None, f"entradas.{entry.nombre}", "Una tabla JSON del kit ya no tiene títulos ni pies"))
         elif not entry.ruta.is_file():
             errors.append(error("archivo_no_encontrado", f"No existe el archivo de la entrada {entry.nombre}", None,
                                 f"entradas.{entry.nombre}", "Revise la ruta; las de la receta son relativas a ella"))
@@ -463,6 +467,32 @@ def cargar_receta(path, principal=None, overrides=None):
     return Recipe(path, nombre.strip(), entries, steps, delimiter, configs)
 
 
+def _layout(spec, where, errors, opts):
+    """fila_encabezado y excluir_filas de una entrada (solo CSV/XLSX), como opciones de lectura."""
+    if "fila_encabezado" not in spec and "excluir_filas" not in spec:
+        return opts
+    row = spec.get("fila_encabezado", 1)
+    if not isinstance(row, int) or isinstance(row, bool) or row < 1:
+        errors.append(error("parametro_invalido", "fila_encabezado: número de fila (1 = primera)", None,
+                            f"{where}.fila_encabezado"))
+        row = 1
+    conditions = spec.get("excluir_filas", [])
+    valid = isinstance(conditions, list) and bool(conditions) or "excluir_filas" not in spec
+    for cond in conditions if isinstance(conditions, list) else []:
+        tests = set(cond) - {"columna"} if isinstance(cond, dict) else set()
+        if not (isinstance(cond, dict) and isinstance(cond.get("columna"), str) and len(tests) == 1
+                and tests <= {"igual", "empieza_con", "vacia"}
+                and (cond.get("vacia") is True or isinstance(cond.get("igual"), str)
+                     or (isinstance(cond.get("empieza_con"), str) and cond["empieza_con"]))):
+            valid = False
+    if not valid:
+        errors.append(error("parametro_invalido", "excluir_filas: lista de condiciones {columna, y una de: igual, "
+                            "empieza_con, vacia: true}", None, f"{where}.excluir_filas",
+                            'Ejemplo: [{"columna": "orden", "igual": "TOTAL"}]; no se adivinan filas'))
+        conditions = []
+    return replace(opts, header_row=row, exclude_rows=tuple(conditions))
+
+
 def _names(spec, key, step, errors):
     """Parámetro opcional que, si está, es una lista no vacía de nombres de columna distintos."""
     value = spec.get(key)
@@ -506,8 +536,8 @@ def comprobar_columnas(recipe):
             head = read_table(entry.ruta, entry.opts, limit=0)
         except Exception as exc:
             entradas[name] = {"encabezado": "ilegible", "motivo": public_message(exc, entry.opts.encoding)}
-            notices.append(error("encabezado_ilegible", public_message(exc, entry.opts.encoding), None,
-                                 f"entradas.{name}", "La ejecución fallará al leer esta entrada"))
+            errors.append(error("encabezado_ilegible", public_message(exc, entry.opts.encoding), None,
+                                f"entradas.{name}", "La ejecución fallaría al leer esta entrada"))
             continue
         if head.issues or not head.columns:
             codes = ", ".join(sorted({i["codigo"] for i in head.issues})) or "sin_columnas"
@@ -694,6 +724,7 @@ def ejecutar_receta(recipe, run, args):
         # Lectura de entradas, cada una con su política.
         (run / "00-entradas").mkdir()
         read_issues: list[dict] = []
+        excluded: list[tuple] = []
         for name, entry in recipe.entradas.items():
             table = read_table(entry.ruta, entry.opts)
             warnings = [{"origen": name, "codigo": w} for w in table.warnings]
@@ -718,9 +749,12 @@ def ejecutar_receta(recipe, run, args):
             record["estado"] = "leida_con_incidencias" if table.issues or warnings else "leida"
             malformed = sum(i["codigo"] == "ancho_incorrecto" for i in table.issues)
             record["filas_excluidas_mal_formadas"] = malformed
+            record["filas_excluidas_por_condicion"] = len(table.excluded)
+            record["fila_encabezado"] = entry.opts.header_row
+            excluded.extend((name, entry.ruta, table.columns, item) for item in table.excluded)
             record["invariante"] = {"tipo": "particion", "regla": "filas leídas = tabulares + mal formadas "
-                                    "(en 00-entradas/incidencias.csv)",
-                                    "cumple": table.scanned == len(table.rows) + malformed}
+                                    "(00-entradas/incidencias.csv) + excluidas por condición (00-entradas/excluidas.csv)",
+                                    "cumple": table.scanned == len(table.rows) + malformed + len(table.excluded)}
             if not record["invariante"]["cumple"]:
                 raise ValueError(f"Invariante incumplida al leer la entrada {name}")
             traza.tag(table, name, entry.ruta)
@@ -728,6 +762,8 @@ def ejecutar_receta(recipe, run, args):
             tables[name] = replace(table, issues=[], warnings=[])
             info[name] = {"validada": False, "origen": f"entrada:{name}"}
         _write_issues(run / "00-entradas", read_issues, recipe.delimiter)
+        if any(e.opts.exclude_rows for e in recipe.entradas.values()):
+            traza.write_entry_exclusions(run / "00-entradas", excluded, recipe.delimiter)
         save()
 
         for step, current in zip(recipe.pasos, manifest["pasos"], strict=True):
