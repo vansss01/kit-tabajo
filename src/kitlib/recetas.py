@@ -559,8 +559,9 @@ def _step_transformar(step, get):
 
 def _step_consultar(step, get):
     loaded = {alias: get(ref) for alias, ref in step.refs["tablas"].items()}
-    tables, issues, details = query(loaded, step.spec["sql"], set(step.spec.get("numeric", [])), step.opts)
-    return {"resultado": tables["validos"]}, issues, query_warnings(details, step.nombre), details
+    trace: dict = {}
+    tables, issues, details = query(loaded, step.spec["sql"], set(step.spec.get("numeric", [])), step.opts, trace)
+    return {"resultado": tables["validos"]}, issues, query_warnings(details, step.nombre), {**details, "_traza": trace}
 
 
 def _step_consolidar(step, get):
@@ -817,7 +818,7 @@ def _trace_files(step, folder, inputs, outputs, issues, trace, details, delimite
                     "detalle": "Con \"traza\": \"detallada\" se escribe participantes.csv (una línea por fila)"}
     if step.op == "consultar":
         result["participacion"] = {
-            "tablas_leidas": details.get("tablas_leidas", []), "filas_candidatas": counts["entrada"],
+            "tablas_leidas": (trace or {}).get("tablas_leidas", []), "filas_candidatas": counts["entrada"],
             "nota": "SQL no se traza fila a fila: participan como candidatas todas las filas de las tablas "
                     "leídas; su procedencia está en el paso que las produjo"}
     return result

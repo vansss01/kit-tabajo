@@ -254,6 +254,7 @@ class RecetaTests(Base):
         self.assertEqual((m["estado"], m["pasos"][0]["estado"]), ("completada_con_incidencias",
                                                                   "completado_con_incidencias"))
         self.assertEqual(m["pasos"][0]["advertencias_por_codigo"], {"resultado_depende_de_texto_sin_numeric": 1})
+        self.assertEqual(m["pasos"][0]["participacion"]["tablas_leidas"], ["t"])  # traza solo en recetas
 
     def test_entry_warnings_stop_unless_that_code_is_allowed(self):
         entry: dict = {}  # sin delimiter: una sola columna

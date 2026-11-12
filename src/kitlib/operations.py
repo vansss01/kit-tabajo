@@ -580,8 +580,9 @@ def _comparable(record, opts):
     return output
 
 
-def query(tables, sql, numeric, opts):
-    """Una consulta SELECT sobre tablas cargadas en SQLite en memoria; nada se escribe ni se adjunta."""
+def query(tables, sql, numeric, opts, trace=None):
+    """Una consulta SELECT sobre tablas cargadas en SQLite en memoria; nada se escribe ni se adjunta.
+    trace (solo recetas) recibe las tablas que la consulta leyó; el uso suelto no cambia su salida."""
     if not isinstance(sql, str) or not sql.strip():
         raise ValueError("--sql requiere una consulta SELECT")
     known = {c for table in tables.values() for c in table.columns}
@@ -653,7 +654,8 @@ def query(tables, sql, numeric, opts):
     def total(state):
         return sum(n for key, n in counts.items() if key[0] == state)
 
+    if trace is not None:
+        trace["tablas_leidas"] = sorted({t for t, _ in read})
     return {"validos": Table(names, output)}, issues, {
         "filas_salida": len(output), "valores_no_numericos": total("no_numerico"),
-        "valores_redondeados": total("redondeo"), "columnas_sin_numeric": undeclared,
-        "tablas_leidas": sorted({t for t, _ in read})}
+        "valores_redondeados": total("redondeo"), "columnas_sin_numeric": undeclared}

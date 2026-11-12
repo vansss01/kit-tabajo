@@ -574,6 +574,12 @@ class KitTests(unittest.TestCase):
         total = "SELECT SUM(v) AS total FROM t"
         declared = self.cli("consultar", source, *common, "--numeric", "v", "--sql", total)
         self.assertEqual(self.saved(declared), [{"total": "6"}])  # 2,5 + 3,5
+        # Salida compatible con 1.4.1: la traza de recetas no añade claves al uso suelto.
+        self.assertEqual(declared["conteos"], {"filas_salida": 1, "valores_no_numericos": 0, "valores_redondeados": 0,
+                                               "columnas_sin_numeric": 0})
+        detail = json.loads((Path(declared["ruta_resultados"]) / "report.json").read_text(encoding="utf-8"))["detalle"]
+        self.assertEqual(set(detail), {"filas_salida", "valores_no_numericos", "valores_redondeados",
+                                       "columnas_sin_numeric"})
         omitted = self.cli("consultar", source, *common, "--sql", total, expected=1)
         self.assertEqual(omitted["advertencias_por_codigo"], {"resultado_depende_de_texto_sin_numeric": 1})
         self.assertIn("--numeric v", omitted["sugerencia"])
