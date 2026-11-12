@@ -7,6 +7,7 @@ import json
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -119,7 +120,12 @@ class RecetaTests(unittest.TestCase):
             "fuera_de_rango_max": 1})
         self.assertEqual(self.rows(run / "02-revision" / "aceptadas.csv")[1:], [
             ["OT001", "0007", "2026-10-01", "2,5", "abierta"]])
-        self.assertEqual([r[0] for r in self.rows(run / "02-revision" / "rechazadas.csv")[1:]], ["OT002", "OT002"])
+        self.assertEqual(self.rows(run / "02-revision" / "rechazadas.csv")[1:], [
+            ["OT002", "0012", "03/04/2026", "-1", "abierta"], ["OT002", "", "2026-10-02", "25", "cerrada"]])
+        found = {(r[1], r[2], r[0]) for r in self.rows(run / "02-revision" / "incidencias.csv")[1:]}
+        self.assertEqual(found, {("3", "orden", "valor_no_unico"), ("4", "orden", "valor_no_unico"),
+                                 ("4", "equipo", "campo_vacio"), ("3", "fecha", "tipo_o_fecha_invalido"),
+                                 ("3", "horas", "fuera_de_rango_min"), ("4", "horas", "fuera_de_rango_max")})
         self.assertEqual(self.rows(run / "03-resumen" / "resultado.csv"), [["equipo", "ordenes", "horas"],
                                                                           ["0007", "1", "2.5"]])
         # OT001 cambió de horas (2,0 → 2,5); OT099 solo estaba antes.
@@ -133,7 +139,9 @@ class RecetaTests(unittest.TestCase):
         self.assertFalse((run / "FAILED.json").exists())
         self.assertEqual([p.name for p in run.iterdir() if p.name.endswith(".tmp")], [])
         self.assertEqual(self.hashes(), before)  # originales, reglas y receta intactos
-        self.assertNotIn("0007", json.dumps(summary))  # el resumen no trae valores de celdas
+        printed = json.dumps(summary, ensure_ascii=False)  # el resumen no trae valores de celdas
+        for value in ("OT001", "OT002", "0007", "0012", "2026-10-01", "03/04/2026", "2,5", "abierta", "cerrada"):
+            self.assertNotIn(value, printed)
 
     def test_same_recipe_on_another_file(self):
         recipe = self.write("receta.json", receta())
@@ -144,7 +152,9 @@ class RecetaTests(unittest.TestCase):
         run = Path(other["ruta_resultados"])
         self.assertEqual(self.rows(run / "03-resumen" / "resultado.csv")[1:], [["0007", "2", "4.0"],
                                                                                ["0042", "1", "3.0"]])
-        self.assertEqual(self.manifest(other)["pasos"][3]["conteos"]["nuevos"], 4)
+        # Antes: OT001 y OT099; después: OT010–OT013. Ninguna clave en común.
+        self.assertEqual(self.manifest(other)["pasos"][3]["conteos"], {
+            "nuevos": 4, "eliminados": 2, "modificados": 0, "sin_cambios": 0, "campos_cambiados": 0})
 
     def test_invalid_recipe_reports_all_errors_and_creates_nothing(self):
         bad = receta(version=2, extra=True)
@@ -155,12 +165,13 @@ class RecetaTests(unittest.TestCase):
         bad["pasos"][4]["formatos"] = ["pdf"]
         summary = self.run_cli(bad, expected=2)
         codes = {(e["codigo"], e["paso"], e["campo"]) for e in summary["errores"]}
-        self.assertTrue({("version_no_admitida", None, "version"), ("campo_desconocido", None, "extra"),
-                         ("opcion_invalida", None, "entradas.ordenes.decimal"),
-                         ("operacion_desconocida", "perfil", "op"),
-                         ("politica_invalida", "revision", "paso.politica.incidencias"),
-                         ("configuracion_invalida", "resumen", "plan"),
-                         ("parametro_invalido", "entrega", "formatos")} <= codes, codes)
+        self.assertEqual(codes, {("version_no_admitida", None, "version"), ("campo_desconocido", None, "extra"),
+                                 ("opcion_invalida", None, "entradas.ordenes.decimal"),
+                                 ("operacion_desconocida", "perfil", "op"),
+                                 ("politica_invalida", "revision", "paso.politica.incidencias"),
+                                 ("configuracion_invalida", "resumen", "plan"),
+                                 ("parametro_invalido", "entrega", "formatos")})
+        self.assertEqual(summary["total_errores"], 7)
         hint = next(e for e in summary["errores"] if e["codigo"] == "operacion_desconocida")["sugerencia"]
         self.assertEqual(hint, "¿Quiso decir inspeccionar?")
         self.assertEqual(self.runs(), [])  # nada se creó
@@ -261,10 +272,86 @@ class RecetaTests(unittest.TestCase):
         self.assertEqual(summary["pasos"][1]["politica"]["incidencias"], "separar")
         self.assertIn("05-entrega/entrega.xlsx", summary["pasos"][4]["destino"])
         self.assertEqual(self.runs(), [])
-        # Un archivo con datos inválidos pasa la vista previa: no es una validación de datos.
-        self.write("basura.csv", "x\n\x00\n")
-        self.assertEqual(self.run_cli(receta(), self.folder / "basura.csv", "--vista-previa")["estado"], "vista_previa")
+        self.assertEqual({s["columnas"] for s in summary["pasos"]}, {"comprobadas"})
+        self.assertEqual((summary["errores"], summary["avisos"]), ([], []))
+        # Encabezado correcto y filas inválidas: pasa la vista previa, que no es una validación de datos.
+        bad_rows = self.write("filas malas.csv", "orden;equipo;fecha;horas;estado\nOT1;;ayer;mucho;\n\"roto\n")
+        self.assertEqual(self.run_cli(receta(), bad_rows, "--vista-previa")["codigo_salida"], 0)
         self.assertEqual(self.runs(), [])
+
+    def test_preview_and_run_check_referenced_columns_from_headers(self):
+        # Sin "estado": el filtro del plan falla. Sin "fecha": validar dará columna_obligatoria_ausente.
+        source = self.write("sin estado.csv", "orden;equipo;horas\nOT1;0007;1,0\n")
+        preview = self.run_cli(receta(), source, "--vista-previa", expected=2)
+        by_step = {s["nombre"]: s for s in preview["pasos"]}
+        self.assertEqual(by_step["perfil"]["columnas"], "comprobadas")
+        self.assertEqual(by_step["revision"]["incidencias_previstas"], ["columna_obligatoria_ausente"])
+        self.assertEqual((by_step["resumen"]["columnas"], by_step["resumen"]["motivo"]),
+                         ("error", "Columnas inexistentes: estado"))
+        self.assertEqual(by_step["cambios"]["columnas"], "comprobadas")  # comparar usa aceptadas: mismas columnas
+        self.assertEqual(by_step["entrega"]["columnas"], "no_comprobadas")  # depende de resumen
+        self.assertEqual([(e["codigo"], e["paso"]) for e in preview["errores"]], [("columnas_incompatibles", "resumen")])
+        failed = self.run_cli(receta(), source, expected=2)  # ejecutar también comprueba antes de crear nada
+        self.assertEqual(failed["errores"][0]["codigo"], "columnas_incompatibles")
+        self.assertEqual(self.runs(), [])
+        # Clave de comparar y SQL también se comprueban con el encabezado.
+        recipe = receta()
+        recipe["pasos"][3]["clave"] = ["Orden"]
+        recipe["pasos"].insert(3, {"nombre": "sql", "op": "consultar", "tablas": {"t": "ordenes"},
+                                   "sql": "SELECT turno FROM t"})
+        errors = {e["paso"]: e["mensaje"] for e in self.run_cli(recipe, None, "--vista-previa", expected=2)["errores"]}
+        self.assertEqual(set(errors), {"sql", "cambios"})
+        self.assertIn("turno", errors["sql"])
+        self.assertIn("Orden", errors["cambios"])
+        # JSON no se puede leer solo por el encabezado: la vista previa lo dice.
+        table = self.write("ordenes.json", {"columns": ["orden"], "rows": [{"orden": "OT1"}]})
+        only = {"version": 1, "entradas": {"ordenes": {}},
+                "pasos": [{"nombre": "perfil", "op": "inspeccionar", "entrada": "ordenes"}]}
+        summary = self.run_cli(only, table, "--vista-previa")
+        self.assertEqual((summary["entradas"][0]["encabezado"], summary["pasos"][0]["columnas"]),
+                         ("no_comprobado", "no_comprobadas"))
+        self.assertFalse(summary["encabezados_leidos"])
+        self.assertIn("Encabezados no comprobados: ordenes", summary["aviso"])
+
+    def test_killed_process_leaves_manifest_in_progress_and_no_complete_partial_tables(self):
+        recipe_path = self.write("receta.json", receta())
+        marker = self.folder / "dentro.txt"
+        # Proceso real: al llegar a escribir el xlsx de "entrega" (ya escritos sus CSV) avisa y espera.
+        script = ("import sys, time, pathlib\n"
+                  f"sys.path.insert(0, {str(ROOT / 'src')!r})\n"
+                  "from kitlib.runtime import configure\nconfigure()\n"
+                  "from kitlib import recetas\nfrom kitlib.cli import main\n"
+                  "def lenta(path, tables):\n"
+                  "    pathlib.Path(sys.argv[1]).write_text('dentro')\n"
+                  "    time.sleep(120)\n"
+                  "recetas.excel_write = lenta\n"
+                  "sys.exit(main(sys.argv[2:]))\n")
+        process = subprocess.Popen([sys.executable, "-B", "-c", script, str(marker), "ejecutar", str(self.ordenes),
+                                    "--receta", str(recipe_path), "--output", str(self.out), "--run-name", "cortada",
+                                    "--json"], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            for _ in range(600):
+                if marker.exists() or process.poll() is not None:
+                    break
+                time.sleep(0.1)
+            self.assertTrue(marker.exists(), "el proceso no llegó al punto de corte")
+        finally:
+            process.kill()  # SIGKILL en Linux, TerminateProcess en Windows: sin limpieza posible
+            out, _ = process.communicate()
+        self.assertEqual(out, b"")  # no llegó a imprimir ningún resumen
+        run = self.out / "cortada"
+        m = json.loads((run / "manifiesto.json").read_text(encoding="utf-8"))
+        self.assertEqual((m["estado"], m["codigo_salida"], m["fin_utc"]), ("en_curso", None, None))
+        self.assertEqual([p["estado"] for p in m["pasos"]],
+                         ["completado", "completado_con_incidencias", "completado", "completado", "en_curso"])
+        self.assertNotIn("salidas", m["pasos"][4])
+        self.assertTrue((run / "05-entrega" / "aceptadas.csv").exists())  # archivos parciales en disco…
+        listed = {f.split("#")[0] for p in m["pasos"] for s in p.get("salidas", {}).values()
+                  for f in s.get("archivos", [s.get("archivo")])}
+        self.assertFalse(any(f.startswith("05-entrega") for f in listed))  # …que nada presenta como resultado
+        for name in ("report.json", "audit.json", "FAILED.json"):
+            self.assertFalse((run / name).exists(), name)
+        self.assertEqual([p.name for p in run.iterdir() if p.name.endswith(".tmp")], [])
 
     def test_manifest_is_in_progress_while_running_and_interruption_is_recorded(self):
         recipe_path = self.write("receta.json", receta())
@@ -272,17 +359,21 @@ class RecetaTests(unittest.TestCase):
         original = recetas.RUNNERS["transformar"]
 
         def spy(step, get):
-            run = next(self.out.iterdir())
-            seen.append(json.loads((run / "manifiesto.json").read_text(encoding="utf-8"))["estado"])
+            # También se llama en la comprobación previa de columnas, antes de crear la carpeta.
+            run = next(self.out.iterdir(), None) if self.out.exists() else None
+            seen.append(json.loads((run / "manifiesto.json").read_text(encoding="utf-8"))["estado"]
+                        if run else "antes_de_crear")
             return original(step, get)
 
         def interrupt(step, get):
-            raise KeyboardInterrupt
+            if (self.out / "interrumpida").exists():  # durante la ejecución, no en la comprobación previa
+                raise KeyboardInterrupt
+            return recetas._step_comparar(step, get)
 
         args = [ "ejecutar", str(self.ordenes), "--receta", str(recipe_path), "--output", str(self.out), "--json"]
         with mock.patch.dict(recetas.RUNNERS, {"transformar": spy}), contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(main(args), 1)
-        self.assertEqual(seen, ["en_curso"])  # un corte en ese momento no parece terminado
+        self.assertEqual(seen, ["antes_de_crear", "en_curso"])  # un corte en ese momento no parece terminado
         with mock.patch.dict(recetas.RUNNERS, {"comparar": interrupt}), contextlib.redirect_stdout(io.StringIO()):
             with self.assertRaises(KeyboardInterrupt):
                 main(args + ["--run-name", "interrumpida"])

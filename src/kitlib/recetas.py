@@ -443,8 +443,70 @@ def _near(value, options):
 
 # --------------------------------------------------------------------------- vista previa
 
+def comprobar_columnas(recipe):
+    """Lee solo el encabezado de cada entrada y ejecuta los pasos sobre tablas sin filas, con las
+    mismas funciones que la ejecución real: así una columna inexistente se detecta sin procesar
+    datos. Devuelve (estado por entrada, estado por paso, errores, avisos)."""
+    entradas: dict[str, dict] = {}
+    pasos: dict[str, dict] = {}
+    errors: list[dict] = []
+    notices: list[dict] = []
+    known: dict[str, Table] = {}
+    for name, entry in recipe.entradas.items():
+        if entry.ruta.suffix.lower() == ".json":
+            entradas[name] = {"encabezado": "no_comprobado",
+                              "motivo": "Una tabla JSON solo puede leerse completa; se comprobará al ejecutar"}
+            continue
+        try:
+            head = read_table(entry.ruta, entry.opts, limit=0)
+        except Exception as exc:
+            entradas[name] = {"encabezado": "ilegible", "motivo": public_message(exc, entry.opts.encoding)}
+            notices.append(error("encabezado_ilegible", public_message(exc, entry.opts.encoding), None,
+                                 f"entradas.{name}", "La ejecución fallará al leer esta entrada"))
+            continue
+        if head.issues or not head.columns:
+            codes = ", ".join(sorted({i["codigo"] for i in head.issues})) or "sin_columnas"
+            entradas[name] = {"encabezado": "invalido", "motivo": codes}
+            notices.append(error("encabezado_invalido", f"Encabezado no utilizable: {codes}", None,
+                                 f"entradas.{name}", "Corrija el encabezado del archivo"))
+            continue
+        entradas[name] = {"encabezado": "leido", "columnas": len(head.columns), "advertencias": head.warnings}
+        for code in sorted(set(head.warnings) - entry.permitidas):
+            notices.append(error(code, f"La entrada {name} tendrá la advertencia {code}; la política la detendrá",
+                                 None, f"entradas.{name}", "Revise --delimiter o permita ese código"))
+        known[name] = Table(head.columns, [], head.source)
+    for step in recipe.pasos:
+        missing = sorted({r for r in _flat(step.refs) if r not in known})
+        if missing:
+            pasos[step.nombre] = {"columnas": "no_comprobadas", "motivo": "Depende de " + ", ".join(missing)}
+            continue
+        try:
+            outputs, issues, _, _ = RUNNERS[step.op](step, known.__getitem__)
+        except Exception as exc:
+            pasos[step.nombre] = {"columnas": "error", "motivo": public_message(exc)}
+            errors.append(error("columnas_incompatibles", public_message(exc), step.nombre, None,
+                                "Compare los nombres con el encabezado (mayúsculas, tildes y espacios cuentan)"))
+            continue
+        pasos[step.nombre] = {"columnas": "comprobadas"}
+        if issues:
+            expected = sorted({i["codigo"] for i in issues})
+            stops = step.incidencias != "separar" or not outputs
+            pasos[step.nombre]["incidencias_previstas"] = expected
+            notices.append(error("incidencias_previstas", f"Con estos encabezados el paso dará {', '.join(expected)}"
+                                 + ("; la política lo detendrá" if stops else ""), step.nombre, None,
+                                 "Revise las columnas exigidas por reglas, clave o consolidación"))
+        if step.op != "exportar":
+            for out, table in outputs.items():
+                known[f"{step.nombre}.{out}"] = Table(table.columns, [])
+        if "incidencias" in OUTPUTS[step.op]:
+            known[f"{step.nombre}.incidencias"] = Table(ISSUE_COLUMNS, [])
+    return entradas, pasos, errors, notices
+
+
 def vista_previa(recipe):
-    """Descripción sin leer datos: no garantiza que los datos cumplan nada."""
+    """Descripción con encabezados: no lee filas ni garantiza que los datos cumplan nada."""
+    entradas, columnas, errors, notices = comprobar_columnas(recipe)
+    code = 2 if errors else 1 if notices else 0
     steps = []
     for step in recipe.pasos:
         destination = [f"{step.carpeta}/{o}.csv|json" for o in OUTPUTS[step.op]] + [f"{step.carpeta}/report.json"]
@@ -456,15 +518,19 @@ def vista_previa(recipe):
                       "produce": [f"{step.nombre}.{o}" for o in OUTPUTS[step.op]],
                       "politica": {"incidencias": step.incidencias,
                                    "advertencias_permitidas": sorted(step.permitidas)},
-                      "destino": destination})
-    return {"estado": "vista_previa", "codigo_salida": 0, "comando": "ejecutar", "receta": recipe.nombre,
-            "datos_leidos": False,
-            "aviso": "Vista previa: se comprobó la receta y que los archivos existen. Los datos NO se leyeron "
-                     "ni se validaron; la ejecución puede encontrar incidencias.",
+                      "destino": destination, **columnas[step.nombre]})
+    unchecked = [n for n, e in entradas.items() if e["encabezado"] != "leido"]
+    return {"estado": "vista_previa", "codigo_salida": code, "comando": "ejecutar", "receta": recipe.nombre,
+            "datos_leidos": False, "encabezados_leidos": not unchecked,
+            "aviso": "Vista previa: se comprobó la receta y, leyendo solo los encabezados, las columnas que usa "
+                     "cada paso. Las filas de datos NO se leyeron ni se validaron; la ejecución puede encontrar "
+                     "incidencias." + (" Encabezados no comprobados: " + ", ".join(unchecked) + "; los pasos que "
+                                       "dependen de ellos no tienen columnas comprobadas." if unchecked else ""),
             "entradas": [{"nombre": e.nombre, "ruta": str(e.ruta), "delimiter": e.opts.delimiter,
                           "decimal": e.opts.decimal, "politica": {"incidencias": e.incidencias,
-                          "advertencias_permitidas": sorted(e.permitidas)}} for e in recipe.entradas.values()],
-            "pasos": steps,
+                          "advertencias_permitidas": sorted(e.permitidas)}, **entradas[e.nombre]}
+                         for e in recipe.entradas.values()],
+            "pasos": steps, "errores": errors, "avisos": notices,
             "destino": "Carpeta nueva bajo --output (se crea al ejecutar), con manifiesto.json"}
 
 
@@ -572,7 +638,7 @@ def ejecutar_receta(recipe, run, args):
             refused = [w["codigo"] for w in warnings if w["codigo"] not in entry.permitidas]
             if (table.issues and entry.incidencias != "separar") or refused:
                 record["estado"] = "detenida"
-                _write_issues(run / "00-entradas", read_issues)
+                _write_issues(run / "00-entradas", read_issues, recipe.delimiter)
                 reason = "incidencias" if table.issues and entry.incidencias != "separar" else "advertencias"
                 return finish("fallida", 2, "detenida_por_politica", {
                     "codigo": f"{reason}_no_admitidas", "paso": f"entrada {name}", "campo": "politica",
@@ -583,7 +649,7 @@ def ejecutar_receta(recipe, run, args):
             # Filas mal formadas ya quedaron fuera y registradas: los pasos reciben la tabla sin repetirlas.
             tables[name] = replace(table, issues=[], warnings=[])
             info[name] = {"validada": False, "origen": f"entrada:{name}"}
-        _write_issues(run / "00-entradas", read_issues)
+        _write_issues(run / "00-entradas", read_issues, recipe.delimiter)
         save()
 
         for step, current in zip(recipe.pasos, manifest["pasos"], strict=True):
@@ -600,7 +666,7 @@ def ejecutar_receta(recipe, run, args):
                            incidencias_por_codigo=_codes(issues), advertencias_por_codigo=_codes(warnings),
                            conteos={k: v for k, v in details.items() if isinstance(v, int)})
             if issues or "incidencias" in OUTPUTS[step.op]:  # exportar puede publicar una tabla "incidencias"
-                _write_issues(folder, issues)
+                _write_issues(folder, issues, recipe.delimiter)
             json_write(folder / "report.json", {"paso": step.nombre, "op": step.op, "detalle": details,
                                                 "incidencias_detalle": issues, "advertencias_detalle": warnings})
             if blocked or refused:
@@ -670,10 +736,10 @@ def ejecutar_receta(recipe, run, args):
         raise
 
 
-def _write_issues(folder, issues):
+def _write_issues(folder, issues, delimiter):
     table = Table(ISSUE_COLUMNS, issues)
     table_json(folder / "incidencias.json", table)
-    csv_write(folder / "incidencias.csv", table)
+    csv_write(folder / "incidencias.csv", table, delimiter)
 
 
 def _export(step, folder, tables, delimiter, info):
@@ -719,15 +785,19 @@ def _show(summary, args, issues=None):
         print(json.dumps(summary, ensure_ascii=False))
         return
     if summary["estado"] == "vista_previa":
-        print("VISTA PREVIA (no se leyeron ni validaron datos) | receta: " + summary["receta"])
+        print("VISTA PREVIA (solo encabezados; filas no leídas ni validadas) | receta: " + summary["receta"])
         for e in summary["entradas"]:
             print(f"  entrada {e['nombre']}: {e['ruta']} (delimiter {e['delimiter']!r}, decimal {e['decimal']!r},"
-                  f" incidencias={e['politica']['incidencias']})")
+                  f" incidencias={e['politica']['incidencias']}) | encabezado {e['encabezado']}"
+                  + (f": {e['motivo']}" if e.get("motivo") else ""))
         for s in summary["pasos"]:
             print(f"  {s['numero']:>2} {s['nombre']} ({s['op']}) usa {json.dumps(s['usa'], ensure_ascii=False)}"
                   f" → {', '.join(s['produce']) or 'solo informe'} | incidencias={s['politica']['incidencias']}"
                   + (f", permite {', '.join(s['politica']['advertencias_permitidas'])}"
-                     if s['politica']['advertencias_permitidas'] else ""))
+                     if s['politica']['advertencias_permitidas'] else "") + f" | columnas {s['columnas']}")
+        for kind in ("errores", "avisos"):
+            for err in summary[kind][:10]:
+                print(f"  [{err['codigo']}] {err.get('paso') or err.get('campo')}: {err['mensaje']}")
         print(summary["destino"])
         return
     print(f"{summary['estado']} | pasos={sum(p['estado'].startswith('completado') for p in summary.get('pasos', []))}"
@@ -767,8 +837,15 @@ def run(args):
         _show(summary, args)
         return 2
     if args.vista_previa:
-        _show(vista_previa(recipe), args)
-        return 0
+        preview = vista_previa(recipe)
+        _show(preview, args)
+        return preview["codigo_salida"]
+    column_errors = comprobar_columnas(recipe)[2]
+    if column_errors:
+        _show({"estado": "error", "codigo_salida": 2, "comando": "ejecutar", "ruta_resultados": None,
+               "error": "Columnas incompatibles con los encabezados: no se ejecutó nada",
+               "errores": column_errors[:20], "total_errores": len(column_errors)}, args)
+        return 2
     output = inside(args.output)
     run_name = args.run_name or (datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-ejecutar-"
                                  + uuid4().hex[:10])

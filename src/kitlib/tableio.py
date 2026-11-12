@@ -155,6 +155,9 @@ def _consume(header, records, source, sheet, limit, xlsx=False):
         table.issues.append(issue("encabezado_vacio_o_duplicado", row=1, source=str(source)))
         return table
     table.columns = columns
+    if limit == 0:  # solo encabezado (vista previa de recetas): no se toca ninguna fila de datos
+        table.complete = False
+        return table
     for rowno, values in enumerate(records, 2):
         if limit is not None and table.scanned >= limit:
             table.complete = False

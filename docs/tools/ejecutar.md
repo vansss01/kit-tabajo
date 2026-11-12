@@ -59,10 +59,18 @@ en cada paso o entrada. Sin política: **detener** ante cualquier incidencia o a
 
 La receta se comprueba **completa** antes de leer datos: estructura, operaciones, parámetros,
 referencias, reglas y planes. Si falla, código 2, nada se crea y cada error trae `codigo`
-estable, `paso`, `campo`, `mensaje` y `sugerencia`. Las columnas se comprueban al ejecutar.
+estable, `paso`, `campo`, `mensaje` y `sugerencia`.
 
-`--vista-previa` muestra entradas, pasos, políticas y destinos, y termina sin escribir nada.
-**No valida datos**: solo comprueba la receta y que los archivos existen.
+Después se leen **solo los encabezados** (CSV/XLSX; ninguna fila) y cada paso se ejecuta sobre
+tablas vacías con las mismas funciones de la ejecución real: así se detectan columnas
+inexistentes en planes, claves de comparar, `numeric` y el propio SQL. Un error aquí
+(`columnas_incompatibles`) detiene `ejecutar` antes de crear la carpeta. Las tablas JSON no se
+pueden leer solo por el encabezado: se marcan `no_comprobado` y sus pasos `no_comprobadas`.
+
+`--vista-previa` muestra entradas, pasos, políticas, destinos y el estado de columnas de cada
+paso, y termina sin escribir nada. Código 0 sin problemas, 1 con avisos (p. ej.
+`incidencias_previstas` por una columna obligatoria ausente), 2 si la ejecución fallaría.
+**No valida datos**: las filas no se leen.
 
 ## Resultados y manifiesto
 
