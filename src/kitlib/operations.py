@@ -8,7 +8,7 @@ from dataclasses import replace
 from decimal import Decimal, localcontext
 from typing import Any
 
-from kitlib.tableio import Table, convert, empty, infer, issue, literal, number, real_text
+from kitlib.tableio import ORIGEN, Table, convert, empty, infer, issue, literal, number, public_row, real_text
 
 TYPES = {"string", "integer", "number", "date", "boolean"}
 
@@ -43,7 +43,7 @@ def inspect_table(table, opts, sample):
             "filas_totales": table.scanned if table.complete else None,
             "filas_analizadas": table.scanned, "filas_estructuralmente_validas": len(table.rows),
             "duplicados_adicionales_en_alcance": len(keys) - len(set(keys)),
-            "columnas": stats, "muestra": table.rows[:sample],
+            "columnas": stats, "muestra": [public_row(r) for r in table.rows[:sample]],
             "advertencias": table.warnings, "incidencias": table.issues}
 
 
@@ -296,19 +296,31 @@ def check_plan(plan, opts):
             raise ValueError(f"Plan, paso {number_}: {exc}") from exc
 
 
-def transform(table, plan, opts):
+def new_trace():
+    """Registro opcional de transform (lo usan las recetas): filas excluidas por filtro o
+    deduplicación, celdas cambiadas por convert y filas que participan en cada grupo."""
+    return {"excluidas": [], "cambios": [], "participantes": []}
+
+
+def transform(table, plan, opts, trace=None):
     check_plan(plan, opts)
     if table.issues:
         return {}, table.issues, {"transformacion_bloqueada": True}
     current = copy_table(table, [r.copy() for r in table.rows])
     history = []
-    for step in plan["steps"]:
+    for index, step in enumerate(plan["steps"], 1):
         op = step["op"]
         local = check_step(step, opts)
         count_before = len(current.rows)
         if op == "select":
             require_columns(current, step["columns"])
-            current = copy_table(current, [{c: r[c] for c in step["columns"]} for r in current.rows], step["columns"])
+            selected = []
+            for r in current.rows:
+                row = {c: r[c] for c in step["columns"]}
+                if ORIGEN in r:
+                    row[ORIGEN] = r[ORIGEN]
+                selected.append(row)
+            current = copy_table(current, selected, step["columns"])
         elif op == "filter":
             col, operator = step["column"], step["operator"]
             require_columns(current, [col])
@@ -335,6 +347,8 @@ def transform(table, plan, opts):
                     accept = value <= target
                 if accept:
                     kept.append(row)
+                elif trace is not None:
+                    trace["excluidas"].append((index, "filter", f"no cumple {col} {operator} {step['value']}", row))
             current.rows = kept
         elif op == "sort":
             require_columns(current, step["columns"])
@@ -345,17 +359,26 @@ def transform(table, plan, opts):
             current.rows.sort(key=sortkey, reverse=step.get("descending", False))
         elif op == "convert":
             require_columns(current, [step["column"]])
+            col = step["column"]
             for row in current.rows:
-                row[step["column"]] = convert(row[step["column"]], step["type"], local)
+                before = row[col]
+                row[col] = convert(before, step["type"], local)
+                if trace is not None and row[col] != before:
+                    trace["cambios"].append((index, f"convert {step['type']}", col, before, row[col], row.get(ORIGEN)))
         elif op == "deduplicate":
             require_columns(current, step["keys"])
-            seen = set()
+            seen: dict[tuple, dict] = {}
             kept = []
             for row in current.rows:
                 key = tuple(row[c] for c in step["keys"])
                 if key not in seen:
                     kept.append(row)
-                    seen.add(key)
+                    seen[key] = row
+                elif trace is not None:
+                    first = seen[key].get(ORIGEN)
+                    where = f"{first[0]} fila {first[2]}" if first else "una fila anterior"
+                    trace["excluidas"].append((index, "deduplicate", "repite la clave " + ", ".join(step["keys"])
+                                               + f" de la fila conservada ({where})", row))
             current.rows = kept
         elif op == "group":
             by, aggregates = step["by"], step["aggregates"]
@@ -372,6 +395,8 @@ def transform(table, plan, opts):
             output = []
             for key, rows in groups.items():
                 result = dict(zip(by, key, strict=True))
+                if trace is not None:
+                    trace["participantes"].extend((index, key, r.get(ORIGEN)) for r in rows)
                 for spec in aggregates:
                     agg = spec["op"]
                     if agg == "count":
@@ -424,7 +449,10 @@ def merge_tables(items):
         accepted.append(source)
         numbers = table.row_numbers or list(range(2, len(table.rows) + 2))
         for rowno, row in zip(numbers, table.rows, strict=True):
-            rows.append({**row, "__archivo_origen": source, "__fila_origen": str(rowno)})
+            # En recetas la fila trae su procedencia real; si no, la de esta tabla.
+            origin = row.get(ORIGEN)
+            rows.append({**row, "__archivo_origen": origin[1] if origin else source,
+                         "__fila_origen": str(origin[2] if origin else rowno)})
     if not items:
         issues.append(issue("sin_archivos_compatibles"))
     output = Table((columns or []) + ["__archivo_origen", "__fila_origen"], rows)
@@ -627,4 +655,5 @@ def query(tables, sql, numeric, opts):
 
     return {"validos": Table(names, output)}, issues, {
         "filas_salida": len(output), "valores_no_numericos": total("no_numerico"),
-        "valores_redondeados": total("redondeo"), "columnas_sin_numeric": undeclared}
+        "valores_redondeados": total("redondeo"), "columnas_sin_numeric": undeclared,
+        "tablas_leidas": sorted({t for t, _ in read})}

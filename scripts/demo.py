@@ -60,6 +60,9 @@ assert manifest["estado"] == "completada_con_incidencias"
 assert [p["filas"] for p in recipe_summary["pasos"]][1] == {"aceptadas": 1, "rechazadas": 2, "incidencias": 6}
 assert manifest["pasos"][3]["salidas"]["aceptadas"]["validada"] is True
 assert manifest["pasos"][3]["salidas"]["resumen"]["validada"] is False
+assert all(c["cumple"] for p in manifest["pasos"] for c in p["invariantes"])
+assert manifest["pasos"][1]["invariantes"][0] | {"regla": ""} == {
+    "tipo": "particion", "regla": "", "entrada": 3, "aceptadas": 1, "rechazadas": 2, "cumple": True}
 print(f"ejecutar: {manifest['estado']} ({len(manifest['pasos'])} pasos)")
 for path, digest in originals.items():
     assert hashlib.sha256(Path(path).read_bytes()).hexdigest() == digest

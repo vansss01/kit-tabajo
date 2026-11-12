@@ -67,7 +67,9 @@ def receta(**cambios):
     return base
 
 
-class RecetaTests(unittest.TestCase):
+class Base(unittest.TestCase):
+    """Carpeta temporal, archivos de prueba y ayudantes; sin pruebas propias."""
+
     def setUp(self):
         temp = tempfile.TemporaryDirectory(prefix="recetas con espacios-", dir=ROOT / "tmp")
         self.addCleanup(temp.cleanup)
@@ -105,6 +107,8 @@ class RecetaTests(unittest.TestCase):
     def hashes(self):
         return {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in self.folder.iterdir() if p.is_file()}
 
+
+class RecetaTests(Base):
     def test_full_flow_separates_rows_and_never_labels_derived_tables_as_validated(self):
         recipe = self.write("receta.json", receta())
         before = self.hashes()
@@ -387,6 +391,170 @@ class RecetaTests(unittest.TestCase):
         summary = self.run_cli(example, ROOT / "examples" / "con incidencias.csv", expected=1)
         self.assertEqual([p["filas"] for p in summary["pasos"]][1],
                          {"aceptadas": 1, "rechazadas": 2, "incidencias": 6})
+
+
+# --- Trazabilidad (1.5.0-etapa2). Escenario calculado a mano:
+# turno A: fila 2 OT1 abierta 2,5 | fila 3 OT2 cerrada 1,0 | fila 4 OT3 horas "x" (inválida)
+# turno B: fila 2 OT4 abierta 4,0 | fila 3 OT1 repetida | fila 4 OT5 abierta 1,5
+# validar rechaza A4. limpieza: convierte 5 horas, el filtro excluye A3 (cerrada), deduplicar excluye B3.
+# resumen: 0007 = A2 + B4 = 2.5 + 1.5 = 4.0; 0042 = B2 = 4.0. comparar con anterior: OT1 cambia, OT9 se va.
+TURNO_A = ("orden;equipo;fecha;horas;estado\nOT1;0007;2026-10-01;2,5;abierta\nOT2;0012;2026-10-01;1,0;cerrada\n"
+           "OT3;0007;2026-10-02;x;abierta\n")
+TURNO_B = ("orden;equipo;fecha;horas;estado\nOT4;0042;2026-10-03;4,0;abierta\nOT1;0007;2026-10-01;2,5;abierta\n"
+           "OT5;0007;2026-10-04;1,5;abierta\n")
+ANTERIOR_PUNTO = "orden;equipo;fecha;horas;estado\nOT1;0007;2026-10-01;2.0;abierta\nOT9;0099;2026-09-30;1.0;cerrada\n"
+BUSINESS = ["orden", "equipo", "fecha", "horas", "estado"]
+
+
+class TrazaTests(Base):
+    def setUp(self):
+        super().setUp()
+        self.a = self.write("turno A.csv", TURNO_A)
+        self.b = self.write("turno B.csv", TURNO_B)
+        self.write("anterior punto.csv", ANTERIOR_PUNTO)
+
+    def recipe(self):
+        semicolon = {"delimiter": ";", "decimal": ","}
+        return {"version": 1, "nombre": "traza",
+                "entradas": {"turno_a": {"principal": True, **semicolon}, "turno_b": {"ruta": "turno B.csv", **semicolon},
+                             "anterior": {"ruta": "anterior punto.csv", "delimiter": ";"}},
+                "pasos": [
+                    {"nombre": "union", "op": "consolidar", "entradas": ["turno_a", "turno_b"]},
+                    {"nombre": "revision", "op": "validar", "entrada": "union.resultado",
+                     "reglas": {"columns": {"horas": {"type": "number"}, "orden": {"nonempty": True}}},
+                     "politica": {"incidencias": "separar"}},
+                    {"nombre": "limpieza", "op": "transformar", "entrada": "revision.aceptadas", "plan": {"steps": [
+                        {"op": "convert", "column": "horas", "type": "number"},
+                        {"op": "filter", "column": "estado", "operator": "eq", "value": "abierta"},
+                        {"op": "deduplicate", "keys": ["orden"]},
+                        {"op": "select", "columns": BUSINESS}]}},
+                    {"nombre": "resumen", "op": "transformar", "entrada": "limpieza.resultado", "traza": "detallada",
+                     "opciones": {"decimal": "."}, "plan": {"steps": [
+                         {"op": "group", "by": ["equipo"], "aggregates": [{"op": "sum", "column": "horas", "as": "horas"}]},
+                         {"op": "sort", "columns": ["equipo"]}]}},
+                    {"nombre": "cambios", "op": "comparar", "antes": "anterior", "despues": "limpieza.resultado",
+                     "clave": ["orden"]}]}
+
+    def test_real_provenance_excluded_rows_cell_changes_and_invariants(self):
+        before = self.hashes()
+        summary = self.run_cli(self.recipe(), self.a, expected=1)
+        run, m = Path(summary["ruta_resultados"]), self.manifest(summary)
+        steps = {p["nombre"]: p for p in m["pasos"]}
+        a, b, old = str(self.a.resolve()), str(self.b.resolve()), str((self.folder / "anterior punto.csv").resolve())
+
+        def origin_rows(path):
+            return [r[1:4] for r in self.rows(path)[1:]]
+
+        # consolidar: columnas de procedencia existentes, ahora con el archivo y la fila reales.
+        union = self.rows(run / "01-union" / "resultado.csv")
+        self.assertEqual([(r[5], r[6]) for r in union[1:]], [(a, "2"), (a, "3"), (a, "4"), (b, "2"), (b, "3"), (b, "4")])
+        # validar: la incidencia y el motivo citan el archivo y la fila originales, no la fila 4 de la unión.
+        self.assertEqual([(r[0], r[1], r[2], r[3]) for r in self.rows(run / "02-revision" / "incidencias.csv")[1:]],
+                         [("tipo_o_fecha_invalido", "4", "horas", a)])
+        self.assertEqual(self.rows(run / "02-revision" / "rechazadas_procedencia.csv")[1:],
+                         [["2", "turno_a", a, "4", "tipo_o_fecha_invalido"]])
+        self.assertEqual(origin_rows(run / "02-revision" / "aceptadas_procedencia.csv"),
+                         [["turno_a", a, "2"], ["turno_a", a, "3"], ["turno_b", b, "2"], ["turno_b", b, "3"],
+                          ["turno_b", b, "4"]])
+        self.assertEqual(steps["revision"]["invariantes"][0] | {"regla": ""}, {
+            "tipo": "particion", "regla": "", "entrada": 6, "aceptadas": 5, "rechazadas": 1, "cumple": True})
+        # limpieza: filas excluidas con motivo y fila original; cambios de celdas revisables.
+        excluded = self.rows(run / "03-limpieza" / "excluidas.csv")
+        self.assertEqual(excluded[0], ["paso_plan", "operacion", "motivo", "entrada", "archivo", "fila_origen",
+                                       *BUSINESS, "__archivo_origen", "__fila_origen"])
+        self.assertEqual([r[:6] for r in excluded[1:]], [
+            ["2", "filter", "no cumple estado eq abierta", "turno_a", a, "3"],
+            ["3", "deduplicate", "repite la clave orden de la fila conservada (turno_a fila 2)", "turno_b", b, "3"]])
+        self.assertEqual(excluded[1][6:11], ["OT2", "0012", "2026-10-01", "1.0", "cerrada"])  # tal como estaba
+        self.assertEqual(self.rows(run / "03-limpieza" / "cambios_celdas.csv")[1:], [
+            ["turno_a", a, "2", "horas", "2,5", "2.5", "convert number", "1"],
+            ["turno_a", a, "3", "horas", "1,0", "1.0", "convert number", "1"],
+            ["turno_b", b, "2", "horas", "4,0", "4.0", "convert number", "1"],
+            ["turno_b", b, "3", "horas", "2,5", "2.5", "convert number", "1"],
+            ["turno_b", b, "4", "horas", "1,5", "1.5", "convert number", "1"]])
+        self.assertEqual(self.rows(run / "03-limpieza" / "resultado.csv")[0], BUSINESS)  # sin columnas añadidas
+        self.assertEqual(origin_rows(run / "03-limpieza" / "resultado_procedencia.csv"),
+                         [["turno_a", a, "2"], ["turno_b", b, "2"], ["turno_b", b, "4"]])
+        self.assertEqual(steps["limpieza"]["filas"], {"entrada": 5, "salidas": {"resultado": 3}, "excluidas": 2,
+                                                      "cambios_celdas": 5})
+        self.assertEqual((steps["limpieza"]["invariantes"][0]["tipo"], steps["limpieza"]["invariantes"][0]["cumple"]),
+                         ("particion", True))
+        # agregado: sin procedencia por fila, pero participantes reconstruibles; no es una partición.
+        self.assertEqual(self.rows(run / "04-resumen" / "resultado.csv")[1:], [["0007", "4.0"], ["0042", "4.0"]])
+        self.assertEqual(self.rows(run / "04-resumen" / "participantes.csv")[1:], [
+            ["1", '{"equipo": "0007"}', "turno_a", a, "2"], ["1", '{"equipo": "0007"}', "turno_b", b, "4"],
+            ["1", '{"equipo": "0042"}', "turno_b", b, "2"]])
+        self.assertFalse((run / "04-resumen" / "resultado_procedencia.csv").exists())
+        self.assertEqual(steps["resumen"]["trazas"]["resultado"], "sin procedencia individual (agregado)")
+        self.assertEqual(steps["resumen"]["invariantes"][0]["tipo"], "participacion")
+        # cruce: nuevas, eliminadas y cambios con su fila original de antes y de después.
+        self.assertEqual(origin_rows(run / "05-cambios" / "nuevos_procedencia.csv"), [["turno_b", b, "2"],
+                                                                                     ["turno_b", b, "4"]])
+        self.assertEqual(origin_rows(run / "05-cambios" / "eliminados_procedencia.csv"), [["anterior", old, "3"]])
+        self.assertEqual(self.rows(run / "05-cambios" / "cambios_procedencia.csv")[1:],
+                         [["2", "anterior", old, "2", "turno_a", a, "2"]])
+        self.assertEqual(steps["cambios"]["invariantes"][0]["tipo"], "claves")
+        # La procedencia interna nunca se publica en las tablas de negocio.
+        for path in run.rglob("*.json"):
+            self.assertNotIn("\\u0000", path.read_text(encoding="utf-8"), path)
+        # Manifiesto: parámetros, versión, receta y dónde están los detalles; terminal acotada y sin celdas.
+        self.assertEqual((m["version_kit"], m["parametros"]["command"]), ("1.5.0-etapa2", "ejecutar"))
+        self.assertEqual(steps["limpieza"]["detalles"], "03-limpieza/report.json")
+        self.assertEqual([p["excluidas"] for p in summary["pasos"]], [0, 0, 2, 0, 0])
+        printed = json.dumps(summary, ensure_ascii=False)
+        for value in ("OT1", "OT2", "0007", "2,5", "abierta", "cerrada"):
+            self.assertNotIn(value, printed)
+        self.assertEqual(self.hashes(), {**before, "receta.json": self.hashes()["receta.json"]})
+
+    def test_malformed_entry_rows_keep_real_row_numbers(self):
+        source = self.write("con fila rota.csv", "orden;horas\nOT1;1\nOT2;2;extra\nOT3;3\n")
+        recipe = {"version": 1, "entradas": {"ordenes": {"delimiter": ";", "politica": {"incidencias": "separar"}}},
+                  "pasos": [{"nombre": "revision", "op": "validar", "entrada": "ordenes",
+                             "reglas": {"columns": {"horas": {"type": "integer"}}}},
+                            # aceptadas está renumerada (2, 3): consolidar debe citar las filas reales (2, 4).
+                            {"nombre": "union", "op": "consolidar", "entradas": ["revision.aceptadas"]}]}
+        summary = self.run_cli(recipe, source, expected=1)
+        run, m = Path(summary["ruta_resultados"]), self.manifest(summary)
+        entry = m["entradas"]["ordenes"]
+        self.assertEqual((entry["filas_leidas"], entry["filas_tabulares"], entry["filas_excluidas_mal_formadas"]),
+                         (3, 2, 1))
+        self.assertTrue(entry["invariante"]["cumple"])
+        self.assertEqual([r[0] for r in self.rows(run / "00-entradas" / "incidencias.csv")[1:]], ["ancho_incorrecto"])
+        self.assertEqual([r[3] for r in self.rows(run / "01-revision" / "aceptadas_procedencia.csv")[1:]], ["2", "4"])
+        self.assertEqual([(r[2], r[3]) for r in self.rows(run / "02-union" / "resultado.csv")[1:]],
+                         [(str(source.resolve()), "2"), (str(source.resolve()), "4")])
+
+    def test_broken_invariant_fails_the_step_without_publishing_tables(self):
+        from kitlib import operations
+
+        def loses_a_row(table, config, opts):
+            tables, issues, details = operations.validate(table, config, opts)
+            if tables["invalidos"].rows:  # (vacía en la comprobación previa de columnas)
+                tables["invalidos"].rows.pop()  # una fila rechazada desaparece
+            return tables, issues, details
+
+        def hides_an_exclusion(table, plan, opts, trace=None):
+            result = operations.transform(table, plan, opts, trace)
+            if trace is not None and trace["excluidas"]:
+                trace["excluidas"].pop()
+            return result
+
+        recipe_path = self.write("receta.json", self.recipe())
+        for name, target, fake, folder in (("validar", "validate", loses_a_row, "02-revision"),
+                                           ("transformar", "transform", hides_an_exclusion, "03-limpieza")):
+            args = ["ejecutar", str(self.a), "--receta", str(recipe_path), "--output", str(self.out),
+                    "--run-name", name, "--json"]
+            with mock.patch.object(recetas, target, fake), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(main(args), 2)
+            run = self.out / name
+            m = json.loads((run / "manifiesto.json").read_text(encoding="utf-8"))
+            failed = next(p for p in m["pasos"] if p["estado"] == "fallido")
+            self.assertEqual((m["estado"], m["motivo"], failed["carpeta"]), ("fallida", "error_de_ejecucion", folder))
+            self.assertIn("Invariante incumplida", m["error"]["mensaje"])
+            self.assertFalse(failed["invariantes"][0]["cumple"])
+            self.assertEqual(sorted(p.name for p in (run / folder).iterdir() if p.name.endswith((".csv", ".json"))
+                                    and not p.name.startswith(("incidencias", "report"))), [])
+            self.assertTrue((run / "FAILED.json").exists())
 
 
 if __name__ == "__main__":

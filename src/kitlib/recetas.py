@@ -21,11 +21,11 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from kitlib import __version__
+from kitlib import __version__, traza
 from kitlib.operations import (check_plan, compare, inspect_table, merge_tables, query, query_warnings,
-                               transform, validate, validate_config)
+                               new_trace, transform, validate, validate_config)
 from kitlib.runtime import ROOT, inside, public_message
-from kitlib.tableio import (Options, Table, atomic_json, csv_write, excel_write, fingerprint, json_write,
+from kitlib.tableio import (ORIGEN, Options, Table, atomic_json, csv_write, excel_write, fingerprint, json_write,
                             load_config, read_table, table_json)
 
 VERSION = 1
@@ -40,7 +40,7 @@ OUTPUTS: dict[str, tuple[str, ...]] = {
 PARAMS: dict[str, tuple[set[str], set[str]]] = {  # operación: (permitidos, obligatorios)
     "inspeccionar": ({"entrada", "sample"}, {"entrada"}),
     "validar": ({"entrada", "reglas"}, {"entrada", "reglas"}),
-    "transformar": ({"entrada", "plan"}, {"entrada", "plan"}),
+    "transformar": ({"entrada", "plan", "traza"}, {"entrada", "plan"}),
     "consultar": ({"tablas", "sql", "numeric"}, {"tablas", "sql"}),
     "consolidar": ({"entradas"}, {"entradas"}),
     "comparar": ({"antes", "despues", "clave"}, {"antes", "despues", "clave"}),
@@ -378,6 +378,8 @@ def cargar_receta(path, principal=None, overrides=None):
             numeric = spec.get("numeric", [])
             if not isinstance(numeric, list) or not all(isinstance(c, str) and c for c in numeric):
                 errors.append(error("parametro_invalido", "numeric: lista de columnas", name, "numeric"))
+        if op == "transformar" and spec.get("traza", "resumida") not in ("resumida", "detallada"):
+            errors.append(error("parametro_invalido", "traza: \"resumida\" o \"detallada\"", name, "traza"))
         if op == "inspeccionar":
             sample = spec.get("sample", 0)
             if not isinstance(sample, int) or isinstance(sample, bool) or not 0 <= sample <= 20:
@@ -543,13 +545,16 @@ def _step_inspeccionar(step, get):
 
 
 def _step_validar(step, get):
-    tables, issues, details = validate(get(step.refs["entrada"]), step.config, step.opts)
-    return ({"aceptadas": tables["validos"], "rechazadas": tables["invalidos"]}, issues, [], details)
+    source = get(step.refs["entrada"])
+    tables, issues, details = validate(source, step.config, step.opts)
+    return ({"aceptadas": tables["validos"], "rechazadas": tables["invalidos"]},
+            traza.remap_issues(issues, source), [], details)
 
 
 def _step_transformar(step, get):
-    tables, issues, details = transform(get(step.refs["entrada"]), step.config, step.opts)
-    return ({"resultado": tables["validos"]} if tables else {}), issues, [], details
+    trace = new_trace()
+    tables, issues, details = transform(get(step.refs["entrada"]), step.config, step.opts, trace)
+    return ({"resultado": tables["validos"]} if tables else {}), issues, [], {**details, "_traza": trace}
 
 
 def _step_consultar(step, get):
@@ -598,6 +603,7 @@ def ejecutar_receta(recipe, run, args):
             {"numero": s.numero, "nombre": s.nombre, "op": s.op, "carpeta": s.carpeta, "estado": "pendiente",
              "usa": s.refs, "politica": {"incidencias": s.incidencias, "advertencias_permitidas": sorted(s.permitidas)}}
             for s in recipe.pasos],
+        "parametros": {k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()},
         "error": None}
     path = run / "manifiesto.json"
 
@@ -646,6 +652,14 @@ def ejecutar_receta(recipe, run, args):
                                + ", ".join(sorted(set(refused) or {i['codigo'] for i in table.issues}))[:200],
                     "sugerencia": "Revise 00-entradas/incidencias.csv; corrija el archivo o declare la política"})
             record["estado"] = "leida_con_incidencias" if table.issues or warnings else "leida"
+            malformed = sum(i["codigo"] == "ancho_incorrecto" for i in table.issues)
+            record["filas_excluidas_mal_formadas"] = malformed
+            record["invariante"] = {"tipo": "particion", "regla": "filas leídas = tabulares + mal formadas "
+                                    "(en 00-entradas/incidencias.csv)",
+                                    "cumple": table.scanned == len(table.rows) + malformed}
+            if not record["invariante"]["cumple"]:
+                raise ValueError(f"Invariante incumplida al leer la entrada {name}")
+            traza.tag(table, name, entry.ruta)
             # Filas mal formadas ya quedaron fuera y registradas: los pasos reciben la tabla sin repetirlas.
             tables[name] = replace(table, issues=[], warnings=[])
             info[name] = {"validada": False, "origen": f"entrada:{name}"}
@@ -658,6 +672,7 @@ def ejecutar_receta(recipe, run, args):
             folder = run / step.carpeta
             folder.mkdir()
             outputs, issues, warnings, details = RUNNERS[step.op](step, tables.__getitem__)
+            trace = details.pop("_traza", None)
             issues_total.extend(issues)
             warnings_total.extend(warnings)
             refused = sorted({w["codigo"] for w in warnings} - step.permitidas)
@@ -682,6 +697,14 @@ def ejecutar_receta(recipe, run, args):
                     "codigo": f"{kind}_no_admitidas", "paso": step.nombre, "campo": "politica",
                     "mensaje": f"El paso {step.nombre} tiene {kind} no admitidas: " + ", ".join(codes)[:200],
                     "sugerencia": hint})
+            # Invariantes antes de publicar: si una no se cumple, el paso falla sin dejar tablas.
+            inputs = _inputs(step, tables)
+            checks = traza.invariants(step.op, inputs, outputs, trace, details)
+            current["invariantes"] = checks
+            broken = [c["regla"] for c in checks if not c["cumple"]]
+            if broken:
+                raise ValueError(f"Invariante incumplida en el paso {step.nombre}: {broken[0]}. "
+                                 "No se publicaron sus tablas")
             written = {}
             for out, table in outputs.items():
                 if step.op == "exportar":
@@ -701,8 +724,9 @@ def ejecutar_receta(recipe, run, args):
                 info[f"{step.nombre}.incidencias"] = {"validada": False, "origen": f"{step.op}:{step.nombre}"}
                 written["incidencias"] = {"archivo": f"{step.carpeta}/incidencias.json", "filas": len(issues),
                                           **info[f"{step.nombre}.incidencias"]}
+            current.update(_trace_files(step, folder, inputs, outputs, issues, trace, details, recipe.delimiter))
             current.update(estado="completado_con_incidencias" if issues or warnings else "completado",
-                           salidas=written, fin_utc=_now())
+                           salidas=written, detalles=f"{step.carpeta}/report.json", fin_utc=_now())
             save()
         current = None
         if sources != {n: fingerprint(e.ruta) for n, e in recipe.entradas.items()} or configs != [
@@ -734,6 +758,69 @@ def ejecutar_receta(recipe, run, args):
             current.update(estado="interrumpido")
         finish("fallida", 2, "interrumpida")
         raise
+
+
+def _inputs(step, tables):
+    """Tablas que usa el paso, con la forma que esperan los invariantes."""
+    refs = step.refs
+    if step.op in ("inspeccionar", "validar", "transformar"):
+        return [tables[refs["entrada"]]]
+    if step.op == "comparar":
+        return [tables[refs["antes"]], tables[refs["despues"]]]
+    if step.op == "consolidar":
+        return [(ref, tables[ref]) for ref in refs["entradas"]]
+    return [(alias, tables[ref]) for alias, ref in refs["tablas"].items()]  # consultar, exportar
+
+
+def _trace_files(step, folder, inputs, outputs, issues, trace, details, delimiter):
+    """Escribe los archivos de trazabilidad del paso y devuelve su resumen para el manifiesto."""
+    files: dict[str, str] = {}
+    counts: dict[str, Any] = {"entrada": sum(len((t[1] if isinstance(t, tuple) else t).rows) for t in inputs),
+                              "salidas": {o: len(t.rows) for o, t in outputs.items()}}
+    result: dict[str, Any] = {"filas": counts, "trazas": files}
+    if step.op == "exportar":  # copia tablas ya trazadas en el paso que las produjo
+        return result
+    for out, table in outputs.items():
+        if step.op == "comparar" and out == "cambios":
+            files[out] = f"{step.carpeta}/" + traza.write_compare_changes(
+                folder, inputs[0], inputs[1], step.spec["clave"], table, delimiter)
+            continue
+        if table.rows and all(ORIGEN not in r for r in table.rows):
+            files[out] = "sin procedencia individual (" + ("agregado" if step.op == "transformar" else
+                                                          "resultado SQL") + ")"
+            continue
+        motives = traza.motives_by_origin(issues) if (step.op, out) == ("validar", "rechazadas") else None
+        name, missing = traza.write_provenance(folder, out, table, delimiter, motives)
+        files[out] = f"{step.carpeta}/{name}" + (f" ({missing} filas sin procedencia individual)" if missing else "")
+    if step.op == "validar" and outputs:
+        counts["rechazadas"] = len(outputs["rechazadas"].rows)
+    if step.op == "consolidar":
+        counts["excluidas"] = sum(len(t.rows) for ref, t in inputs if ref not in details["aceptados"])
+        files["excluidas"] = f"tablas rechazadas completas: {step.carpeta}/report.json (rechazados) e incidencias.csv"
+    if step.op == "transformar" and trace is not None:
+        counts["excluidas"] = len(trace["excluidas"])
+        counts["cambios_celdas"] = len(trace["cambios"])
+        files["excluidas"] = f"{step.carpeta}/" + traza.write_excluded(folder, trace, delimiter)
+        files["cambios_celdas"] = f"{step.carpeta}/" + traza.write_changes(folder, trace, delimiter)
+        if trace["participantes"]:
+            groups = {i: s["by"] for i, s in enumerate(step.config["steps"], 1) if s["op"] == "group"}
+            counts["en_grupos"] = len(trace["participantes"])
+            if step.spec.get("traza") == "detallada":
+                files["participantes"] = f"{step.carpeta}/" + traza.write_participants(folder, trace, groups,
+                                                                                       delimiter)
+            else:
+                result["participacion"] = {
+                    "reconstruccion": "Participan las filas de la entrada del paso que no figuran en excluidas.csv "
+                                      "antes del agrupamiento; el grupo de cada una son sus valores en "
+                                      + "; ".join(", ".join(b) or "(total)" for b in groups.values())
+                                      + " después de los cambios de cambios_celdas.csv",
+                    "detalle": "Con \"traza\": \"detallada\" se escribe participantes.csv (una línea por fila)"}
+    if step.op == "consultar":
+        result["participacion"] = {
+            "tablas_leidas": details.get("tablas_leidas", []), "filas_candidatas": counts["entrada"],
+            "nota": "SQL no se traza fila a fila: participan como candidatas todas las filas de las tablas "
+                    "leídas; su procedencia está en el paso que las produjo"}
+    return result
 
 
 def _write_issues(folder, issues, delimiter):
@@ -772,6 +859,7 @@ def _summary(manifest, run, issues, warnings, code, state):
             "ruta_resultados": str(run), "manifiesto": str(run / "manifiesto.json"),
             "pasos": [{"nombre": p["nombre"], "op": p["op"], "estado": p["estado"],
                        "incidencias": p.get("incidencias", 0), "advertencias": p.get("advertencias", 0),
+                       "excluidas": p.get("filas", {}).get("excluidas", 0),
                        "filas": {k: v["filas"] for k, v in p.get("salidas", {}).items()}}
                       for p in manifest["pasos"][:30]]}
 

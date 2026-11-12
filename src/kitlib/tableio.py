@@ -38,6 +38,17 @@ class Table:
     row_numbers: list[int] = field(default_factory=list)
 
 
+# Procedencia interna de las recetas: cada fila lleva bajo esta clave (entrada, archivo, fila lógica
+# del archivo original). No es una columna: no está en Table.columns, ningún escritor la publica y
+# los comandos sueltos no la usan. Empieza por \x00 para no chocar con un encabezado real.
+ORIGEN = "\x00origen"
+
+
+def public_row(row):
+    """La fila sin la procedencia interna (para escribirla o mostrarla)."""
+    return {k: v for k, v in row.items() if k != ORIGEN} if ORIGEN in row else row
+
+
 def issue(code, row=None, column=None, source=None, detail=None):
     return {"codigo": code, "fila": row, "columna": column,
             "origen": source, "detalle": detail}
@@ -288,7 +299,7 @@ def table_json(path, table):
         stream.write('{"columns": ' + json.dumps(table.columns, ensure_ascii=False) + ',\n"rows": [')
         separator = "\n"
         for row in table.rows:
-            stream.write(separator + json.dumps(row, ensure_ascii=False, allow_nan=False))
+            stream.write(separator + json.dumps(public_row(row), ensure_ascii=False, allow_nan=False))
             separator = ",\n"
         stream.write("\n]}\n")
 
