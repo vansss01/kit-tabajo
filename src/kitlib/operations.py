@@ -212,6 +212,7 @@ SCHEMAS = {
     "deduplicate": ({"op", "keys"}, {"keys"}),
     "group": ({"op", "by", "aggregates", "decimal"}, {"by", "aggregates"}),
     "rename": ({"op", "columns"}, {"columns"}),
+    "normalize": ({"op", "columns", "case"}, {"columns"}),
 }
 
 
@@ -263,6 +264,10 @@ def check_step(step, opts):
             raise ValueError("Operador de filtro no admitido")
         if step["operator"] == "contains" and step.get("type", "string") != "string":
             raise ValueError("contains requiere string")
+    if op == "normalize":
+        column_list(step["columns"])
+        if step.get("case", "keep") not in ("keep", "upper", "lower"):
+            raise ValueError("normalize: case admite \"upper\" o \"lower\" (o se omite)")
     if op == "rename":
         mapping = step["columns"]
         if not isinstance(mapping, dict) or not mapping or not all(
@@ -426,6 +431,28 @@ def transform(table, plan, opts, trace=None):
                     result[spec["as"]] = None if val is None else format(val, "f")
                 output.append(result)
             current = copy_table(current, output, names)
+        unified: dict[str, int] = {}
+        if op == "normalize":
+            require_columns(current, step["columns"])
+            case = step.get("case", "keep")
+            label = "normalize" + ("" if case == "keep" else " " + case)
+            for col in step["columns"]:
+                distinct_before = {r[col] for r in current.rows if not empty(r[col])}
+                for row in current.rows:
+                    before = row[col]
+                    if before is None:
+                        continue
+                    # Espacios en blanco (incluido el no separable y el tabulador): fuera los extremos y
+                    # cada racha interior queda en un espacio. Sin tocar tildes ni convertir tipos.
+                    after = " ".join(str(before).split())
+                    after = after.upper() if case == "upper" else after.lower() if case == "lower" else after
+                    if after != before:
+                        row[col] = after
+                        if trace is not None:
+                            trace["cambios"].append((index, label, col, before, after, row.get(ORIGEN)))
+                merged = len(distinct_before) - len({r[col] for r in current.rows if not empty(r[col])})
+                if merged:
+                    unified[col] = merged  # valores distintos que pasaron a ser iguales: posibles claves unidas
         if op == "rename":
             mapping = step["columns"]
             require_columns(current, list(mapping))
@@ -436,7 +463,8 @@ def transform(table, plan, opts, trace=None):
             # La procedencia interna no está en el mapeo: se conserva tal cual.
             current = copy_table(current, [{mapping.get(k, k): v for k, v in r.items()} for r in current.rows], names)
         history.append({"operacion": op, "antes": count_before, "despues": len(current.rows),
-                        **({"renombradas": step["columns"]} if op == "rename" else {})})
+                        **({"renombradas": step["columns"]} if op == "rename" else {}),
+                        **({"valores_unificados": unified} if unified else {})})
     return {"validos": current}, [], {"filas_salida": len(current.rows), "pasos": history}
 
 

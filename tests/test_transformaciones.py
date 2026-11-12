@@ -90,5 +90,60 @@ class RenombrarTests(Base):
         return json.loads(result.stdout)
 
 
+class NormalizarTests(Base):
+    # fila 2: " OT1 ", "0007", "Abierta", "muy   largo" | fila 3: "OT1", "0012", " abierta ", ""
+    # fila 4: "OT2", "  0042 ", "CERRADA", "é  á"
+    DATA = "orden;equipo;estado;obs\n OT1 ;0007;Abierta;muy   largo\nOT1;0012; abierta ;\nOT2;  0042 ;CERRADA;é  á\n"
+    PLAN = [{"op": "normalize", "columns": ["orden", "equipo", "obs"]},
+            {"op": "normalize", "columns": ["estado"], "case": "lower"},
+            {"op": "normalize", "columns": ["obs"], "case": "upper"}]
+
+    def test_normalize_only_listed_columns_keeps_codes_and_accents_and_logs_every_change(self):
+        source = self.write("espacios.csv", self.DATA)
+        recipe = plan_recipe(*self.PLAN)
+        summary = self.run_cli(recipe, source)
+        run = Path(summary["ruta_resultados"]) / "01-paso"
+        self.assertEqual(self.rows(run / "resultado.csv"), [
+            ["orden", "equipo", "estado", "obs"], ["OT1", "0007", "abierta", "MUY LARGO"],
+            ["OT1", "0012", "abierta", ""], ["OT2", "0042", "cerrada", "É Á"]])
+        changes = [[r[2], r[3], r[4], r[5], r[6], r[7]] for r in self.rows(run / "cambios_celdas.csv")[1:]]
+        self.assertEqual(changes, [  # por paso del plan y, dentro de él, columna por columna
+            ["2", "orden", " OT1 ", "OT1", "normalize", "1"], ["4", "equipo", "  0042 ", "0042", "normalize", "1"],
+            ["2", "obs", "muy   largo", "muy largo", "normalize", "1"], ["4", "obs", "é  á", "é á", "normalize", "1"],
+            ["2", "estado", "Abierta", "abierta", "normalize lower", "2"],
+            ["3", "estado", " abierta ", "abierta", "normalize lower", "2"],
+            ["4", "estado", "CERRADA", "cerrada", "normalize lower", "2"],
+            ["2", "obs", "muy largo", "MUY LARGO", "normalize upper", "3"],
+            ["4", "obs", "é á", "É Á", "normalize upper", "3"]])
+        report = json.loads((run / "report.json").read_text(encoding="utf-8"))["detalle"]["pasos"]
+        self.assertEqual([p.get("valores_unificados") for p in report], [{"orden": 1}, {"estado": 1}, None])
+        # Sin case no se cambia mayúsculas/minúsculas: "Abierta" sigue igual si solo se recorta.
+        only_trim = self.run_cli(plan_recipe({"op": "normalize", "columns": ["estado"]}), source)
+        self.assertEqual([r[2] for r in self.rows(Path(only_trim["ruta_resultados"]) / "01-paso" / "resultado.csv")[1:]],
+                         ["Abierta", "abierta", "CERRADA"])
+
+    def test_normalization_that_merges_keys_is_detected_downstream(self):
+        source = self.write("espacios.csv", self.DATA)
+        recipe = plan_recipe(self.PLAN[0])
+        recipe["pasos"].append({"nombre": "claves", "op": "validar", "entrada": "paso.resultado",
+                                "reglas": {"columns": {"orden": {"unique": True}}}, "politica": {"incidencias": "separar"}})
+        summary = self.run_cli(recipe, source, expected=1)
+        run = Path(summary["ruta_resultados"])
+        # " OT1 " (fila 2) y "OT1" (fila 3) eran distintas; tras normalizar chocan y se separan.
+        self.assertEqual([(r[3], r[4]) for r in self.rows(run / "02-claves" / "rechazadas_procedencia.csv")[1:]],
+                         [("2", "valor_no_unico"), ("3", "valor_no_unico")])
+        self.assertEqual([r[0] for r in self.rows(run / "02-claves" / "aceptadas.csv")[1:]], ["OT2"])
+
+    def test_normalize_invalid_options(self):
+        source = self.write("espacios.csv", self.DATA)
+        for step, text in (({"op": "normalize", "columns": ["estado"], "case": "title"}, "case admite"),
+                           ({"op": "normalize", "columns": []}, "lista no vacía")):
+            error = self.run_cli(plan_recipe(step), source, expected=2)["errores"][0]
+            self.assertEqual((error["codigo"], error["paso"], error["campo"]), ("configuracion_invalida", "paso", "plan"))
+            self.assertIn(text, error["mensaje"])
+        missing = self.run_cli(plan_recipe({"op": "normalize", "columns": ["Estado"]}), source, expected=2)
+        self.assertEqual(missing["errores"][0]["codigo"], "columnas_incompatibles")
+
+
 if __name__ == "__main__":
     unittest.main()

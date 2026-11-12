@@ -18,6 +18,7 @@ from kitlib.runtime import configure
 
 TRAZA = ["tests.test_recetas.TrazaTests"]
 RENOMBRAR = ["tests.test_transformaciones.RenombrarTests"]
+NORMALIZAR = ["tests.test_transformaciones.NormalizarTests"]
 MUTATIONS = [
     # Etapa 2: trazabilidad
     ("incidencias con fila intermedia", "src/kitlib/traza.py",
@@ -51,6 +52,23 @@ MUTATIONS = [
     ("JSON acepta claves repetidas", "src/kitlib/tableio.py",
      "    if repeated:\n        raise ValueError(\"Clave JSON repetida",
      "    if False:\n        raise ValueError(\"Clave JSON repetida", RENOMBRAR),
+    # Etapa 3: normalizar
+    ("normalize toca todas las columnas", "src/kitlib/operations.py",
+     "            for col in step[\"columns\"]:\n                distinct_before",
+     "            for col in current.columns:\n                distinct_before", NORMALIZAR),
+    ("normalize solo recorta", "src/kitlib/operations.py",
+     'after = " ".join(str(before).split())', "after = str(before).strip()", NORMALIZAR),
+    ("normalize no registra cambios", "src/kitlib/operations.py",
+     "trace[\"cambios\"].append((index, label, col", "None and trace[\"cambios\"].append((index, label, col",
+     NORMALIZAR),
+    ("normalize invierte mayúsculas", "src/kitlib/operations.py",
+     'after = after.upper() if case == "upper" else after.lower() if case == "lower" else after',
+     'after = after.lower() if case == "upper" else after.upper() if case == "lower" else after', NORMALIZAR),
+    ("normalize quita tildes", "src/kitlib/operations.py",
+     'after = " ".join(str(before).split())',
+     'after = " ".join(str(before).split()).replace("é", "e").replace("É", "E")', NORMALIZAR),
+    ("normalize no cuenta valores unificados", "src/kitlib/operations.py",
+     "                if merged:\n", "                if False:\n", NORMALIZAR),
 ]
 
 

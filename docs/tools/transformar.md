@@ -18,6 +18,7 @@ la transformación con código 2. No se publican resultados transformados parcia
 | deduplicate | `keys`: conserva la primera fila por clave, solo si se solicita |
 | group | `by`: columnas o [] para total general; `aggregates`: lista |
 | rename | `columns`: `{"actual": "nuevo"}`; ver abajo |
+| normalize | `columns`: lista; `case` opcional upper/lower; ver abajo |
 
 Tipos: string, integer, number, date, boolean. `decimal` y `date_format` pueden
 sobrescribirse en filter/sort/convert; group admite decimal.
@@ -65,3 +66,14 @@ Desde 1.5.0-etapa3, **toda** configuración JSON (planes, reglas, recetas) con u
 en un mismo objeto es un error (`Clave JSON repetida`), en vez de quedarse en silencio con la
 última. Es un cambio de compatibilidad deliberado: una regla o mapeo duplicado casi siempre
 es una errata que antes pasaba inadvertida.
+
+## Normalizar texto (`normalize`)
+
+`{"op": "normalize", "columns": ["orden", "estado"], "case": "lower"}`: solo en las columnas
+indicadas, quita espacios en blanco de los extremos y deja cada racha interior en un espacio
+(cuenta como espacio también el tabulador y el no separable). `case` (`upper`/`lower`) es
+opcional; sin él no se tocan mayúsculas. No quita tildes, no convierte tipos y no toca ceros
+iniciales (`" 0042 "` → `"0042"`). En recetas cada celda cambiada va a `cambios_celdas.csv`.
+Si dos valores distintos pasan a ser iguales (`" OT1 "` y `"OT1"`), `report.json` lo cuenta en
+`valores_unificados`; para detectar las claves que chocan usa después `validar` con `unique`
+o el paso `duplicados` de las recetas.
