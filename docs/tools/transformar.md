@@ -19,6 +19,7 @@ la transformación con código 2. No se publican resultados transformados parcia
 | group | `by`: columnas o [] para total general; `aggregates`: lista |
 | rename | `columns`: `{"actual": "nuevo"}`; ver abajo |
 | normalize | `columns`: lista; `case` opcional upper/lower; ver abajo |
+| replace | `column`, `map` y `unknown` (obligatorio); ver abajo |
 
 Tipos: string, integer, number, date, boolean. `decimal` y `date_format` pueden
 sobrescribirse en filter/sort/convert; group admite decimal.
@@ -77,3 +78,21 @@ iniciales (`" 0042 "` → `"0042"`). En recetas cada celda cambiada va a `cambio
 Si dos valores distintos pasan a ser iguales (`" OT1 "` y `"OT1"`), `report.json` lo cuenta en
 `valores_unificados`; para detectar las claves que chocan usa después `validar` con `unique`
 o el paso `duplicados` de las recetas.
+
+## Reemplazar por equivalencias (`replace`)
+
+`{"op": "replace", "column": "estado", "map": {"Abierta": "abierta", "Cerrada": "cerrada"}, "unknown": "keep"}`.
+Coincidencia **exacta** (mayúsculas, tildes y espacios cuentan; `"abierta "` no es `"abierta"`:
+normaliza antes si hace falta). Un valor que ya es un destino del mapa (`abierta`) es válido y no
+cambia. Las celdas vacías no se tocan salvo que el mapa tenga la clave `""`. `unknown` decide qué
+pasa con un valor que no está en el mapa:
+
+| unknown | Efecto |
+|---|---|
+| `keep` | Se conserva y se avisa `valor_sin_equivalencia` (código 1). En recetas detiene salvo `advertencias_permitidas` |
+| `exclude` | La fila sale del resultado; en recetas va a `excluidas.csv` con el motivo |
+| `error` | La transformación falla entera (código 2), sin resultado |
+
+No hay coincidencias aproximadas ni equivalencias deducidas. En recetas cada reemplazo va a
+`cambios_celdas.csv`. Con `transformar` suelto las filas excluidas no se guardan aparte (igual que
+`filter`); usa una receta si necesitas conservarlas.

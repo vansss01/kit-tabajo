@@ -19,6 +19,7 @@ from kitlib.runtime import configure
 TRAZA = ["tests.test_recetas.TrazaTests"]
 RENOMBRAR = ["tests.test_transformaciones.RenombrarTests"]
 NORMALIZAR = ["tests.test_transformaciones.NormalizarTests"]
+REEMPLAZAR = ["tests.test_transformaciones.ReemplazarTests"]
 MUTATIONS = [
     # Etapa 2: trazabilidad
     ("incidencias con fila intermedia", "src/kitlib/traza.py",
@@ -69,6 +70,25 @@ MUTATIONS = [
      'after = " ".join(str(before).split()).replace("é", "e").replace("É", "E")', NORMALIZAR),
     ("normalize no cuenta valores unificados", "src/kitlib/operations.py",
      "                if merged:\n", "                if False:\n", NORMALIZAR),
+    # Etapa 3: reemplazar
+    ("replace aproxima recortando espacios", "src/kitlib/operations.py",
+     "                value = row[col]\n                if isinstance(value, str) and value in mapping:",
+     "                value = row[col].strip() if isinstance(row[col], str) else row[col]\n"
+     "                if isinstance(value, str) and value in mapping:", REEMPLAZAR),
+    ("replace trata destinos como desconocidos", "src/kitlib/operations.py",
+     "elif not empty(value) and value not in canonical:", "elif not empty(value):", REEMPLAZAR),
+    ("replace no registra el cambio", "src/kitlib/operations.py",
+     'trace["cambios"].append((index, "replace"', 'None and trace["cambios"].append((index, "replace"', REEMPLAZAR),
+    ("replace exclude no guarda la fila", "src/kitlib/operations.py",
+     'trace["excluidas"].append((index, "replace"', 'None and trace["excluidas"].append((index, "replace"',
+     REEMPLAZAR),
+    ("replace keep sin advertencia", "src/kitlib/operations.py",
+     'warnings.append({"origen": origin[1] if origin else table.source',
+     'None and warnings.append({"origen": origin[1] if origin else table.source', REEMPLAZAR),
+    ("replace error continúa", "src/kitlib/operations.py",
+     '                    if unknown == "error":\n', '                    if False:\n', REEMPLAZAR),
+    ("replace toca celdas vacías", "src/kitlib/operations.py",
+     "elif not empty(value) and value not in canonical:", "elif value not in canonical:", REEMPLAZAR),
 ]
 
 

@@ -275,6 +275,7 @@ def execute(args):
                     details = {"validacion_semantica": "no_solicitada", "filas_salida": len(table.rows)}
             else:
                 tables, issues, details = transform(table, load_config(args.plan), opts)
+                warnings.extend(details.pop("advertencias", []))
         if sources != [fingerprint(p) for p in paths] or configs != [fingerprint(p) for p in config_paths]:
             raise ValueError("Una entrada cambió durante la ejecución; resultados descartados")
         code = 1 if issues or warnings else 0

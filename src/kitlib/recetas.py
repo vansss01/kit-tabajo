@@ -557,7 +557,8 @@ def _step_validar(step, get):
 def _step_transformar(step, get):
     trace = new_trace()
     tables, issues, details = transform(get(step.refs["entrada"]), step.config, step.opts, trace)
-    return ({"resultado": tables["validos"]} if tables else {}), issues, [], {**details, "_traza": trace}
+    warnings = details.pop("advertencias", [])
+    return ({"resultado": tables["validos"]} if tables else {}), issues, warnings, {**details, "_traza": trace}
 
 
 def _step_consultar(step, get):

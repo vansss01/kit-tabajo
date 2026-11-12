@@ -213,6 +213,7 @@ SCHEMAS = {
     "group": ({"op", "by", "aggregates", "decimal"}, {"by", "aggregates"}),
     "rename": ({"op", "columns"}, {"columns"}),
     "normalize": ({"op", "columns", "case"}, {"columns"}),
+    "replace": ({"op", "column", "map", "unknown"}, {"column", "map", "unknown"}),
 }
 
 
@@ -264,6 +265,15 @@ def check_step(step, opts):
             raise ValueError("Operador de filtro no admitido")
         if step["operator"] == "contains" and step.get("type", "string") != "string":
             raise ValueError("contains requiere string")
+    if op == "replace":
+        if not isinstance(step["column"], str) or not step["column"]:
+            raise ValueError("replace: column debe ser texto")
+        if not isinstance(step["map"], dict) or not step["map"] or not all(
+                isinstance(k, str) and isinstance(v, str) for k, v in step["map"].items()):
+            raise ValueError("replace: map es un objeto no vacío {\"valor\": \"equivalente\"} de textos")
+        if step["unknown"] not in ("keep", "exclude", "error"):
+            raise ValueError("replace: unknown debe ser keep (conservar con advertencia), exclude (apartar la "
+                             "fila) o error (detener)")
     if op == "normalize":
         column_list(step["columns"])
         if step.get("case", "keep") not in ("keep", "upper", "lower"):
@@ -323,6 +333,7 @@ def transform(table, plan, opts, trace=None):
         return {}, table.issues, {"transformacion_bloqueada": True}
     current = copy_table(table, [r.copy() for r in table.rows])
     history = []
+    warnings: list[dict] = []  # p. ej. valor_sin_equivalencia de replace con unknown keep
     for index, step in enumerate(plan["steps"], 1):
         op = step["op"]
         local = check_step(step, opts)
@@ -453,6 +464,31 @@ def transform(table, plan, opts, trace=None):
                 merged = len(distinct_before) - len({r[col] for r in current.rows if not empty(r[col])})
                 if merged:
                     unified[col] = merged  # valores distintos que pasaron a ser iguales: posibles claves unidas
+        if op == "replace":
+            col, mapping, unknown = step["column"], step["map"], step["unknown"]
+            require_columns(current, [col])
+            canonical = set(mapping.values())  # un valor que ya es destino del mapa no es desconocido
+            kept = []
+            for position, row in enumerate(current.rows):
+                value = row[col]
+                if isinstance(value, str) and value in mapping:  # coincidencia exacta, sin aproximaciones
+                    if mapping[value] != value:
+                        row[col] = mapping[value]
+                        if trace is not None:
+                            trace["cambios"].append((index, "replace", col, value, row[col], row.get(ORIGEN)))
+                elif not empty(value) and value not in canonical:
+                    if unknown == "error":
+                        raise ValueError(f"replace: valor sin equivalencia en {col} (paso {index} del plan); "
+                                         "amplíe el mapa o elija unknown keep/exclude")
+                    if unknown == "exclude":
+                        if trace is not None:
+                            trace["excluidas"].append((index, "replace", f"valor sin equivalencia en {col}", row))
+                        continue
+                    origin = row.get(ORIGEN)
+                    warnings.append({"origen": origin[1] if origin else table.source, "codigo": "valor_sin_equivalencia",
+                                     "columna": col, "fila": origin[2] if origin else position + 2})
+                kept.append(row)
+            current.rows = kept
         if op == "rename":
             mapping = step["columns"]
             require_columns(current, list(mapping))
@@ -465,7 +501,10 @@ def transform(table, plan, opts, trace=None):
         history.append({"operacion": op, "antes": count_before, "despues": len(current.rows),
                         **({"renombradas": step["columns"]} if op == "rename" else {}),
                         **({"valores_unificados": unified} if unified else {})})
-    return {"validos": current}, [], {"filas_salida": len(current.rows), "pasos": history}
+    details = {"filas_salida": len(current.rows), "pasos": history}
+    if warnings:  # solo si hay: la salida de los planes anteriores no cambia
+        details["advertencias"] = warnings
+    return {"validos": current}, [], details
 
 
 def merge_tables(items):
