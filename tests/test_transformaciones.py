@@ -307,5 +307,99 @@ class CompletarTests(Base):
         self.assertEqual(self.runs(), [])
 
 
+class DuplicadosTests(Base):
+    # 2 y 3: OT1 idénticas | 4 y 5: OT2 distinta fecha y horas (5 más reciente) | 6 y 7: OT3 misma fecha,
+    # distintas horas (empate) | 8 y 9: OT4, la 8 sin fecha | 10: OT5 única | 11: sin orden
+    DATA = ("orden;equipo;fecha;horas\nOT1;0007;01/10/2026;2,5\nOT1;0007;01/10/2026;2,5\n"
+            "OT2;0012;02/10/2026;1,0\nOT2;0012;03/10/2026;1,5\nOT3;0042;05/10/2026;4,0\nOT3;0042;05/10/2026;3,0\n"
+            "OT4;0099;;1,0\nOT4;0099;06/10/2026;2,0\nOT5;0007;07/10/2026;0,5\n;0007;08/10/2026;1,0\n")
+
+    def run_policy(self, expected=1, **extra):
+        source = self.write("duplicadas.csv", self.DATA)
+        step = {"nombre": "dup", "op": "duplicados", "entrada": "ordenes", "clave": ["orden"],
+                "opciones": {"date_format": "%d/%m/%Y"}, "politica": {"incidencias": "separar"}, **extra}
+        recipe = {"version": 1, "entradas": {"ordenes": {"principal": True, **SEMI}},
+                  "pasos": [{k: v for k, v in step.items() if v is not None}]}
+        summary = self.run_cli(recipe, source, expected=expected)
+        return summary, Path(summary["ruta_resultados"]) / "01-dup"
+
+    def fates(self, run):
+        return {name: [r[3] for r in self.rows(run / f"{name}_procedencia.csv")[1:]]
+                for name in ("conservadas", "excluidas", "conflictos")}
+
+    def motives(self, run, name):
+        return {r[3]: r[4] for r in self.rows(run / f"{name}_procedencia.csv")[1:]}
+
+    def test_identical_rows_vs_contradictory_records_without_policy(self):
+        summary, run = self.run_policy()
+        self.assertEqual(self.fates(run), {"conservadas": ["2", "10"], "excluidas": ["3"],
+                                           "conflictos": ["4", "5", "6", "7", "8", "9", "11"]})
+        self.assertEqual(self.motives(run, "excluidas"), {"3": "idéntica a ordenes fila 2"})
+        self.assertEqual(self.motives(run, "conflictos"), {
+            "4": "misma clave con valores distintos en: fecha, horas", "5": "misma clave con valores distintos en: fecha, horas",
+            "6": "misma clave con valores distintos en: horas", "7": "misma clave con valores distintos en: horas",
+            "8": "misma clave con valores distintos en: fecha, horas", "9": "misma clave con valores distintos en: fecha, horas",
+            "11": "clave vacía: no se puede comparar"})
+        self.assertEqual(self.rows(run / "excluidas.csv")[1:], [["OT1", "0007", "01/10/2026", "2,5"]])  # conservada
+        step = self.manifest(summary)["pasos"][0]
+        self.assertEqual((step["invariantes"][0]["entrada"], step["invariantes"][0]["cumple"]), (10, True))
+        self.assertEqual(step["filas"]["excluidas"], 1)
+        self.assertEqual(step["incidencias_por_codigo"], {"conflicto_de_duplicados": 6, "clave_vacia": 1})
+
+    def test_most_recent_requires_valid_dates_and_ties_are_conflicts_by_default(self):
+        _, run = self.run_policy(conservar="mas_reciente", fecha="fecha")
+        self.assertEqual(self.fates(run), {"conservadas": ["2", "5", "10"], "excluidas": ["3", "4"],
+                                           "conflictos": ["6", "7", "8", "9", "11"]})
+        self.assertEqual(self.motives(run, "excluidas")["4"],
+                         "misma clave con valores distintos en: fecha, horas; política mas_reciente: se conservó "
+                         "ordenes fila 5")
+        self.assertEqual(self.motives(run, "conflictos")["6"], "misma clave con valores distintos en: horas; empate en "
+                                                               "la fecha más reciente (fecha)")
+        self.assertEqual(self.motives(run, "conflictos")["8"], "misma clave con valores distintos en: fecha, horas; "
+                                                               "fecha vacía o inválida en fecha")
+        _, run = self.run_policy(conservar="mas_reciente", fecha="fecha", empate="ultimo")
+        self.assertEqual(self.fates(run), {"conservadas": ["2", "5", "7", "10"], "excluidas": ["3", "4", "6"],
+                                           "conflictos": ["8", "9", "11"]})
+
+    def test_first_last_and_default_stop(self):
+        _, run = self.run_policy(conservar="primero")
+        self.assertEqual(self.fates(run), {"conservadas": ["2", "4", "6", "8", "10"], "excluidas": ["3", "5", "7", "9"],
+                                           "conflictos": ["11"]})
+        _, run = self.run_policy(conservar="ultimo")
+        self.assertEqual(self.fates(run)["conservadas"], ["2", "5", "7", "9", "10"])
+        summary, run = self.run_policy(expected=2, politica=None)
+        self.assertEqual(self.manifest(summary)["motivo"], "detenida_por_politica")
+        self.assertFalse((run / "conservadas.csv").exists())
+
+    def test_normalization_creates_conflicts_and_copies_from_two_files_are_identical(self):
+        self.write("a.csv", "orden;estado\nOT9;abierta\nOT8;x\n")
+        self.write("b.csv", "orden;estado\n OT9 ;cerrada\nOT8;x\n")
+        recipe = {"version": 1, "entradas": {"a": {"principal": True, **SEMI}, "b": {"ruta": "b.csv", **SEMI}},
+                  "pasos": [{"nombre": "union", "op": "consolidar", "entradas": ["a", "b"]},
+                            {"nombre": "limpio", "op": "transformar", "entrada": "union.resultado",
+                             "plan": {"steps": [{"op": "normalize", "columns": ["orden"]}]}},
+                            {"nombre": "dup", "op": "duplicados", "entrada": "limpio.resultado", "clave": ["orden"],
+                             "politica": {"incidencias": "separar"}}]}
+        run = Path(self.run_cli(recipe, self.folder / "a.csv", expected=1)["ruta_resultados"]) / "03-dup"
+        b = str((self.folder / "b.csv").resolve())
+        # " OT9 " solo choca con "OT9" tras normalizar: conflicto. OT8 está en los dos archivos: idéntica
+        # aunque __archivo_origen difiera (las columnas de procedencia no se comparan por defecto).
+        self.assertEqual([r[0] for r in self.rows(run / "conflictos.csv")[1:]], ["OT9", "OT9"])
+        self.assertEqual(self.rows(run / "excluidas_procedencia.csv")[1:], [["2", "b", b, "3", "idéntica a a fila 3"]])
+
+    def test_invalid_duplicate_policies(self):
+        cases = [({"conservar": "mas_reciente"}, ("parametro_ausente", "fecha")),
+                 ({"conservar": "aleatorio"}, ("parametro_invalido", "conservar")),
+                 ({"empate": "primero"}, ("parametro_invalido", "empate")),
+                 ({"fecha": "fecha"}, ("parametro_invalido", "fecha"))]
+        for extra, expected in cases:
+            source = self.write("duplicadas.csv", self.DATA)
+            recipe = {"version": 1, "entradas": {"ordenes": {"principal": True, **SEMI}},
+                      "pasos": [{"nombre": "dup", "op": "duplicados", "entrada": "ordenes", "clave": ["orden"], **extra}]}
+            error = self.run_cli(recipe, source, expected=2)["errores"][0]
+            self.assertEqual((error["codigo"], error["campo"], error["paso"]), (*expected, "dup"), extra)
+        self.assertEqual(self.runs(), [])
+
+
 if __name__ == "__main__":
     unittest.main()

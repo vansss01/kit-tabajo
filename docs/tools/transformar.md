@@ -15,7 +15,7 @@ la transformación con código 2. No se publican resultados transformados parcia
 | filter | `column`, `operator`, `value`; `type` opcional (string por defecto) |
 | sort | `columns`; `descending` booleano, `type` opcional común a las claves |
 | convert | `column`, `type`; conversión explícita |
-| deduplicate | `keys`: conserva la primera fila por clave, solo si se solicita |
+| deduplicate | `keys`: conserva la primera fila por clave, solo si se solicita; no distingue idénticas de contradictorias (ver paso `duplicados` de recetas) |
 | group | `by`: columnas o [] para total general; `aggregates`: lista |
 | rename | `columns`: `{"actual": "nuevo"}`; ver abajo |
 | normalize | `columns`: lista; `case` opcional upper/lower; ver abajo |

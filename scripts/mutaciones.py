@@ -21,6 +21,7 @@ RENOMBRAR = ["tests.test_transformaciones.RenombrarTests"]
 NORMALIZAR = ["tests.test_transformaciones.NormalizarTests"]
 REEMPLAZAR = ["tests.test_transformaciones.ReemplazarTests"]
 COMPLETAR = ["tests.test_transformaciones.CompletarTests"]
+DUPLICADOS = ["tests.test_transformaciones.DuplicadosTests"]
 MUTATIONS = [
     # Etapa 2: trazabilidad
     ("incidencias con fila intermedia", "src/kitlib/traza.py",
@@ -111,6 +112,25 @@ MUTATIONS = [
     ("completar sin invariante", "src/kitlib/traza.py", 'if op == "completar" and outputs:', "if False:", COMPLETAR),
     ("completar admite columnas ya presentes", "src/kitlib/operations.py",
      'if present and existing == "error":', "if False:", COMPLETAR),
+    # Etapa 3: duplicados
+    ("duplicados no distingue idénticas", "src/kitlib/operations.py",
+     "            if twin is None:\n                distinct.append(p)", "            if True:\n                distinct.append(p)",
+     DUPLICADOS),
+    ("duplicados compara columnas de procedencia", "src/kitlib/operations.py",
+     'columns = compare_columns or [c for c in table.columns if not c.startswith("__")]',
+     "columns = compare_columns or list(table.columns)", DUPLICADOS),
+    ("duplicados elige en un empate", "src/kitlib/operations.py",
+     'if len(tied) == 1 or tie != "conflicto":', "if True:", DUPLICADOS),
+    ("duplicados ignora fechas inválidas", "src/kitlib/operations.py",
+     "            if any(v is None for v in dates):", "            if False:", DUPLICADOS),
+    ("duplicados conserva claves vacías", "src/kitlib/operations.py",
+     "        if any(empty(v) for v in key):\n            fate.update(", "        if False:\n            fate.update(",
+     DUPLICADOS),
+    ("duplicados sin motivos", "src/kitlib/operations.py", "motives[origin[1:]] = [why]", "pass", DUPLICADOS),
+    ("duplicados último toma el primero", "src/kitlib/operations.py",
+     "            winner = distinct[-1]", "            winner = distinct[0]", DUPLICADOS),
+    ("duplicados sin invariante", "src/kitlib/traza.py", 'if op == "duplicados" and outputs:', "if False:",
+     DUPLICADOS),
 ]
 
 

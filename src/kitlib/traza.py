@@ -160,6 +160,14 @@ def invariants(op, inputs, outputs, trace, details):
         return [{"tipo": "particion", "regla": "entrada = completadas + sin_coincidencia + ambiguas + clave_vacia "
                  "(cruce sin multiplicar filas)", "entrada": len(source.rows),
                  **{p: len(outputs[p].rows) for p in parts}, "cumple": holds}]
+    if op == "duplicados" and outputs:
+        source = inputs[0]
+        fates = ("conservadas", "excluidas", "conflictos")
+        expected = sum((Counter(origins(outputs[f])) for f in fates), Counter())
+        holds = (len(source.rows) == sum(len(outputs[f].rows) for f in fates)
+                 and Counter(origins(source)) == expected)
+        return [{"tipo": "particion", "regla": "entrada = conservadas + excluidas + conflictos",
+                 "entrada": len(source.rows), **{f: len(outputs[f].rows) for f in fates}, "cumple": holds}]
     if op == "comparar" and outputs:
         before, after = inputs
         same = details["modificados"] + details["sin_cambios"]

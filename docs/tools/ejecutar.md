@@ -32,7 +32,8 @@ reemplaza otra. La misma receta sirve para otro archivo compatible cambiando sol
   Salidas: validar → `aceptadas`, `rechazadas`, `incidencias`; transformar y consultar →
   `resultado`; consolidar → `resultado`, `incidencias`; comparar → `nuevos`, `eliminados`,
   `cambios`; completar → `completadas`, `sin_coincidencia`, `ambiguas`, `clave_vacia`,
-  `incidencias`. inspeccionar y exportar solo dejan informe/archivos.
+  `incidencias`; duplicados → `conservadas`, `excluidas`, `conflictos`, `incidencias`. inspeccionar
+  y exportar solo dejan informe/archivos.
 - **Parámetros**: inspeccionar `entrada`, `sample` (0 por defecto: sin muestras de celdas);
   validar `entrada`, `reglas`; transformar `entrada`, `plan` (objeto o ruta, mismo formato que
   `--rules`/`--plan`); consultar `tablas` `{alias: ref}`, `sql`, `numeric`; consolidar
@@ -74,13 +75,40 @@ conserva y se cuenta en `celdas_presentes_distintas`) o `reemplazar` (todo, regi
 celda escrita sobre una columna existente va a `cambios_celdas.csv`. Sin `politica`, cualquier
 fila sin completar o problema de la referencia detiene; con `separar` se sigue con `completadas`.
 
+## Duplicados (`duplicados`)
+
+```json
+{"nombre": "dup", "op": "duplicados", "entrada": "ordenes", "clave": ["orden"],
+ "conservar": "mas_reciente", "fecha": "fecha", "empate": "conflicto",
+ "politica": {"incidencias": "separar"}}
+```
+
+Agrupa por `clave` y separa cada fila en una salida (invariante: entrada = conservadas +
+excluidas + conflictos; `*_procedencia.csv` trae el motivo de cada una):
+
+- **Idénticas** (mismos valores en las columnas comparadas): se conserva la primera y las
+  demás van a `excluidas` («idéntica a … fila N»). Se comparan todas las columnas salvo las de
+  procedencia de consolidar (`__…`); `comparar` elige otras.
+- **Contradictorias** (misma clave, valores distintos): van a `conflictos` con las columnas que
+  difieren, salvo `conservar` explícito: `primero`, `ultimo` u `mas_reciente`. Las perdedoras
+  van a `excluidas` con el motivo y la fila conservada.
+- `mas_reciente` exige `fecha` (formato: `date_format` de la entrada u `opciones`). Si alguna
+  fecha del grupo es vacía o inválida, todo el grupo va a `conflictos`. Un **empate** en la
+  fecha más reciente es conflicto por defecto; `empate`: `primero` o `ultimo` lo resuelve.
+- Clave vacía: `conflictos`. Cada conflicto es una incidencia (`conflicto_de_duplicados`,
+  `clave_vacia`): sin `politica` detiene; con `separar` se sigue con `conservadas`.
+
+La operación `deduplicate` de los planes no cambia: conserva la primera fila de cada clave sin
+distinguir idénticas de contradictorias (en recetas, las demás van a `excluidas.csv`). Para
+decidir con criterio usa este paso.
+
 ## Políticas
 
 `"politica": {"incidencias": "detener" | "separar", "advertencias_permitidas": ["codigo"]}`,
 en cada paso o entrada. Sin política: **detener** ante cualquier incidencia o advertencia.
 
 - `separar` solo existe para validar (las filas inválidas van a `rechazadas`), completar (a
-  `sin_coincidencia`, `ambiguas`, `clave_vacia`), consolidar (los archivos incompatibles quedan
+  `sin_coincidencia`, `ambiguas`, `clave_vacia`), duplicados (a `conflictos`), consolidar (los archivos incompatibles quedan
   fuera) y entradas (filas mal formadas fuera, registradas en `00-entradas/incidencias.csv`).
   Las demás operaciones solo pueden detenerse.
 - Permitir una advertencia no autoriza otras: se enumeran códigos exactos, sin comodines.

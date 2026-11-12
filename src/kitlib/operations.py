@@ -579,6 +579,87 @@ def enrich(table, reference, keys, ref_keys, columns, existing="error"):
     return tables, issues, ref_issues, changes, details
 
 
+def split_duplicates(table, keys, keep="ninguno", date=None, tie="conflicto", compare_columns=None, opts=None):
+    """Separa filas por clave en conservadas, excluidas y conflictos (invariante: entrada = suma).
+    - Copias idénticas (en compare_columns) de otra fila: excluidas, siempre.
+    - Misma clave con valores distintos: conflicto, salvo política explícita keep = primero,
+      ultimo o mas_reciente (fecha válida; empate según tie, por defecto conflicto).
+    - Clave vacía: conflicto. Devuelve (tablas, incidencias, motivos por origen, detalle)."""
+    require_columns(table, keys)
+    columns = compare_columns or [c for c in table.columns if not c.startswith("__")]
+    require_columns(table, columns)
+    if keep == "mas_reciente":
+        require_columns(table, [date])
+    numbers = table.row_numbers or list(range(2, len(table.rows) + 2))
+
+    def label(pos):
+        origin = table.rows[pos].get(ORIGEN)
+        return f"{origin[0]} fila {origin[2]}" if origin else f"fila {numbers[pos]}"
+
+    def values(pos):
+        return tuple(table.rows[pos][c] for c in columns)
+
+    groups: dict[tuple, list[int]] = {}
+    for pos, row in enumerate(table.rows):
+        groups.setdefault(tuple(row[c] for c in keys), []).append(pos)
+    fate: dict[int, tuple[str, str | None]] = {}
+    for key, positions in groups.items():
+        if any(empty(v) for v in key):
+            fate.update({p: ("conflictos", "clave vacía: no se puede comparar") for p in positions})
+            continue
+        distinct: list[int] = []
+        for p in positions:
+            twin = next((d for d in distinct if values(d) == values(p)), None)
+            if twin is None:
+                distinct.append(p)
+            else:
+                fate[p] = ("excluidas", f"idéntica a {label(twin)}")
+        if len(distinct) == 1:
+            fate[distinct[0]] = ("conservadas", None)
+            continue
+        what = "misma clave con valores distintos en: " + ", ".join(
+            c for c in columns if len({table.rows[d][c] for d in distinct}) > 1)
+        winner, reason = None, None
+        if keep == "primero":
+            winner = distinct[0]
+        elif keep == "ultimo":
+            winner = distinct[-1]
+        elif keep == "mas_reciente":
+            try:
+                dates = [typed(table.rows[d][date], "date", opts) for d in distinct]
+            except ValueError:
+                dates = [None]
+            if any(v is None for v in dates):
+                reason = f"fecha vacía o inválida en {date}"
+            else:
+                top = max(dates)
+                tied = [d for d, v in zip(distinct, dates, strict=True) if v == top]
+                if len(tied) == 1 or tie != "conflicto":
+                    winner = tied[0] if len(tied) == 1 or tie == "primero" else tied[-1]
+                else:
+                    reason = f"empate en la fecha más reciente ({date})"
+        if winner is None:
+            fate.update({d: ("conflictos", what + (f"; {reason}" if reason else "")) for d in distinct})
+        else:
+            fate[winner] = ("conservadas", None)
+            fate.update({d: ("excluidas", f"{what}; política {keep}: se conservó {label(winner)}")
+                         for d in distinct if d != winner})
+    buckets: dict[str, list[dict]] = {"conservadas": [], "excluidas": [], "conflictos": []}
+    issues: list[dict] = []
+    motives: dict[tuple, list[str]] = {}
+    for pos, row in enumerate(table.rows):
+        bucket, why = fate[pos]
+        buckets[bucket].append(row.copy())
+        origin = row.get(ORIGEN)
+        if why and origin:
+            motives[origin[1:]] = [why]
+        if bucket == "conflictos":
+            issues.append(issue("clave_vacia" if why and why.startswith("clave vacía") else "conflicto_de_duplicados",
+                                numbers[pos], ",".join(keys), table.source))
+    tables = {name: copy_table(table, rows) for name, rows in buckets.items()}
+    return tables, issues, motives, {name: len(rows) for name, rows in buckets.items()}
+
+
 def merge_tables(items):
     """Une tablas con las mismas columnas (en cualquier orden) y añade procedencia.
     items: lista de (origen, Table o None, error de lectura). Una tabla con incidencias,
