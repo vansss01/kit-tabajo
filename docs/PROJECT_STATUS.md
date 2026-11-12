@@ -1,13 +1,23 @@
 # Estado del proyecto
 
-Actualizado: 2026-11-12. Versión 1.5.0-etapa1 (sin commit). Repositorio: `github.com/vansss01/kit-tabajo` (privado).
-1.4.1 y 1.5.0-etapa1 están comprobadas **solo en local, Linux, Python 3.14.9**: 57 pruebas, Ruff y
+Actualizado: 2026-11-12. Versión 1.5.0-etapa2 (commits locales, sin push). Repositorio: `github.com/vansss01/kit-tabajo` (privado).
+1.4.1 a 1.5.0-etapa2 están comprobadas **solo en local, Linux, Python 3.14.9**: 62 pruebas, Ruff y
 mypy con `scripts/check.py` y flujo `scripts/demo.py`. No están publicadas: la CI (Linux y Windows,
 Python 3.11 y 3.14, instalación sin red y lanzadores) corrió por última vez sobre 1.4.0; Windows
 queda pendiente hasta el próximo push. Sin dependencia de proveedores de IA.
 
 Comandos: inspeccionar, comparar, consolidar, validar, transformar, exportar, consultar,
 ejecutar, bitacora, limpiar.
+
+## Cambios de 1.5.0-etapa2 (trazabilidad de recetas)
+
+- Procedencia real por fila como metadato interno (`tableio.ORIGEN`, `traza.py`), sin columnas
+  nuevas: `<salida>_procedencia.csv`, `excluidas.csv`, `cambios_celdas.csv`, participación en
+  agregados y procedencia de comparar. Incidencias y `__fila_origen` citan la fila original.
+- Invariantes por paso antes de publicar (partición, participación, claves); si fallan, el
+  paso queda `fallido` sin tablas. Manifiesto con conteos, parámetros, trazas y detalles.
+- Vista previa y `ejecutar` comprueban columnas leyendo solo encabezados (CSV/XLSX).
+- Manual: `tools/ejecutar.md` (sección Trazabilidad).
 
 ## Cambios de 1.5.0-etapa1 (recetas)
 
@@ -74,8 +84,13 @@ ejecutar, bitacora, limpiar.
 - No lee XLS/XLSB/ODS ni libros cifrados; no conserva macros, fórmulas ni estilos.
 - Sin transacción atómica por carpeta: `FAILED.json` o falta de `report.json` = no usar.
   En recetas, el estado de `manifiesto.json` es atómico; los archivos de cada paso no.
-- Recetas: sin carpetas como entrada (consolidar recibe una lista de entradas), destinos solo
-  dentro de la carpeta de ejecución, columnas comprobadas al ejecutar y no en la vista previa.
+- Recetas: sin carpetas como entrada (consolidar recibe una lista de entradas) y destinos solo
+  dentro de la carpeta de ejecución. Las tablas JSON no se comprueban por encabezado en la
+  vista previa (habría que leerlas completas).
+- Trazabilidad solo en recetas (los comandos sueltos no escriben excluidas ni procedencia).
+  Sin procedencia por fila tras `group` ni en resultados SQL; en `excluidas.csv` y
+  `cambios_celdas.csv` hay valores de celdas. Los archivos de traza duplican aprox. el número
+  de líneas de cada tabla intermedia (una línea por fila).
 - Ejemplos y reglas son ficticios; adaptar reglas con quien conozca el proceso real.
 - `vendor/` (ruedas offline) es local y solo para Linux/Python 3.14; no está en Git.
 

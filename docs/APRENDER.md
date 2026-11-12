@@ -33,3 +33,34 @@ aceptadas, rechazadas, incidencias y resumen. Código 1: terminó, pero hay algo
 - *Saber si terminó.* `manifiesto.json` dice `en_curso`, `completada`,
   `completada_con_incidencias` o `fallida`. Si dice `en_curso` y nada se está ejecutando, se
   cortó: no uses esa carpeta.
+
+## Etapa 2: trazabilidad
+
+**Problema.** El supervisor pregunta: «¿por qué la orden OT2 no está en el resumen?» o «¿de
+dónde salió este 4,0?». Tras unir dos turnos, filtrar y quitar duplicados, en una planilla ya
+no se sabe de qué archivo y fila venía cada dato, ni qué se borró o cambió por el camino.
+Agregar columnas «origen» a mano ensucia la tabla y se pierde al primer copiar y pegar.
+
+**Solución.** Cada fila de una receta recuerda en silencio su archivo y fila original (sin
+columnas nuevas), y cada paso deja archivos para responder esas preguntas:
+
+| Pregunta | Dónde mirar |
+|---|---|
+| ¿De qué archivo y fila viene esta fila? | `NN-paso/<tabla>_procedencia.csv` |
+| ¿Por qué se rechazó? | `rechazadas_procedencia.csv` (columna `motivos`) e `incidencias.csv` |
+| ¿Por qué desapareció? | `excluidas.csv`: `no cumple estado eq abierta`, o `repite la clave orden` |
+| ¿Qué celda cambió? | `cambios_celdas.csv`: `horas` de `2,5` a `2.5` por `convert number` |
+| ¿Qué filas suman este total? | `participantes.csv` (con `"traza": "detallada"`) o la regla del manifiesto |
+
+Ejemplo mínimo: turno A tiene OT1 abierta y OT2 cerrada; la receta filtra abiertas. El
+resultado solo trae OT1 y `excluidas.csv` dice: `filter`, `no cumple estado eq abierta`,
+`turno A.csv`, fila 3, con la fila completa tal como estaba.
+
+**Ideas clave**
+
+- *Nada desaparece en silencio.* En una separación, entrada = aceptadas + rechazadas (o
+  resultado + excluidas). El kit lo comprueba antes de publicar; si no cuadra, el paso falla.
+- *Un total no tiene «fila de origen».* Un agregado o una consulta SQL crean filas nuevas: no
+  se fuerza una procedencia falsa; se dice qué filas participaron o cómo reconstruirlo.
+- *La traza también es dato.* `excluidas.csv` y `cambios_celdas.csv` llevan valores de celdas:
+  se cuidan igual que la planilla original.

@@ -98,7 +98,9 @@ hashes, conteos y comprobación de entradas antes/después. Las configuraciones 
 identifican por ruta y hash; no se copian sus posibles valores sensibles al registro.
 Para reproducir, conserva las entradas y configuraciones originales y verifica sus hashes.
 Versiona código y reglas de ejemplo, no datos reales. Los detalles/muestras/diferencias
-sí contienen datos y requieren el cuidado habitual del usuario. El resumen de terminal no
+sí contienen datos y requieren el cuidado habitual del usuario; en recetas también
+`excluidas.csv` y `cambios_celdas.csv` (valores anteriores y nuevos) y las rutas de archivo
+de los `*_procedencia.csv`. En recetas `inspeccionar` no incluye muestras salvo `sample`. El resumen de terminal no
 muestra valores de celdas, salvo `consultar`, que imprime filas del resultado (`--show 0` las
 oculta de la terminal, no de los archivos); `--verbose` añade detalle acotado.
 

@@ -86,8 +86,53 @@ atómica (temporal + renombrado), tras cada paso; el estado final es lo último 
 | `completada_con_incidencias` | Todos los pasos; hubo separaciones o advertencias permitidas | 1 |
 | `fallida` | `motivo`: `detenida_por_politica`, `error_de_ejecucion` o `interrumpida`; hay `FAILED.json` | 2 |
 
-Pasos: `pendiente`, `en_curso`, `completado`, `completado_con_incidencias`, `detenido`,
-`fallido`, `interrumpido`. Cada tabla del manifiesto lleva `validada`: es `true` solo para
-`aceptadas` de un paso validar; lo filtrado, transformado o consultado nunca es "validado".
-`__fila_origen` de consolidar se refiere a la tabla consolidada (la entrada o la salida del
-paso usado), no siempre al archivo original.
+| Estado (paso) | Significado |
+|---|---|
+| `pendiente` | No llegó a ejecutarse (un paso anterior se detuvo o falló) |
+| `en_curso` | Ejecutándose; si la ejecución ya no corre, se cortó: sus archivos no valen |
+| `completado` / `completado_con_incidencias` | Terminó; el segundo con filas apartadas o advertencias permitidas |
+| `detenido` | Su política no admitía lo encontrado: deja `report.json` e `incidencias.csv`, no tablas |
+| `fallido` | Error o invariante incumplida: no deja tablas |
+| `interrumpido` | Ctrl+C durante el paso |
+
+Cada tabla del manifiesto lleva `validada`: es `true` solo para `aceptadas` de un paso validar;
+lo filtrado, transformado o consultado nunca es "validado".
+
+## Trazabilidad
+
+Cada fila recuerda su **entrada, archivo y fila original** (fila 1 = encabezado) como dato
+interno: no se añade ninguna columna a las tablas. Se escribe en archivos auxiliares del paso:
+
+| Archivo | Contenido |
+|---|---|
+| `<salida>_procedencia.csv` | `fila` de la tabla del paso → `entrada`, `archivo`, `fila_origen`; en `rechazadas`, también `motivos` |
+| `excluidas.csv` (transformar) | Filas que quitó un `filter` o `deduplicate`, con `paso_plan`, `motivo`, origen y la fila tal como estaba |
+| `cambios_celdas.csv` (transformar) | Registro, `columna`, `valor_anterior`, `valor_nuevo`, `operacion` (hoy solo `convert`) |
+| `participantes.csv` (transformar con `"traza": "detallada"`) | Qué fila original entra en cada grupo de `group` |
+| `cambios_procedencia.csv` (comparar) | Para cada línea de `cambios`, la fila original de antes y de después |
+| `00-entradas/incidencias.csv` | Filas mal formadas que no entraron al flujo (`ancho_incorrecto`) |
+
+Dónde quedan las filas que no siguen: rechazadas por validar → `NN-paso/rechazadas.*`;
+excluidas por filtro o deduplicación → `excluidas.csv`; archivos rechazados por consolidar →
+`incidencias.csv` y `report.json` (`rechazados`); mal formadas → `00-entradas/incidencias.csv`.
+Las incidencias y `__fila_origen` de consolidar citan siempre el archivo y la fila originales.
+
+Sin procedencia por fila: los resultados de `group` (el manifiesto da la regla para reconstruir
+qué filas participaron; `participantes.csv` si se pide) y de `consultar` (participan como
+candidatas todas las filas de las tablas leídas, listadas en `participacion`).
+
+En el manifiesto, cada paso trae `filas` (`entrada`, `salidas`, `rechazadas`, `excluidas`,
+`cambios_celdas`), `trazas` (rutas), `detalles` (`report.json`) e `invariantes`, comprobadas
+**antes** de publicar las tablas; si una falla, el paso queda `fallido` sin tablas:
+
+- partición (validar, consolidar, transformar sin `group`): entrada = salidas + apartadas,
+  con las mismas filas de origen;
+- participación (transformar con `group`): cada fila de origen termina en el resultado, en
+  excluidas o en un grupo; no se compara la cantidad de filas;
+- claves (comparar): antes = eliminadas + comunes y después = nuevas + comunes;
+- ninguna (consultar, inspeccionar): SQL puede combinar o repetir filas.
+
+**Revisar un cambio:** abre `manifiesto.json`, busca el paso, y en sus `trazas` el archivo.
+Ejemplo: ¿por qué falta la orden OT2? → `03-limpieza/excluidas.csv` dice
+`no cumple estado eq abierta`, `turno A.csv`, fila 3. Estos archivos contienen valores de
+celdas: trátalos como los datos originales.
