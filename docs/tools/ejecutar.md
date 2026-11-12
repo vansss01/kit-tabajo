@@ -31,24 +31,58 @@ reemplaza otra. La misma receta sirve para otro archivo compatible cambiando sol
 - **Referencias**: el nombre de una entrada o `paso.salida` de un paso **anterior**; nunca rutas.
   Salidas: validar → `aceptadas`, `rechazadas`, `incidencias`; transformar y consultar →
   `resultado`; consolidar → `resultado`, `incidencias`; comparar → `nuevos`, `eliminados`,
-  `cambios`. inspeccionar y exportar solo dejan informe/archivos.
+  `cambios`; completar → `completadas`, `sin_coincidencia`, `ambiguas`, `clave_vacia`,
+  `incidencias`. inspeccionar y exportar solo dejan informe/archivos.
 - **Parámetros**: inspeccionar `entrada`, `sample` (0 por defecto: sin muestras de celdas);
   validar `entrada`, `reglas`; transformar `entrada`, `plan` (objeto o ruta, mismo formato que
   `--rules`/`--plan`); consultar `tablas` `{alias: ref}`, `sql`, `numeric`; consolidar
   `entradas` (lista); comparar `antes`, `despues`, `clave`; exportar `tablas` `{hoja: ref}`,
   `formatos` (csv/json/xlsx), `archivo`, `safe_csv`. Todos admiten `opciones`
   (`decimal`, `date_format`); si no, heredan las de la entrada de origen.
-- La única ramificación es usar `revision.aceptadas` o `revision.rechazadas`. No hay bucles,
-  condiciones ni pasos en paralelo.
+- La única ramificación es usar las salidas separadas (`revision.aceptadas` o
+  `revision.rechazadas`, etc.). No hay bucles, condiciones ni pasos en paralelo.
+- Operaciones de plan útiles en recetas (`rename`, `normalize`, `replace`): manual de
+  [transformar](transformar.md).
+
+## Completar desde una referencia (`completar`)
+
+```json
+{"nombre": "flota", "op": "completar", "entrada": "ordenes", "referencia": "equipos",
+ "clave": ["equipo"], "columnas": ["area", "modelo"], "existentes": "completar_vacios",
+ "politica": {"incidencias": "separar"}}
+```
+
+Busca cada fila en la referencia por la clave, **texto exacto** (`"7"` no es `"0007"`); la
+clave puede ser compuesta y llamarse distinto en la referencia (`clave_referencia`, mismo
+largo). Copia solo las `columnas` pedidas, como texto (comas decimales, fechas y ceros tal cual).
+Cada fila de entrada termina en **una** salida, nunca se duplica:
+
+| Salida | Cuándo | Incidencia |
+|---|---|---|
+| `completadas` | Exactamente una fila de la referencia con esa clave | — |
+| `sin_coincidencia` | Ninguna | `clave_sin_coincidencia` |
+| `ambiguas` | Dos o más (no se elige ninguna) | `coincidencia_ambigua` |
+| `clave_vacia` | Alguna columna de la clave vacía | `clave_vacia` |
+
+La referencia también se revisa: filas sin clave (`clave_vacia_en_referencia`) y claves
+repetidas (`clave_duplicada_en_referencia`, aunque las filas sean idénticas; deduplícala antes).
+Invariante: entrada = completadas + sin_coincidencia + ambiguas + clave_vacia.
+
+`existentes` decide qué pasa si una columna pedida ya existe en la entrada: `error` (por
+defecto, no se ejecuta), `completar_vacios` (solo celdas vacías; un dato presente distinto se
+conserva y se cuenta en `celdas_presentes_distintas`) o `reemplazar` (todo, registrado). Cada
+celda escrita sobre una columna existente va a `cambios_celdas.csv`. Sin `politica`, cualquier
+fila sin completar o problema de la referencia detiene; con `separar` se sigue con `completadas`.
 
 ## Políticas
 
 `"politica": {"incidencias": "detener" | "separar", "advertencias_permitidas": ["codigo"]}`,
 en cada paso o entrada. Sin política: **detener** ante cualquier incidencia o advertencia.
 
-- `separar` solo existe para validar (las filas inválidas van a `rechazadas`), consolidar
-  (los archivos incompatibles quedan fuera) y entradas (filas mal formadas fuera, registradas
-  en `00-entradas/incidencias.csv`). Las demás operaciones solo pueden detenerse.
+- `separar` solo existe para validar (las filas inválidas van a `rechazadas`), completar (a
+  `sin_coincidencia`, `ambiguas`, `clave_vacia`), consolidar (los archivos incompatibles quedan
+  fuera) y entradas (filas mal formadas fuera, registradas en `00-entradas/incidencias.csv`).
+  Las demás operaciones solo pueden detenerse.
 - Permitir una advertencia no autoriza otras: se enumeran códigos exactos, sin comodines.
 - Separar o permitir **no oculta** nada: el paso queda `completado_con_incidencias` y la
   ejecución termina con código 1.

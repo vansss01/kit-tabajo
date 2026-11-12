@@ -220,5 +220,92 @@ class ReemplazarTests(Plain):
             self.assertIn(text, error["mensaje"])
 
 
+class CompletarTests(Base):
+    # Entrada: 2 OT1 0007 (area vacía) | 3 OT2 0012 | 4 OT3 "7" | 5 OT4 sin equipo | 6 OT5 0042 Taller | 7 OT6 0007 Mina
+    # Referencia: 2 0007 Mina | 3 y 4 0012 (duplicada) | 5 sin clave | 6 0042 Servicios
+    ORDENES = "orden;equipo;area\nOT1;0007;\nOT2;0012;Planta\nOT3;7;\nOT4;;\nOT5;0042;Taller\nOT6;0007;Mina\n"
+    FLOTA = "equipo;area;modelo\n0007;Mina;CAT 793\n0012;Planta;X\n0012;Planta;Y\n;Taller;Z\n0042;Servicios;W\n"
+
+    def setUp(self):
+        super().setUp()
+        self.source = self.write("órdenes flota.csv", self.ORDENES)
+        self.write("flota.csv", self.FLOTA)
+
+    def recipe(self, **extra):
+        step = {"nombre": "enriquecer", "op": "completar", "entrada": "ordenes", "referencia": "flota",
+                "clave": ["equipo"], "columnas": ["area", "modelo"], "existentes": "completar_vacios",
+                "politica": {"incidencias": "separar"}, **extra}
+        return {"version": 1, "entradas": {"ordenes": {"principal": True, **SEMI},
+                                           "flota": {"ruta": "flota.csv", **SEMI}},
+                "pasos": [{k: v for k, v in step.items() if v is not None}]}
+
+    def test_rows_are_split_never_multiplied_and_present_data_is_kept(self):
+        summary = self.run_cli(self.recipe(), self.source, expected=1)
+        run = Path(summary["ruta_resultados"]) / "01-enriquecer"
+        a, f = str(self.source.resolve()), str((self.folder / "flota.csv").resolve())
+        self.assertEqual(self.rows(run / "completadas.csv"), [
+            ["orden", "equipo", "area", "modelo"], ["OT1", "0007", "Mina", "CAT 793"],
+            ["OT5", "0042", "Taller", "W"], ["OT6", "0007", "Mina", "CAT 793"]])  # Taller presente: no se pisa
+        self.assertEqual(self.rows(run / "ambiguas.csv")[1:], [["OT2", "0012", "Planta"]])
+        self.assertEqual(self.rows(run / "sin_coincidencia.csv")[1:], [["OT3", "7", ""]])
+        self.assertEqual(self.rows(run / "clave_vacia.csv")[1:], [["OT4", "", ""]])
+        self.assertEqual([r[:4] for r in self.rows(run / "incidencias.csv")[1:]], [
+            ["clave_vacia_en_referencia", "5", "equipo", f], ["clave_duplicada_en_referencia", "3", "equipo", f],
+            ["clave_duplicada_en_referencia", "4", "equipo", f], ["coincidencia_ambigua", "3", "equipo", a],
+            ["clave_sin_coincidencia", "4", "equipo", a], ["clave_vacia", "5", "equipo", a]])
+        self.assertEqual([r[3:] for r in self.rows(run / "completadas_procedencia.csv")[1:]], [["2"], ["6"], ["7"]])
+        self.assertEqual(self.rows(run / "ambiguas_procedencia.csv")[1:], [["2", "ordenes", a, "3", "coincidencia_ambigua"]])
+        self.assertEqual(self.rows(run / "cambios_celdas.csv")[1:],
+                         [["ordenes", a, "2", "area", "", "Mina", "completar (completar_vacios)", ""]])
+        step = self.manifest(summary)["pasos"][0]
+        self.assertEqual(step["invariantes"][0] | {"regla": ""}, {
+            "tipo": "particion", "regla": "", "entrada": 6, "completadas": 3, "sin_coincidencia": 1, "ambiguas": 1,
+            "clave_vacia": 1, "cumple": True})
+        self.assertEqual({k: step["conteos"][k] for k in ("celdas_completadas", "celdas_presentes_distintas",
+                                                          "celdas_reemplazadas", "claves_duplicadas_en_referencia")},
+                         {"celdas_completadas": 1, "celdas_presentes_distintas": 1, "celdas_reemplazadas": 0,
+                          "claves_duplicadas_en_referencia": 1})
+
+    def test_replace_policy_overwrites_with_log_and_default_policies_are_conservative(self):
+        replaced = self.run_cli(self.recipe(existentes="reemplazar"), self.source, expected=1)
+        run = Path(replaced["ruta_resultados"]) / "01-enriquecer"
+        self.assertEqual([r[2] for r in self.rows(run / "completadas.csv")[1:]], ["Mina", "Servicios", "Mina"])
+        self.assertEqual([(r[2], r[4], r[5]) for r in self.rows(run / "cambios_celdas.csv")[1:]],
+                         [("2", "", "Mina"), ("6", "Taller", "Servicios")])
+        # Sin "existentes", una columna ya presente es un error antes de crear nada.
+        preview = self.run_cli(self.recipe(existentes=None), self.source, "--vista-previa", expected=2)
+        self.assertEqual(preview["errores"][0]["codigo"], "columnas_incompatibles")
+        self.assertIn("existentes", preview["errores"][0]["mensaje"])
+        # Sin política: las filas sin completar detienen el flujo y no se publican tablas.
+        stopped = self.run_cli(self.recipe(politica=None), self.source, expected=2)
+        m = self.manifest(stopped)
+        self.assertEqual((m["motivo"], m["pasos"][0]["estado"]), ("detenida_por_politica", "detenido"))
+        self.assertFalse((Path(stopped["ruta_resultados"]) / "01-enriquecer" / "completadas.csv").exists())
+
+    def test_composite_key_with_other_names_keeps_text_numbers_dates_and_zeros(self):
+        source = self.write("turnos.csv", "equipo;turno;fecha\n0007;A;2026-10-01\n0007;B;03/10/2026\n007;A;2026-10-02\n")
+        self.write("capacidades.csv", "codigo;turno;capacidad\n0007;A;1,5\n0007;B;2,0\n")
+        recipe = {"version": 1, "entradas": {"t": {"principal": True, **SEMI},
+                                             "cap": {"ruta": "capacidades.csv", **SEMI}},
+                  "pasos": [{"nombre": "capacidades", "op": "completar", "entrada": "t", "referencia": "cap",
+                             "clave": ["equipo", "turno"], "clave_referencia": ["codigo", "turno"],
+                             "columnas": ["capacidad"], "politica": {"incidencias": "separar"}}]}
+        run = Path(self.run_cli(recipe, source, expected=1)["ruta_resultados"]) / "01-capacidades"
+        self.assertEqual(self.rows(run / "completadas.csv"), [["equipo", "turno", "fecha", "capacidad"],
+                                                              ["0007", "A", "2026-10-01", "1,5"],
+                                                              ["0007", "B", "03/10/2026", "2,0"]])
+        self.assertEqual(self.rows(run / "sin_coincidencia.csv")[1:], [["007", "A", "2026-10-02"]])
+
+    def test_invalid_completar_parameters_are_actionable(self):
+        bad = self.recipe(clave_referencia=["equipo", "area"], existentes="pisar")
+        errors = {(e["codigo"], e["campo"]): e for e in self.run_cli(bad, self.source, expected=2)["errores"]}
+        self.assertEqual(set(errors), {("parametro_invalido", "clave_referencia"), ("parametro_invalido", "existentes")})
+        self.assertEqual(errors["parametro_invalido", "existentes"]["paso"], "enriquecer")
+        self.assertIn("nunca se pisan", errors["parametro_invalido", "existentes"]["sugerencia"])
+        key_as_column = self.run_cli(self.recipe(columnas=["equipo"]), self.source, "--vista-previa", expected=2)
+        self.assertIn("no pueden ser parte de la clave", key_as_column["errores"][0]["mensaje"])
+        self.assertEqual(self.runs(), [])
+
+
 if __name__ == "__main__":
     unittest.main()

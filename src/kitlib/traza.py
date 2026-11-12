@@ -151,6 +151,15 @@ def invariants(op, inputs, outputs, trace, details):
                  "quedan fuera completas", "entrada": sum(len(t.rows) for _, t in inputs),
                  "resultado": len(out.rows), "excluidas": sum(len(t.rows) for r, t in inputs if r not in
                                                               details["aceptados"]), "cumple": holds}]
+    if op == "completar" and outputs:
+        source = inputs[0]
+        parts = ("completadas", "sin_coincidencia", "ambiguas", "clave_vacia")
+        expected = sum((Counter(origins(outputs[p])) for p in parts), Counter())
+        holds = (len(source.rows) == sum(len(outputs[p].rows) for p in parts)
+                 and Counter(origins(source)) == expected)
+        return [{"tipo": "particion", "regla": "entrada = completadas + sin_coincidencia + ambiguas + clave_vacia "
+                 "(cruce sin multiplicar filas)", "entrada": len(source.rows),
+                 **{p: len(outputs[p].rows) for p in parts}, "cumple": holds}]
     if op == "comparar" and outputs:
         before, after = inputs
         same = details["modificados"] + details["sin_cambios"]

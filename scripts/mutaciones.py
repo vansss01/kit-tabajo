@@ -20,6 +20,7 @@ TRAZA = ["tests.test_recetas.TrazaTests"]
 RENOMBRAR = ["tests.test_transformaciones.RenombrarTests"]
 NORMALIZAR = ["tests.test_transformaciones.NormalizarTests"]
 REEMPLAZAR = ["tests.test_transformaciones.ReemplazarTests"]
+COMPLETAR = ["tests.test_transformaciones.CompletarTests"]
 MUTATIONS = [
     # Etapa 2: trazabilidad
     ("incidencias con fila intermedia", "src/kitlib/traza.py",
@@ -89,6 +90,27 @@ MUTATIONS = [
      '                    if unknown == "error":\n', '                    if False:\n', REEMPLAZAR),
     ("replace toca celdas vacías", "src/kitlib/operations.py",
      "elif not empty(value) and value not in canonical:", "elif value not in canonical:", REEMPLAZAR),
+    # Etapa 3: completar desde referencia
+    ("completar elige la primera de varias", "src/kitlib/operations.py",
+     'else "ambiguas" if len(matches) > 1 else "completadas")', 'else "completadas")', COMPLETAR),
+    ("completar rellena ceros en la clave", "src/kitlib/operations.py",
+     "        key = tuple(row[c] for c in keys)\n        matches",
+     "        key = tuple((row[c] or '').zfill(4) for c in keys)\n        matches", COMPLETAR),
+    ("completar pisa datos presentes", "src/kitlib/operations.py",
+     'fill = existing == "completar_vacios" and empty(before) and not empty(value)',
+     'fill = existing == "completar_vacios" and not empty(value)', COMPLETAR),
+    ("completar calla claves vacías de la referencia", "src/kitlib/operations.py",
+     'ref_issues.append(issue("clave_vacia_en_referencia"', 'None and ref_issues.append(issue("clave_vacia_en_referencia"',
+     COMPLETAR),
+    ("completar calla claves duplicadas de la referencia", "src/kitlib/operations.py",
+     "        if len(matches) > 1:\n            ref_issues.extend(", "        if False:\n            ref_issues.extend(",
+     COMPLETAR),
+    ("completar no registra cambios", "src/kitlib/operations.py",
+     'changes.append(("", f"completar ({existing})"', 'None and changes.append(("", f"completar ({existing})"',
+     COMPLETAR),
+    ("completar sin invariante", "src/kitlib/traza.py", 'if op == "completar" and outputs:', "if False:", COMPLETAR),
+    ("completar admite columnas ya presentes", "src/kitlib/operations.py",
+     'if present and existing == "error":', "if False:", COMPLETAR),
 ]
 
 

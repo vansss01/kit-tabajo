@@ -507,6 +507,78 @@ def transform(table, plan, opts, trace=None):
     return {"validos": current}, [], details
 
 
+ENRICH_CODES = {"sin_coincidencia": "clave_sin_coincidencia", "ambiguas": "coincidencia_ambigua",
+                "clave_vacia": "clave_vacia"}
+
+
+def enrich(table, reference, keys, ref_keys, columns, existing="error"):
+    """Completa `columns` desde `reference` por clave exacta de texto ("0007" no es "7").
+    Cada fila de entrada va a una sola salida: completadas, sin_coincidencia, ambiguas o clave_vacia.
+    Nunca elige entre varias coincidencias ni multiplica filas. Devuelve (tablas, incidencias de
+    la entrada, incidencias de la referencia, cambios de celdas, detalle)."""
+    require_columns(table, keys)
+    require_columns(reference, ref_keys)
+    require_columns(reference, columns)
+    if len(keys) != len(ref_keys):
+        raise ValueError("clave y clave_referencia deben tener el mismo número de columnas")
+    if set(columns) & set(ref_keys):
+        raise ValueError("Las columnas a incorporar no pueden ser parte de la clave de la referencia")
+    present = [c for c in columns if c in table.columns]
+    if present and existing == "error":
+        raise ValueError("Columnas ya presentes en la entrada: " + ", ".join(present)[:120] + ". Para no pisar datos "
+                         "sin querer indique \"existentes\": \"completar_vacios\" o \"reemplazar\"")
+    label = ",".join(ref_keys)
+    ref_issues: list[dict] = []
+    index: dict[tuple, list[tuple[int, dict]]] = {}
+    for rowno, row in zip(reference.row_numbers or range(2, len(reference.rows) + 2), reference.rows, strict=True):
+        key = tuple(row[c] for c in ref_keys)
+        if any(empty(v) for v in key):
+            ref_issues.append(issue("clave_vacia_en_referencia", rowno, label, reference.source))
+        else:
+            index.setdefault(key, []).append((rowno, row))
+    for matches in index.values():
+        if len(matches) > 1:
+            ref_issues.extend(issue("clave_duplicada_en_referencia", rowno, label, reference.source,
+                                    f"{len(matches)} filas con la misma clave") for rowno, _ in matches)
+    buckets: dict[str, list[dict]] = {"completadas": [], "sin_coincidencia": [], "ambiguas": [], "clave_vacia": []}
+    issues: list[dict] = []
+    changes: list[tuple] = []
+    counts: Counter = Counter()
+    for rowno, row in zip(table.row_numbers or range(2, len(table.rows) + 2), table.rows, strict=True):
+        key = tuple(row[c] for c in keys)
+        matches = index.get(key, [])
+        bucket = ("clave_vacia" if any(empty(v) for v in key) else "sin_coincidencia" if not matches
+                  else "ambiguas" if len(matches) > 1 else "completadas")
+        if bucket != "completadas":
+            issues.append(issue(ENRICH_CODES[bucket], rowno, ",".join(keys), table.source,
+                                f"{len(matches)} coincidencias en la referencia" if bucket == "ambiguas" else None))
+            buckets[bucket].append(row.copy())
+            continue
+        new, match = row.copy(), matches[0][1]
+        for col in columns:
+            value = match[col]
+            if col not in table.columns:
+                new[col] = value
+                continue
+            before = new[col]
+            fill = existing == "completar_vacios" and empty(before) and not empty(value)
+            if (existing == "reemplazar" and before != value) or fill:
+                new[col] = value
+                counts["celdas_completadas" if fill else "celdas_reemplazadas"] += 1
+                changes.append(("", f"completar ({existing})", col, before, value, row.get(ORIGEN)))
+            elif existing == "completar_vacios" and not empty(before) and before != value:
+                counts["celdas_presentes_distintas"] += 1  # se conserva el dato presente
+        buckets["completadas"].append(new)
+    out_columns = table.columns + [c for c in columns if c not in table.columns]
+    tables = {name: copy_table(table, rows, out_columns if name == "completadas" else None)
+              for name, rows in buckets.items()}
+    details = {**{name: len(rows) for name, rows in buckets.items()},
+               "celdas_completadas": counts["celdas_completadas"], "celdas_reemplazadas": counts["celdas_reemplazadas"],
+               "celdas_presentes_distintas": counts["celdas_presentes_distintas"],
+               "claves_duplicadas_en_referencia": sum(len(m) > 1 for m in index.values())}
+    return tables, issues, ref_issues, changes, details
+
+
 def merge_tables(items):
     """Une tablas con las mismas columnas (en cualquier orden) y añade procedencia.
     items: lista de (origen, Table o None, error de lectura). Una tabla con incidencias,

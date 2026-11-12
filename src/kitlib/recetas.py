@@ -23,7 +23,7 @@ from uuid import uuid4
 
 from kitlib import __version__, traza
 from kitlib.operations import (check_plan, compare, inspect_table, merge_tables, query, query_warnings,
-                               new_trace, transform, validate, validate_config)
+                               enrich, new_trace, transform, validate, validate_config)
 from kitlib.runtime import ROOT, inside, public_message
 from kitlib.tableio import (ORIGEN, Options, Table, atomic_json, csv_write, excel_write, fingerprint, json_write,
                             load_config, read_table, table_json, unique_keys)
@@ -36,7 +36,8 @@ CODE = re.compile(r"[a-z][a-z0-9_]{0,79}")
 OUTPUTS: dict[str, tuple[str, ...]] = {
     "inspeccionar": (), "validar": ("aceptadas", "rechazadas", "incidencias"), "transformar": ("resultado",),
     "consultar": ("resultado",), "consolidar": ("resultado", "incidencias"),
-    "comparar": ("nuevos", "eliminados", "cambios"), "exportar": ()}
+    "comparar": ("nuevos", "eliminados", "cambios"), "exportar": (),
+    "completar": ("completadas", "sin_coincidencia", "ambiguas", "clave_vacia", "incidencias")}
 PARAMS: dict[str, tuple[set[str], set[str]]] = {  # operación: (permitidos, obligatorios)
     "inspeccionar": ({"entrada", "sample"}, {"entrada"}),
     "validar": ({"entrada", "reglas"}, {"entrada", "reglas"}),
@@ -45,9 +46,14 @@ PARAMS: dict[str, tuple[set[str], set[str]]] = {  # operación: (permitidos, obl
     "consolidar": ({"entradas"}, {"entradas"}),
     "comparar": ({"antes", "despues", "clave"}, {"antes", "despues", "clave"}),
     "exportar": ({"tablas", "formatos", "archivo", "safe_csv"}, {"tablas"}),
+    "completar": ({"entrada", "referencia", "clave", "clave_referencia", "columnas", "existentes"},
+                  {"entrada", "referencia", "clave", "columnas"}),
 }
 COMMON = {"nombre", "op", "descripcion", "opciones", "politica"}
-SEPARABLE = {"validar", "consolidar"}  # únicas operaciones que pueden apartar lo inválido y seguir
+# Operaciones que pueden apartar filas a otra salida y seguir; las demás solo pueden detenerse.
+SEPARABLE = {"validar", "consolidar", "completar"}
+# Salidas que reúnen filas apartadas: su procedencia lleva la columna "motivos".
+SEPARATED = {"rechazadas", "sin_coincidencia", "ambiguas", "clave_vacia", "excluidas", "conflictos"}
 READ_OPTIONS = {"delimiter", "encoding", "decimal", "date_format", "sheet"}
 ENTRY_KEYS = READ_OPTIONS | {"ruta", "principal", "politica", "descripcion"}
 TOP_KEYS = {"version", "nombre", "descripcion", "entradas", "pasos", "salida"}
@@ -347,16 +353,25 @@ def cargar_receta(path, principal=None, overrides=None):
                                     campo, _near(value, available)))
             return None
 
-        if op in ("inspeccionar", "validar", "transformar") and "entrada" in spec:
+        if op in ("inspeccionar", "validar", "transformar", "completar") and "entrada" in spec:
             step.refs["entrada"] = ref(spec["entrada"], "entrada")
         if op == "comparar":
             for key in ("antes", "despues"):
                 if key in spec:
                     step.refs[key] = ref(spec[key], key)
-            if "clave" in spec and not (isinstance(spec["clave"], list) and spec["clave"]
-                                        and all(isinstance(c, str) and c for c in spec["clave"])
-                                        and len(set(spec["clave"])) == len(spec["clave"])):
-                errors.append(error("parametro_invalido", "clave: lista no vacía de columnas distintas", name, "clave"))
+            _names(spec, "clave", name, errors)
+        if op == "completar":
+            if "referencia" in spec:
+                step.refs["referencia"] = ref(spec["referencia"], "referencia")
+            for key in ("clave", "clave_referencia", "columnas"):
+                _names(spec, key, name, errors)
+            if ("clave_referencia" in spec and isinstance(spec.get("clave"), list)
+                    and isinstance(spec["clave_referencia"], list) and len(spec["clave"]) != len(spec["clave_referencia"])):
+                errors.append(error("parametro_invalido", "clave y clave_referencia deben tener el mismo largo", name,
+                                    "clave_referencia"))
+            if spec.get("existentes", "error") not in ("error", "completar_vacios", "reemplazar"):
+                errors.append(error("parametro_invalido", "existentes: error, completar_vacios o reemplazar", name,
+                                    "existentes", "Por defecto (error) nunca se pisan datos presentes"))
         if op == "consolidar" and "entradas" in spec:
             if not isinstance(spec["entradas"], list) or not spec["entradas"]:
                 errors.append(error("parametro_invalido", "entradas: lista no vacía de referencias", name, "entradas"))
@@ -429,6 +444,14 @@ def cargar_receta(path, principal=None, overrides=None):
     if errors:
         raise RecipeError(errors)
     return Recipe(path, nombre.strip(), entries, steps, delimiter, configs)
+
+
+def _names(spec, key, step, errors):
+    """Parámetro opcional que, si está, es una lista no vacía de nombres de columna distintos."""
+    value = spec.get(key)
+    if key in spec and not (isinstance(value, list) and value and all(isinstance(c, str) and c for c in value)
+                            and len(set(value)) == len(value)):
+        errors.append(error("parametro_invalido", f"{key}: lista no vacía de columnas distintas", step, key))
 
 
 def _flat(refs):
@@ -582,9 +605,19 @@ def _step_exportar(step, get):
     return {alias: get(ref) for alias, ref in step.refs["tablas"].items()}, [], [], {}
 
 
+def _step_completar(step, get):
+    source, reference = get(step.refs["entrada"]), get(step.refs["referencia"])
+    keys = step.spec["clave"]
+    tables, issues, ref_issues, changes, details = enrich(
+        source, reference, keys, step.spec.get("clave_referencia", keys), step.spec["columnas"],
+        step.spec.get("existentes", "error"))
+    issues = traza.remap_issues(ref_issues, reference) + traza.remap_issues(issues, source)
+    return tables, issues, [], {**details, "_traza": {"cambios": changes}}
+
+
 RUNNERS = {"inspeccionar": _step_inspeccionar, "validar": _step_validar, "transformar": _step_transformar,
            "consultar": _step_consultar, "consolidar": _step_consolidar, "comparar": _step_comparar,
-           "exportar": _step_exportar}
+           "exportar": _step_exportar, "completar": _step_completar}
 
 ISSUE_COLUMNS = ["codigo", "fila", "columna", "origen", "detalle"]
 
@@ -770,6 +803,8 @@ def _inputs(step, tables):
     refs = step.refs
     if step.op in ("inspeccionar", "validar", "transformar"):
         return [tables[refs["entrada"]]]
+    if step.op == "completar":
+        return [tables[refs["entrada"]], tables[refs["referencia"]]]
     if step.op == "comparar":
         return [tables[refs["antes"]], tables[refs["despues"]]]
     if step.op == "consolidar":
@@ -794,11 +829,18 @@ def _trace_files(step, folder, inputs, outputs, issues, trace, details, delimite
             files[out] = "sin procedencia individual (" + ("agregado" if step.op == "transformar" else
                                                           "resultado SQL") + ")"
             continue
-        motives = traza.motives_by_origin(issues) if (step.op, out) == ("validar", "rechazadas") else None
+        motives = None
+        if out in SEPARATED and step.op != "transformar":
+            motives = (trace or {}).get("motivos") or traza.motives_by_origin(issues)
         name, missing = traza.write_provenance(folder, out, table, delimiter, motives)
         files[out] = f"{step.carpeta}/{name}" + (f" ({missing} filas sin procedencia individual)" if missing else "")
     if step.op == "validar" and outputs:
         counts["rechazadas"] = len(outputs["rechazadas"].rows)
+    if step.op == "completar" and outputs:
+        counts["apartadas"] = sum(len(outputs[o].rows) for o in ("sin_coincidencia", "ambiguas", "clave_vacia"))
+    if trace is not None and "cambios" in trace and step.op != "transformar":
+        counts["cambios_celdas"] = len(trace["cambios"])
+        files["cambios_celdas"] = f"{step.carpeta}/" + traza.write_changes(folder, trace, delimiter)
     if step.op == "consolidar":
         counts["excluidas"] = sum(len(t.rows) for ref, t in inputs if ref not in details["aceptados"])
         files["excluidas"] = f"tablas rechazadas completas: {step.carpeta}/report.json (rechazados) e incidencias.csv"
