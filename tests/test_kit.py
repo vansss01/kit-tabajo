@@ -1,3 +1,4 @@
+import csv
 import hashlib
 import json
 import subprocess
@@ -11,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from kitlib.cli import clean
 from kitlib.runtime import configure, inside
-from kitlib.tableio import Options, Table, csv_write, excel_write, read_table
+from kitlib.tableio import Options, Table, csv_write, excel_write, number, read_table, real_text
 from kitlib.operations import compare, inspect_table, transform, validate
 
 configure()
@@ -474,6 +475,152 @@ class KitTests(unittest.TestCase):
         self.assertEqual((counts["nuevos"], counts["eliminados"], counts["modificados"]), (2, 1, 6))
         self.cli("inspeccionar", target / "flota_excel_windows.csv", "--delimiter", ";", expected=2)
         self.cli("inspeccionar", target / "flota_excel_windows.csv", "--delimiter", ";", "--encoding", "cp1252")
+
+    # --- consultar: representación numérica, rango y omisión de --numeric (1.4.1) ---
+
+    def saved(self, summary):
+        """Filas de validos.json, tras comprobar que validos.csv guarda lo mismo (null = campo vacío)."""
+        run = Path(summary["ruta_resultados"])
+        data = json.loads((run / "validos.json").read_text(encoding="utf-8"))
+        with (run / "validos.csv").open(encoding="utf-8", newline="") as stream:
+            lines = list(csv.reader(stream, delimiter=";"))
+        self.assertEqual(lines, [data["columns"]] + [[r[c] or "" for c in data["columns"]] for r in data["rows"]])
+        return data["rows"]
+
+    def assert_failed_without_tables(self, summary):
+        run = Path(summary["ruta_resultados"])
+        self.assertTrue((run / "FAILED.json").exists())
+        self.assertEqual([p.name for p in run.iterdir() if p.name.startswith("validos")], [])
+
+    def test_float_text_is_plain_decimal_and_reads_back_to_the_same_float(self):
+        self.assertEqual(real_text(1234567890123.0), "1234567890123")
+        self.assertEqual(real_text(1e-07), "0.0000001")
+        self.assertEqual(real_text(0.1), "0.1")
+        self.assertEqual(real_text(-2.5), "-2.5")
+        self.assertEqual(real_text(-0.0), "0")
+        self.assertEqual(real_text(1e22), "1" + "0" * 22)
+        self.assertEqual(real_text(1 / 3), "0.3333333333333333")
+        for value in (5e-324, 1.7976931348623157e308, -1.2345678901234567e-300, 0.1 + 0.2, 123456789.12345679):
+            text = real_text(value)
+            self.assertEqual(float(number(text)), value)  # admitido por el kit y sin pérdida añadida
+            self.assertNotIn("e", text.lower())
+
+    def test_sql_numbers_survive_query_validation_and_exact_transform(self):
+        source = self.csv("id;v\n1;1234567890123\n2;0,0000001\n3;-2,5\n4;0\n5;\n", "numeros.csv")
+        before = hashlib.sha256(source.read_bytes()).hexdigest()
+        result = self.cli("consultar", source, "--delimiter", ";", "--decimal", ",", "--numeric", "v",
+                          "--show", "0", "--sql", "SELECT id, v FROM t ORDER BY id")
+        self.assertEqual(result["estado"], "ok")
+        self.assertEqual(self.saved(result), [
+            {"id": "1", "v": "1234567890123"}, {"id": "2", "v": "0.0000001"}, {"id": "3", "v": "-2.5"},
+            {"id": "4", "v": "0"}, {"id": "5", "v": None}])
+        run = Path(result["ruta_resultados"])
+        rules = self.folder / "reglas numero.json"
+        rules.write_text('{"columns":{"v":{"type":"number"}}}', encoding="utf-8")
+        plan = self.folder / "plan suma.json"
+        plan.write_text('{"steps":[{"op":"group","by":[],"aggregates":[{"op":"sum","column":"v","as":"total"},'
+                        '{"op":"count","column":"v","as":"n"}]}]}', encoding="utf-8")
+        for name in ("validos.csv", "validos.json"):  # la salida usa punto decimal: --decimal . en adelante
+            checked = self.cli("validar", run / name, "--delimiter", ";", "--rules", rules)
+            self.assertEqual(checked["conteos"]["validas"], 5)
+            total = self.cli("transformar", run / name, "--delimiter", ";", "--plan", plan)
+            # 1234567890123 + 0.0000001 − 2.5 + 0, calculado a mano.
+            self.assertEqual(self.saved(total), [{"total": "1234567890120.5000001", "n": "4"}])
+        self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(), before)
+
+    def test_sql_rejects_input_overflow_and_underflow_without_publishing(self):
+        common = ("--numeric", "v", "--show", "0", "--sql", "SELECT v FROM t")
+        cases = {"desbordamiento": "9" * 400, "subdesbordamiento": "0." + "0" * 400 + "7"}
+        for kind, cell in cases.items():
+            source = self.csv("v\n1.5\n" + cell + "\n", kind + ".csv")
+            before = hashlib.sha256(source.read_bytes()).hexdigest()
+            failed = self.cli("consultar", source, *common, expected=2)
+            self.assertIn("tabla t, columna v: 1 por " + kind, failed["error"])
+            self.assertNotIn(cell[:6], failed["error"])  # sin contenido de celdas
+            self.assert_failed_without_tables(failed)
+            self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(), before)
+        # Política previa intacta: vacío = NULL sin aviso; texto no numérico = NULL con advertencia.
+        blank = self.cli("consultar", self.csv("v\n1.5\n\"\"\n", "vacio.csv"), *common)
+        self.assertEqual(self.saved(blank), [{"v": "1.5"}, {"v": None}])
+        text = self.cli("consultar", self.csv("v\n1.5\nN/D\n", "texto.csv"), *common, expected=1)
+        self.assertEqual(text["advertencias_por_codigo"], {"valores_no_numericos_cargados_como_null": 1})
+        self.assertEqual(self.saved(text), [{"v": "1.5"}, {"v": None}])
+
+    def test_sql_rejects_overflow_in_computed_results(self):
+        source = self.csv("v\n1" + "0" * 200 + "\n", "grande.csv")
+        fine = self.cli("consultar", source, "--numeric", "v", "--show", "0", "--sql", "SELECT v FROM t")
+        self.assertEqual(self.saved(fine), [{"v": "1" + "0" * 200}])
+        failed = self.cli("consultar", source, "--numeric", "v", "--sql", "SELECT 1 AS uno, v * v AS cuadrado FROM t",
+                          expected=2)
+        self.assertIn("desbordamiento", failed["error"])
+        self.assertIn("cuadrado", failed["error"])
+        self.assertNotIn("resultado", failed)
+        self.assert_failed_without_tables(failed)
+        # Sin --numeric SQLite convierte el texto por su cuenta: el infinito tampoco se publica.
+        implicit = self.cli("consultar", self.csv("v\n" + "9" * 400 + "\n", "nueves.csv"),
+                            "--sql", "SELECT SUM(v) AS s FROM t", expected=2)
+        self.assert_failed_without_tables(implicit)
+
+    def test_sql_warns_when_long_numbers_do_not_fit_real_precision(self):
+        source = self.csv("v\n12345678901234567890\n0.1\n", "largo.csv")
+        result = self.cli("consultar", source, "--numeric", "v", "--show", "0", "--sql", "SELECT v FROM t", expected=1)
+        self.assertEqual(result["advertencias_por_codigo"], {"numeros_redondeados_por_precision_real": 1})
+        self.assertEqual(result["conteos"]["valores_redondeados"], 1)
+        self.assertEqual(self.saved(result), [{"v": "12345678901234567000"}, {"v": "0.1"}])
+
+    def test_sql_decimal_comma_with_and_without_numeric(self):
+        source = self.csv("v\n2,5\n3,5\n", "coma.csv")
+        common = ("--delimiter", ";", "--decimal", ",", "--show", "0")
+        total = "SELECT SUM(v) AS total FROM t"
+        declared = self.cli("consultar", source, *common, "--numeric", "v", "--sql", total)
+        self.assertEqual(self.saved(declared), [{"total": "6"}])  # 2,5 + 3,5
+        omitted = self.cli("consultar", source, *common, "--sql", total, expected=1)
+        self.assertEqual(omitted["advertencias_por_codigo"], {"resultado_depende_de_texto_sin_numeric": 1})
+        self.assertIn("--numeric v", omitted["sugerencia"])
+        report = json.loads((Path(omitted["ruta_resultados"]) / "report.json").read_text(encoding="utf-8"))
+        self.assertEqual(report["advertencias_detalle"][0]["columnas"], ["v"])
+        self.assertEqual(report["detalle"]["columnas_sin_numeric"], ["v"])
+        # Otros usos numéricos del mismo texto: operador, comparación y orden.
+        ordered = self.csv("v\n10,5\n9,5\n", "orden.csv")
+        for sql in ("SELECT v * 2 AS doble FROM t", "SELECT COUNT(*) AS n FROM t WHERE v > 9.9",
+                    "SELECT v FROM t ORDER BY v"):
+            warned = self.cli("consultar", ordered, *common, "--sql", sql, expected=1)
+            self.assertEqual(warned["advertencias_por_codigo"], {"resultado_depende_de_texto_sin_numeric": 1}, sql)
+        # Mostrar la columna tal cual no es un cálculo: sin aviso y sin cambiar el texto.
+        shown = self.cli("consultar", source, *common, "--sql", "SELECT v FROM t")
+        self.assertEqual(self.saved(shown), [{"v": "2,5"}, {"v": "3,5"}])
+
+    def test_sql_usual_text_queries_stay_clean_and_keep_codes(self):
+        orders = self.csv("orden;equipo;estado;horas\n1001;0007;abierta;2,5\n1002;0007;cerrada;10,0\n"
+                          "1003;0099;abierta;1,5\n", "ordenes.csv")
+        fleet = self.csv("equipo;area\n0007;Mina\n0099;Planta\n", "flota.csv")
+        before = {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in (orders, fleet)}
+        common = ("--delimiter", ";", "--decimal", ",", "--show", "0", "--tabla", f"flota={fleet}")
+        expected = {
+            "SELECT estado, COUNT(*) AS n FROM t GROUP BY estado ORDER BY estado":
+                [{"estado": "abierta", "n": "2"}, {"estado": "cerrada", "n": "1"}],
+            "SELECT equipo FROM t WHERE equipo = '0007' ORDER BY orden": [{"equipo": "0007"}, {"equipo": "0007"}],
+            "SELECT t.orden, f.area FROM t JOIN flota f ON f.equipo = t.equipo WHERE t.estado = 'abierta' ORDER BY t.orden":
+                [{"orden": "1001", "area": "Mina"}, {"orden": "1003", "area": "Planta"}],
+            "SELECT equipo, COUNT(DISTINCT orden) AS n FROM t GROUP BY equipo ORDER BY equipo":
+                [{"equipo": "0007", "n": "2"}, {"equipo": "0099", "n": "1"}],
+            "SELECT orden, equipo, horas FROM t WHERE estado = 'cerrada'":
+                [{"orden": "1002", "equipo": "0007", "horas": "10,0"}],
+        }
+        for sql, rows in expected.items():
+            clean_run = self.cli("consultar", orders, *common, "--sql", sql)  # código 0
+            self.assertEqual(clean_run["advertencias"], 0, sql)
+            self.assertEqual(self.saved(clean_run), rows, sql)
+        by_team = "SELECT equipo, SUM(horas) AS horas FROM t GROUP BY equipo ORDER BY equipo"
+        summed = self.cli("consultar", orders, *common, "--numeric", "horas", "--sql", by_team)
+        self.assertEqual(self.saved(summed), [{"equipo": "0007", "horas": "12.5"}, {"equipo": "0099", "horas": "1.5"}])
+        self.cli("consultar", orders, *common, "--sql", by_team, expected=1)
+        # La repetición interna de la protección tampoco permite escribir ni varias sentencias.
+        for sql in ("DELETE FROM t WHERE horas > 1", "UPDATE t SET horas = 0", "SELECT SUM(horas) FROM t; DROP TABLE t",
+                    "CREATE TABLE z AS SELECT horas FROM t", "INSERT INTO t SELECT * FROM t"):
+            self.assertIn("SQL", self.cli("consultar", orders, *common, "--sql", sql, expected=2)["error"])
+        for path, digest in before.items():
+            self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), digest)
 
 
 if __name__ == "__main__":

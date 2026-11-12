@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "nombre": "revision_ordenes",
+  "descripcion": "Revisa órdenes: perfil, validación con reglas, filas aceptadas/rechazadas, resumen y entrega.",
+  "entradas": {
+    "ordenes": {"principal": true, "delimiter": ";", "decimal": ","}
+  },
+  "pasos": [
+    {"nombre": "perfil", "op": "inspeccionar", "entrada": "ordenes"},
+    {"nombre": "revision", "op": "validar", "entrada": "ordenes", "reglas": "../examples/reglas.json",
+     "politica": {"incidencias": "separar"}},
+    {"nombre": "resumen", "op": "transformar", "entrada": "revision.aceptadas", "plan": "../examples/plan.json"},
+    {"nombre": "entrega", "op": "exportar", "archivo": "revision_ordenes", "formatos": ["csv", "xlsx"],
+     "tablas": {"aceptadas": "revision.aceptadas", "rechazadas": "revision.rechazadas",
+                "incidencias": "revision.incidencias", "resumen": "resumen.resultado"}}
+  ]
+}

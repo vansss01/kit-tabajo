@@ -10,10 +10,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from kitlib import __version__, bitacora
-from kitlib.operations import compare, inspect_table, query, transform, validate
-from kitlib.runtime import ROOT, inside
-from kitlib.tableio import (Options, Table, csv_write, excel_write, fingerprint, issue,
+from kitlib import __version__, bitacora, recetas
+from kitlib.operations import compare, inspect_table, merge_tables, query, query_warnings, transform, validate
+from kitlib.runtime import ROOT, inside, public_message
+from kitlib.tableio import (Options, Table, csv_write, excel_write, fingerprint,
                          json_write, load_config, read_table, sheet_names, table_json)
 
 ISSUE_COLUMNS = ["codigo", "fila", "columna", "origen", "detalle"]
@@ -63,8 +63,9 @@ def parser():
             cmd.add_argument("--tabla", action="append", default=[], metavar="NOMBRE=ARCHIVO",
                              help="Tabla adicional para JOIN; repetible")
             cmd.add_argument("--numeric", nargs="+", default=[], metavar="COLUMNA",
-                             help="Columnas a cargar como número según --decimal; el resto es texto")
-            cmd.add_argument("--show", type=int, default=20, help="Filas del resultado a mostrar (0–100)")
+                             help="Columnas a cargar como número según --decimal; el resto es texto. "
+                                  "Necesario para sumar, comparar u ordenar medidas")
+            cmd.add_argument("--show", type=int, default=20, help="Filas del resultado a mostrar en la terminal (0–100); 0 las oculta, los archivos no cambian")
         if name == "exportar":
             cmd.add_argument("--format", choices=["all", "xlsx", "csv", "json"], default="all")
             cmd.add_argument("--safe-csv", action="store_true", help="Añadir apóstrofo a textos que Excel podría ejecutar como fórmula")
@@ -75,6 +76,7 @@ def parser():
     cmd.add_argument("--json", action="store_true", help="Resumen compacto JSON en stdout")
     cmd.set_defaults(verbose=False)
     bitacora.add_parser(sub)
+    recetas.add_parser(sub)
     return p
 
 
@@ -128,39 +130,20 @@ def candidates(args):
 
 
 def consolidate(paths, opts):
-    columns = None
-    rows, issues, accepted, rejected = [], [], [], []
+    items: list[tuple[str, Table | None, str | None]] = []
     warnings: list[dict] = []
     scanned = 0
     for path in paths:
         try:
             table = read_table(path, opts)
         except Exception as exc:
-            issues.append(issue("archivo_ilegible", source=str(path), detail=type(exc).__name__))
-            rejected.append(str(path))
+            items.append((str(path), None, type(exc).__name__))
             continue
         scanned += table.scanned
         warnings.extend({"origen": str(path), "codigo": w} for w in table.warnings)
-        if table.issues or not table.columns or "__archivo_origen" in table.columns or "__fila_origen" in table.columns:
-            issues.extend(table.issues or [issue("columna_procedencia_reservada", source=str(path))])
-            rejected.append(str(path))
-            continue
-        if columns is None:
-            columns = table.columns
-        if set(columns) != set(table.columns):
-            issues.append(issue("columnas_incompatibles", source=str(path), detail=json.dumps({
-                "faltantes": sorted(set(columns) - set(table.columns)),
-                "adicionales": sorted(set(table.columns) - set(columns))}, ensure_ascii=False)))
-            rejected.append(str(path))
-            continue
-        accepted.append(str(path))
-        for rowno, row in zip(table.row_numbers, table.rows, strict=True):
-            rows.append({**row, "__archivo_origen": str(path), "__fila_origen": str(rowno)})
-    if not paths:
-        issues.append(issue("sin_archivos_compatibles"))
-    output = Table((columns or []) + ["__archivo_origen", "__fila_origen"], rows)
-    return {"validos": output}, issues, warnings, {"aceptados": accepted, "rechazados": rejected,
-        "filas_salida": len(rows), "filas_analizadas": scanned}
+        items.append((str(path), table, None))
+    output, issues, details = merge_tables(items)
+    return {"validos": output}, issues, warnings, {**details, "filas_analizadas": scanned}
 
 
 def delimiter_hint(header, current):
@@ -277,8 +260,7 @@ def execute(args):
                     processed += loaded[name].scanned
                     warnings.extend({"origen": loaded[name].source, "codigo": w} for w in loaded[name].warnings)
                 tables, issues, details = query(loaded, args.sql, set(args.numeric), opts)
-                if details["valores_no_numericos"]:
-                    warnings.append({"origen": table.source, "codigo": "valores_no_numericos_cargados_como_null"})
+                warnings.extend(query_warnings(details, table.source))
             elif args.command == "comparar":
                 after = read_table(args.after, replace(opts, sheet=args.after_sheet or opts.sheet))
                 processed += after.scanned
@@ -328,7 +310,8 @@ def execute(args):
             json_write(inside(ROOT / "logs" / (run_name + "-" + uuid4().hex[:8] + ".json")), audit)
         detail = {"incidencias": issues[:10], "advertencias": warnings[:10]}
         # Extras solo para la terminal: evitan abrir report.json en el caso habitual.
-        # Contienen códigos, conteos y nombres de columnas; nunca valores de celdas.
+        # Contienen códigos, conteos y nombres de columnas, sin valores de celdas. Única excepción:
+        # `resultado` de consultar, que muestra filas salvo con --show 0.
         extras: dict = {}
         if issues:
             extras["incidencias_por_codigo"] = dict(Counter(i["codigo"] for i in issues).most_common(15))
@@ -337,6 +320,9 @@ def execute(args):
         if args.command != "consolidar" and len(table.columns) == 1 and any(
                 w["codigo"] == "posible_delimitador_incorrecto" for w in warnings):
             extras["sugerencia"] = delimiter_hint(table.columns[0], args.delimiter)
+        if details.get("columnas_sin_numeric"):
+            extras["sugerencia"] = ("el resultado cambia si estas columnas se cargan como número; si son medidas, "
+                                    "repita con --numeric " + " ".join(c[:60] for c in details["columnas_sin_numeric"][:10]))
         if args.command == "inspeccionar":
             detail["analisis"] = details["analisis"][:5]
             extras["tablas"] = [{"hoja": a["hoja"], "filas": a["filas_analizadas"], "alcance": a["alcance"],
@@ -374,19 +360,12 @@ def main(argv=None):
             return 0
         if args.command == "bitacora":
             return bitacora.run(args)
+        if args.command == "ejecutar":
+            return recetas.run(args)
         return execute(args)
     except Exception as exc:
         # No volcar valores de celdas, configuraciones ni traceback por terminal.
-        message = f"{type(exc).__name__}: no se completó la operación. Revise rutas, opciones y esquema de configuración."
-        if type(exc) is ValueError:
-            message = str(exc)[:240]
-        if isinstance(exc, UnicodeError):
-            message = ("El archivo no corresponde a --encoding " + str(getattr(args, "encoding", ""))[:30]
-                       + ". Pruebe --encoding cp1252 (Excel en Windows) o utf-8.")
-        if isinstance(exc, FileNotFoundError):
-            message = "No existe un archivo de entrada, reglas o plan. Revise las rutas y las comillas."
-        if isinstance(exc, FileExistsError):
-            message = "La salida ya existe. Use otro --run-name; no se sobrescribió."
+        message = public_message(exc, getattr(args, "encoding", ""))
         if args.command in ("limpiar", "bitacora") and not args.json:
             print(message)
             return 2

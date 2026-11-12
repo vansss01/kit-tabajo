@@ -3,6 +3,7 @@ import contextlib
 import csv
 import hashlib
 import json
+import os
 import re
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -10,6 +11,7 @@ from decimal import Decimal, InvalidOperation
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from kitlib.runtime import inside
 
@@ -68,6 +70,15 @@ def number(value, decimal="."):
         return Decimal(text.replace(decimal, "."))
     except InvalidOperation as exc:
         raise ValueError("Número inválido") from exc
+
+
+def real_text(value):
+    """Texto decimal con punto y sin exponente para un float finito, sin redondeo añadido:
+    los dígitos más cortos que al leerse devuelven el mismo float (repr)."""
+    text = format(Decimal(repr(value)), "f")
+    if "." in text:
+        text = text.rstrip("0").rstrip(".")
+    return "0" if text in ("-0", "") else text
 
 
 def convert(value, kind, opts):
@@ -249,6 +260,23 @@ def json_write(path, value):
     with path.open("x", encoding="utf-8", newline="\n") as stream:
         json.dump(value, stream, ensure_ascii=False, indent=2, allow_nan=False)
         stream.write("\n")
+
+
+def atomic_json(path, value):
+    """Reemplazo atómico de un archivo de estado: temporal en la misma carpeta y os.replace.
+    Quien lee ve el contenido anterior completo o el nuevo completo, nunca uno a medias."""
+    path = inside(path)
+    temp = inside(path.with_name("." + path.name + "." + uuid4().hex[:8] + ".tmp"))
+    try:
+        with temp.open("x", encoding="utf-8", newline="\n") as stream:
+            json.dump(value, stream, ensure_ascii=False, indent=2, allow_nan=False)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temp, path)
+    finally:
+        if temp.exists():
+            temp.unlink()
 
 
 def table_json(path, table):

@@ -29,6 +29,20 @@ def configure():
             stream.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 
+def public_message(exc, encoding=""):
+    """Mensaje de error para terminal y registros: sin traceback ni valores de celdas."""
+    if isinstance(exc, UnicodeError):
+        return ("El archivo no corresponde a --encoding " + str(encoding)[:30]
+                + ". Pruebe --encoding cp1252 (Excel en Windows) o utf-8.")
+    if isinstance(exc, FileNotFoundError):
+        return "No existe un archivo de entrada, reglas o plan. Revise las rutas y las comillas."
+    if isinstance(exc, FileExistsError):
+        return "La salida ya existe. Use otro --run-name; no se sobrescribió."
+    if type(exc) is ValueError:
+        return str(exc)[:240]
+    return f"{type(exc).__name__}: no se completó la operación. Revise rutas, opciones y esquema de configuración."
+
+
 def inside(path):
     path = Path(path).resolve()
     if not path.is_relative_to(ROOT):

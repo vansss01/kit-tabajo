@@ -1,5 +1,6 @@
 """Operaciones declarativas; no eval, exec, SQL ni expresiones de Python."""
 import json
+import math
 import re
 import sqlite3
 from collections import Counter
@@ -7,7 +8,7 @@ from dataclasses import replace
 from decimal import Decimal, localcontext
 from typing import Any
 
-from kitlib.tableio import Table, convert, empty, infer, issue, literal, number
+from kitlib.tableio import Table, convert, empty, infer, issue, literal, number, real_text
 
 TYPES = {"string", "integer", "number", "date", "boolean"}
 
@@ -229,24 +230,81 @@ def typed(value, kind, opts):
     return Decimal(result) if kind in ("number", "integer") else result
 
 
-def transform(table, plan, opts):
-    if set(plan) != {"steps"} or not isinstance(plan["steps"], list):
+def column_list(value, what="columnas"):
+    if not isinstance(value, list) or not value or not all(isinstance(c, str) and c for c in value):
+        raise ValueError(f"Se esperaba una lista no vacía de {what}")
+    if len(set(value)) != len(value):
+        raise ValueError(f"Lista de {what} duplicadas")
+
+
+def check_step(step, opts):
+    """Comprobación de un paso de plan sin datos (estructura, parámetros, valores admitidos).
+    La usan transformar y la validación de recetas: una sola definición de lo aceptado.
+    Devuelve las opciones locales del paso. Las columnas se comprueban al ejecutar."""
+    if not isinstance(step, dict) or step.get("op") not in SCHEMAS:
+        raise ValueError("Operación desconocida; no se admiten expresiones ni código")
+    op = step["op"]
+    allowed, required = SCHEMAS[op]
+    if set(step) - allowed or not required <= set(step):
+        raise ValueError(f"Parámetros inválidos para {op}")
+    local = replace(opts, decimal=step.get("decimal", opts.decimal),
+                    date_format=step.get("date_format", opts.date_format))
+    if local.decimal not in (".", ",") or step.get("type", "string") not in TYPES:
+        raise ValueError("Tipo o separador decimal inválido")
+    if op in ("select", "sort"):
+        column_list(step["columns"])
+    if op == "deduplicate":
+        column_list(step["keys"])
+    if op == "filter":
+        if not isinstance(step["column"], str):
+            raise ValueError("column debe ser texto")
+        if step["operator"] not in {"eq", "ne", "gt", "ge", "lt", "le", "contains"}:
+            raise ValueError("Operador de filtro no admitido")
+        if step["operator"] == "contains" and step.get("type", "string") != "string":
+            raise ValueError("contains requiere string")
+    if op == "sort" and not isinstance(step.get("descending", False), bool):
+        raise ValueError("descending debe ser booleano")
+    if op == "group":
+        by, aggregates = step["by"], step["aggregates"]
+        if by != []:
+            if not isinstance(by, list) or not by:
+                raise ValueError("by debe ser lista de columnas; [] agrupa todas")
+            column_list(by)
+        if not isinstance(aggregates, list) or not aggregates:
+            raise ValueError("aggregates debe ser una lista no vacía")
+        names = list(by)
+        for spec in aggregates:
+            if not isinstance(spec, dict) or set(spec) - {"op", "column", "as"} or not {"op", "as"} <= set(spec):
+                raise ValueError("Agregado: op, column y as")
+            if spec["op"] not in {"count", "sum", "mean", "min", "max"}:
+                raise ValueError("Agregado desconocido")
+            if spec["op"] != "count" and not isinstance(spec.get("column"), str):
+                raise ValueError("sum, mean, min y max requieren column")
+            if not isinstance(spec["as"], str) or not spec["as"].strip() or spec["as"] in names:
+                raise ValueError("Alias de agregado vacío o duplicado")
+            names.append(spec["as"])
+    return local
+
+
+def check_plan(plan, opts):
+    if not isinstance(plan, dict) or set(plan) != {"steps"} or not isinstance(plan["steps"], list):
         raise ValueError("Plan: objeto con steps (lista de operaciones)")
+    for number_, step in enumerate(plan["steps"], 1):
+        try:
+            check_step(step, opts)
+        except ValueError as exc:
+            raise ValueError(f"Plan, paso {number_}: {exc}") from exc
+
+
+def transform(table, plan, opts):
+    check_plan(plan, opts)
     if table.issues:
         return {}, table.issues, {"transformacion_bloqueada": True}
     current = copy_table(table, [r.copy() for r in table.rows])
     history = []
     for step in plan["steps"]:
-        if not isinstance(step, dict) or step.get("op") not in SCHEMAS:
-            raise ValueError("Operación desconocida; no se admiten expresiones ni código")
         op = step["op"]
-        allowed, required = SCHEMAS[op]
-        if set(step) - allowed or not required <= set(step):
-            raise ValueError(f"Parámetros inválidos para {op}")
-        local = replace(opts, decimal=step.get("decimal", opts.decimal),
-                        date_format=step.get("date_format", opts.date_format))
-        if local.decimal not in (".", ",") or step.get("type", "string") not in TYPES:
-            raise ValueError("Tipo o separador decimal inválido")
+        local = check_step(step, opts)
         count_before = len(current.rows)
         if op == "select":
             require_columns(current, step["columns"])
@@ -254,11 +312,7 @@ def transform(table, plan, opts):
         elif op == "filter":
             col, operator = step["column"], step["operator"]
             require_columns(current, [col])
-            if operator not in {"eq", "ne", "gt", "ge", "lt", "le", "contains"}:
-                raise ValueError("Operador de filtro no admitido")
             kind = step.get("type", "string")
-            if operator == "contains" and kind != "string":
-                raise ValueError("contains requiere string")
             target = typed(step["value"], kind, local)
             kept = []
             for row in current.rows:
@@ -284,8 +338,7 @@ def transform(table, plan, opts):
             current.rows = kept
         elif op == "sort":
             require_columns(current, step["columns"])
-            if not isinstance(step.get("descending", False), bool):
-                raise ValueError("descending debe ser booleano")
+
             def sortkey(row):
                 values = [typed(row[c], step.get("type", "string"), local) for c in step["columns"]]
                 return tuple((v is None, v) for v in values)
@@ -308,20 +361,10 @@ def transform(table, plan, opts):
             by, aggregates = step["by"], step["aggregates"]
             if by:
                 require_columns(current, by)
-            elif by != []:
-                raise ValueError("by debe ser lista de columnas; [] agrupa todas")
-            if not isinstance(aggregates, list) or not aggregates:
-                raise ValueError("aggregates debe ser una lista no vacía")
             names = list(by)
             for spec in aggregates:
-                if not isinstance(spec, dict) or set(spec) - {"op", "column", "as"} or not {"op", "as"} <= set(spec):
-                    raise ValueError("Agregado: op, column y as")
-                if spec["op"] not in {"count", "sum", "mean", "min", "max"}:
-                    raise ValueError("Agregado desconocido")
                 if spec["op"] != "count" or "column" in spec:
                     require_columns(current, [spec.get("column")])
-                if not isinstance(spec["as"], str) or not spec["as"].strip() or spec["as"] in names:
-                    raise ValueError("Alias de agregado vacío o duplicado")
                 names.append(spec["as"])
             groups: dict[tuple, list[dict[str, Any]]] = {}
             for row in current.rows:
@@ -352,7 +395,161 @@ def transform(table, plan, opts):
     return {"validos": current}, [], {"filas_salida": len(current.rows), "pasos": history}
 
 
+def merge_tables(items):
+    """Une tablas con las mismas columnas (en cualquier orden) y añade procedencia.
+    items: lista de (origen, Table o None, error de lectura). Una tabla con incidencias,
+    sin columnas o con columnas de procedencia reservadas se rechaza completa."""
+    columns = None
+    rows: list[dict] = []
+    issues: list[dict] = []
+    accepted: list[str] = []
+    rejected: list[str] = []
+    for source, table, read_error in items:
+        if table is None:
+            issues.append(issue("archivo_ilegible", source=source, detail=read_error))
+            rejected.append(source)
+            continue
+        if table.issues or not table.columns or "__archivo_origen" in table.columns or "__fila_origen" in table.columns:
+            issues.extend(table.issues or [issue("columna_procedencia_reservada", source=source)])
+            rejected.append(source)
+            continue
+        if columns is None:
+            columns = table.columns
+        if set(columns) != set(table.columns):
+            issues.append(issue("columnas_incompatibles", source=source, detail=json.dumps({
+                "faltantes": sorted(set(columns) - set(table.columns)),
+                "adicionales": sorted(set(table.columns) - set(columns))}, ensure_ascii=False)))
+            rejected.append(source)
+            continue
+        accepted.append(source)
+        numbers = table.row_numbers or list(range(2, len(table.rows) + 2))
+        for rowno, row in zip(numbers, table.rows, strict=True):
+            rows.append({**row, "__archivo_origen": source, "__fila_origen": str(rowno)})
+    if not items:
+        issues.append(issue("sin_archivos_compatibles"))
+    output = Table((columns or []) + ["__archivo_origen", "__fila_origen"], rows)
+    return output, issues, {"aceptados": accepted, "rechazados": rejected, "filas_salida": len(rows)}
+
+
+def query_warnings(details, source):
+    """Advertencias de consultar a partir de sus conteos (CLI y recetas)."""
+    found = []
+    if details["valores_no_numericos"]:
+        found.append({"origen": source, "codigo": "valores_no_numericos_cargados_como_null"})
+    if details["valores_redondeados"]:
+        found.append({"origen": source, "codigo": "numeros_redondeados_por_precision_real"})
+    if details["columnas_sin_numeric"]:
+        found.append({"origen": source, "codigo": "resultado_depende_de_texto_sin_numeric",
+                      "columnas": details["columnas_sin_numeric"]})
+    return found
+
+
 SQL_ALLOWED = {sqlite3.SQLITE_SELECT, sqlite3.SQLITE_READ, sqlite3.SQLITE_FUNCTION, sqlite3.SQLITE_RECURSIVE}
+
+
+def _quote(name):
+    return '"' + name.replace('"', '""') + '"'
+
+
+def _real(value, decimal):
+    """(float, estado) para una celda no vacía de --numeric. Estados: None, desbordamiento,
+    subdesbordamiento (no nulo que quedaría en cero) o redondeo (más cifras de las que guarda REAL)."""
+    exact = number(value, decimal)
+    real = float(exact)
+    if math.isinf(real):
+        return real, "desbordamiento"
+    if real == 0 and exact != 0:
+        return real, "subdesbordamiento"
+    if len(exact.as_tuple().digits) > 15 and Decimal(repr(real)) != exact:
+        return real, "redondeo"
+    return real, None
+
+
+def _decimal_text_columns(tables, numeric, opts, read):
+    """Columnas de texto que parecen medidas: la mayoría de sus valores no vacíos son números
+    según --decimal, alguno con decimales, y ninguno es un código con ceros iniciales."""
+    found = set()
+    for name, table in tables.items():
+        for col in table.columns:
+            if col in numeric or (name.lower(), col.lower()) not in read:
+                continue
+            filled = numbers = fractions = 0
+            for value in {r[col] for r in table.rows}:
+                if empty(value):
+                    continue
+                filled += 1
+                text = str(value).strip()
+                if re.fullmatch(r"[+-]?0\d+", text):
+                    break
+                try:
+                    number(text, opts.decimal)
+                except ValueError:
+                    continue
+                numbers += 1
+                fractions += opts.decimal in text
+            else:
+                if fractions and numbers * 2 > filled:
+                    found.add((name.lower(), col.lower()))
+    return found
+
+
+def _load(tables, numeric, opts, strict):
+    """Base en memoria con las columnas de `numeric` como REAL. `strict` cuenta y rechaza pérdidas de rango."""
+    db = sqlite3.connect(":memory:")
+    counts: Counter = Counter()
+    try:
+        for name, table in tables.items():
+            reals = [(name.lower(), c.lower()) in numeric for c in table.columns]
+            db.execute("CREATE TABLE {} ({})".format(_quote(name), ", ".join(
+                _quote(c) + (" REAL" if real else " TEXT") for c, real in zip(table.columns, reals, strict=True))))
+            rows = []
+            for row in table.rows:
+                values = []
+                for col, real in zip(table.columns, reals, strict=True):
+                    value = row[col]
+                    if real:
+                        if empty(value):
+                            value = None
+                        else:
+                            try:
+                                value, state = _real(value, opts.decimal)
+                            except ValueError:
+                                value, state = None, "no_numerico"
+                            if state:
+                                counts[(state, name, col)] += 1
+                    values.append(value)
+                rows.append(values)
+            db.executemany("INSERT INTO {} VALUES ({})".format(_quote(name), ", ".join("?" * len(table.columns))), rows)
+        lost = [(k, n) for k, n in counts.items() if k[0] in ("desbordamiento", "subdesbordamiento")]
+        if strict and lost:
+            # Nombres y conteos; nunca el contenido de las celdas.
+            raise ValueError("Valores de --numeric fuera del rango representable: " + "; ".join(
+                f"tabla {k[1]}, columna {k[2][:40]}: {n} por {k[0]}" for k, n in lost[:2])
+                + ". No se publicó ningún resultado; para esos valores use transformar (Decimal).")
+        db.set_authorizer(lambda action, *_: sqlite3.SQLITE_OK if action in SQL_ALLOWED else sqlite3.SQLITE_DENY)
+    except BaseException:
+        db.close()
+        raise
+    return db, counts
+
+
+def _same_number(a, b):
+    return a == b or (isinstance(a, float) and isinstance(b, float) and math.isclose(a, b, rel_tol=1e-9))
+
+
+def _comparable(record, opts):
+    """Fila con los textos numéricos (según --decimal) llevados a float, para comparar dos ejecuciones."""
+    output = []
+    for value in record:
+        if isinstance(value, str):
+            try:
+                value = float(number(value, opts.decimal))
+            except ValueError:
+                pass
+        elif isinstance(value, int):
+            value = float(value)
+        output.append(value)
+    return output
 
 
 def query(tables, sql, numeric, opts):
@@ -362,51 +559,72 @@ def query(tables, sql, numeric, opts):
     known = {c for table in tables.values() for c in table.columns}
     if set(numeric) - known:
         raise ValueError("Columnas de --numeric inexistentes: " + ", ".join(sorted(set(numeric) - known)))
-
-    def quote(name):
-        return '"' + name.replace('"', '""') + '"'
-
     issues: list[dict] = []
-    not_numeric = 0
-    db = sqlite3.connect(":memory:")
+    for name, table in tables.items():
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,40}", name):
+            raise ValueError("Nombre de tabla: letras ASCII, dígitos y guion bajo, sin empezar por dígito")
+        if not table.columns:
+            raise ValueError(f"La tabla {name} no tiene encabezado legible")
+        issues.extend(table.issues)
+    declared = {(name.lower(), c.lower()) for name, table in tables.items() for c in table.columns if c in numeric}
+    read: set[tuple[str, str]] = set()
+
+    def authorize(action, first, second, *_):
+        if action == sqlite3.SQLITE_READ and first and second:
+            read.add((first.lower(), second.lower()))
+        return sqlite3.SQLITE_OK if action in SQL_ALLOWED else sqlite3.SQLITE_DENY
+
     try:
-        for name, table in tables.items():
-            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,40}", name):
-                raise ValueError("Nombre de tabla: letras ASCII, dígitos y guion bajo, sin empezar por dígito")
-            if not table.columns:
-                raise ValueError(f"La tabla {name} no tiene encabezado legible")
-            issues.extend(table.issues)
-            db.execute("CREATE TABLE {} ({})".format(quote(name), ", ".join(
-                quote(c) + (" REAL" if c in numeric else " TEXT") for c in table.columns)))
-            rows = []
-            for row in table.rows:
-                values = []
-                for col in table.columns:
-                    value = row[col]
-                    if col in numeric:
-                        try:
-                            value = None if empty(value) else float(number(value, opts.decimal))
-                        except ValueError:
-                            value = None
-                            not_numeric += 1
-                    values.append(value)
-                rows.append(values)
-            db.executemany("INSERT INTO {} VALUES ({})".format(quote(name), ", ".join("?" * len(table.columns))), rows)
-        db.set_authorizer(lambda action, *_: sqlite3.SQLITE_OK if action in SQL_ALLOWED else sqlite3.SQLITE_DENY)
-        cursor = db.execute(sql)
-        if cursor.description is None:
-            raise ValueError("Solo se admite una consulta SELECT")
-        names: list[str] = []
-        for item in cursor.description:
-            base = item[0] or "columna"
-            name, n = base, 2
-            while name in names:
-                name, n = f"{base}_{n}", n + 1
-            names.append(name)
-        output = [dict(zip(names, [format(v, ".12g") if isinstance(v, float) else literal(v) for v in record], strict=True))
-                  for record in cursor]
+        db, counts = _load(tables, declared, opts, strict=True)
+        try:
+            db.set_authorizer(authorize)
+            cursor = db.execute(sql)
+            if cursor.description is None:
+                raise ValueError("Solo se admite una consulta SELECT")
+            names: list[str] = []
+            for item in cursor.description:
+                base = item[0] or "columna"
+                name, n = base, 2
+                while name in names:
+                    name, n = f"{base}_{n}", n + 1
+                names.append(name)
+            records = cursor.fetchall()
+        finally:
+            db.close()
     except sqlite3.Error as exc:
         raise ValueError("SQL no válido o no permitido: " + str(exc)[:160]) from exc
-    finally:
-        db.close()
-    return {"validos": Table(names, output)}, issues, {"filas_salida": len(output), "valores_no_numericos": not_numeric}
+    # Un resultado infinito o NaN no tiene texto decimal: se rechaza en vez de publicarlo.
+    bad = sorted({names[i][:40] for record in records for i, v in enumerate(record)
+                  if isinstance(v, float) and not math.isfinite(v)})
+    if bad:
+        raise ValueError("El resultado tiene valores fuera del rango representable (desbordamiento) en: "
+                         + ", ".join(bad[:5]) + ". No se publicó ningún resultado; para sumas exactas use transformar.")
+    output = [dict(zip(names, [real_text(v) if isinstance(v, float) else literal(v) for v in record], strict=True))
+              for record in records]
+    # Protección ante la omisión de --numeric: si la consulta lee columnas de texto con decimales,
+    # se repite con ellas como número. Un resultado distinto significa que SQLite las usó como
+    # texto en un cálculo, comparación u orden. No se analiza el SQL ni se cambia lo publicado.
+    suspects = sorted(_decimal_text_columns(tables, numeric, opts, read))
+    undeclared: list[str] = []
+    if suspects:
+        try:
+            shadow, _ = _load(tables, declared | set(suspects), opts, strict=False)
+            try:
+                other = shadow.execute(sql).fetchall()
+            finally:
+                shadow.close()
+            same = len(other) == len(records) and all(
+                len(a) == len(b) and all(_same_number(x, y) for x, y in zip(_comparable(a, opts), _comparable(b, opts), strict=True))
+                for a, b in zip(records, other, strict=True))
+        except (sqlite3.Error, ValueError, OverflowError):
+            same = False
+        if not same:
+            originals = {(n.lower(), c.lower()): c for n, table in tables.items() for c in table.columns}
+            undeclared = sorted({originals[key] for key in suspects})
+
+    def total(state):
+        return sum(n for key, n in counts.items() if key[0] == state)
+
+    return {"validos": Table(names, output)}, issues, {
+        "filas_salida": len(output), "valores_no_numericos": total("no_numerico"),
+        "valores_redondeados": total("redondeo"), "columnas_sin_numeric": undeclared}

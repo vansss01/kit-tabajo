@@ -49,6 +49,18 @@ assert result_rows == [{"equipo": "0007", "ordenes": "2", "horas_totales": "5.5"
                        {"equipo": "0042", "ordenes": "1", "horas_totales": "4.0"}]
 run("exportar", transformed / "validos.json")
 run("exportar", examples / "con incidencias.csv", "--rules", examples / "reglas.json", expected=1)
+# Receta: los mismos pasos en un solo comando, con manifiesto. Valores calculados a mano.
+recipe = subprocess.run([sys.executable, "-B", str(ROOT / "kit.py"), "ejecutar", str(examples / "con incidencias.csv"),
+                         "--receta", str(ROOT / "recetas" / "revision_ordenes.json"), "--json"],
+                        cwd=ROOT, text=True, capture_output=True, encoding="utf-8")
+assert recipe.returncode == 1, recipe.stdout + recipe.stderr
+recipe_summary = json.loads(recipe.stdout)
+manifest = json.loads(Path(recipe_summary["manifiesto"]).read_text(encoding="utf-8"))
+assert manifest["estado"] == "completada_con_incidencias"
+assert [p["filas"] for p in recipe_summary["pasos"]][1] == {"aceptadas": 1, "rechazadas": 2, "incidencias": 6}
+assert manifest["pasos"][3]["salidas"]["aceptadas"]["validada"] is True
+assert manifest["pasos"][3]["salidas"]["resumen"]["validada"] is False
+print(f"ejecutar: {manifest['estado']} ({len(manifest['pasos'])} pasos)")
 for path, digest in originals.items():
     assert hashlib.sha256(Path(path).read_bytes()).hexdigest() == digest
 last = Path(runs[-1]["ruta_resultados"])

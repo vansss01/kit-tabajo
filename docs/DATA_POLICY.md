@@ -59,6 +59,13 @@ Los resultados numéricos se guardan como cadenas decimales con punto, sin pérd
 float/JSON/Excel. Tras convertir una columna a número, pasos posteriores deben indicar
 `decimal: "."` si la entrada original usaba coma. No se adivinan convenciones mixtas.
 
+Excepción: `consultar` calcula con SQLite REAL (punto flotante, 15–17 cifras significativas), no
+con Decimal. Su salida mantiene el mismo contrato de texto decimal con punto y sin exponente,
+sin redondeo añadido por el kit, pero los cálculos SQL no son exactos al dígito: para sumas
+exactas usar `transformar`. Infinitos y entradas no nulas que quedarían en cero son error
+(código 2, sin tabla publicada); una celda vacía es NULL y un texto no numérico es NULL con
+advertencia. Detalle y protección ante la omisión de `--numeric`: `tools/consultar.md`.
+
 Fechas requieren representación exacta del formato indicado; por defecto `%Y-%m-%d`.
 `03/04/2026` no es una fecha ISO válida. No se interpreta automáticamente como DMY/MDY.
 La validación interpreta sin modificar. La comparación es textual exacta: `2,0` y `2,00`
@@ -67,7 +74,8 @@ Claves vacías o repetidas bloquean toda la comparación. No se elige una fila a
 
 Una transformación con conversión/filtro numérico inválido falla completa con código 2,
 sin publicar una tabla transformada parcial. No existe `eval`, expresiones de Python,
-SQL, scripts, importaciones ni filtros ejecutables en los planes.
+SQL, scripts, importaciones ni filtros ejecutables en los planes. El único SQL es el de
+`consultar`: una sentencia de solo lectura sobre una copia en memoria.
 
 ## Salidas, registros y privacidad
 
@@ -90,7 +98,9 @@ hashes, conteos y comprobación de entradas antes/después. Las configuraciones 
 identifican por ruta y hash; no se copian sus posibles valores sensibles al registro.
 Para reproducir, conserva las entradas y configuraciones originales y verifica sus hashes.
 Versiona código y reglas de ejemplo, no datos reales. Los detalles/muestras/diferencias
-sí contienen datos y requieren el cuidado habitual del usuario.
+sí contienen datos y requieren el cuidado habitual del usuario. El resumen de terminal no
+muestra valores de celdas, salvo `consultar`, que imprime filas del resultado (`--show 0` las
+oculta de la terminal, no de los archivos); `--verbose` añade detalle acotado.
 
 Las operaciones completas y exportaciones mantienen datos en RAM. JSON se carga completo
 incluso con `--limit`. CSV/XLSX limitan filas cargadas al inspeccionar con límite, pero no

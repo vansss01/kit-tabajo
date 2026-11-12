@@ -14,6 +14,7 @@ Opciones comunes: `--delimiter`, `--encoding`, `--decimal`, `--date-format`, `--
 | transformar: plan declarativo | operations.py:transform | --plan JSON | [transformación](tools/transformar.md) |
 | exportar: CSV/JSON/Excel | tableio.py; cli.py:execute | --rules opcional, --format, --safe-csv | [exportación](tools/exportar.md) |
 | consultar: SQL solo lectura | operations.py:query | --sql, --tabla N=ARCHIVO, --numeric, --show | [consulta](tools/consultar.md) |
+| ejecutar: receta de pasos | recetas.py | --receta JSON, --entrada N=ARCHIVO, --vista-previa | [recetas](tools/ejecutar.md) |
 | bitacora: diario e informe | bitacora.py | texto, --horas, --etiqueta, --ver, --informe | [bitácora](tools/bitacora.md) |
 | limpiar: ejecuciones antiguas | cli.py:clean | --keep N, --apply (sin él no borra) | [limpieza](tools/limpiar.md) |
 
@@ -36,6 +37,8 @@ python -B kit.py exportar 'examples/con incidencias.csv' --delimiter ';' --rules
 Tablas grandes: `exportar --format csv` evita el XLSX, que es lo más lento.
 Datos mineros ficticios y ejercicios con respuesta: `examples/minera/`, `docs/EJERCICIOS.md`
 (material de estudio; no hace falta leerlo para trabajar). `consultar` muestra valores de
-celdas en la terminal: con datos sensibles usar `--show 0`.
+celdas en la terminal: con datos sensibles usar `--show 0` (los archivos siguen conteniéndolos).
+Para calcular con SQL declarar `--numeric`; sin él puede avisar `resultado_depende_de_texto_sin_numeric`.
+Sumas exactas al dígito: `transformar`. Límites numéricos: manual de consulta.
 Flujo comprobado con aserciones: `python -B scripts/demo.py`.
 Verificación completa: `python -B scripts/check.py`.

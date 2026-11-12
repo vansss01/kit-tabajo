@@ -79,10 +79,12 @@ terminal es siempre UTF-8. En Windows se usan los mismos CSV/JSON/XLSX.
 | `transformar` | Selección, filtros, orden, agrupación, conversión y deduplicación explícitas |
 | `exportar` | CSV, JSON y XLSX con resultados, incidencias y resumen separados |
 | `consultar` | Consultas SQL de solo lectura sobre una o varias tablas |
+| `ejecutar` | Receta JSON: repite en orden pasos de los comandos anteriores, con manifiesto de estado |
 | `bitacora` | Anotaciones diarias de la práctica y borrador del informe |
 | `limpiar` | Lista o borra (`--apply`) ejecuciones y registros antiguos |
 
-Para aprender: [ejercicios con datos mineros ficticios](docs/EJERCICIOS.md).
+Para aprender: [ejercicios con datos mineros ficticios](docs/EJERCICIOS.md) y
+[qué resuelve cada función nueva](docs/APRENDER.md).
 
 Lee [el índice compacto](docs/TOOLS_INDEX.md) y solo el manual de la herramienta
 necesaria. `python -B kit.py SUBCOMANDO --help` describe sus opciones.
@@ -115,7 +117,8 @@ ejecución fallida; no reutilices sus tablas. No se reemplaza ningún resultado 
 `--output` solo admite carpetas **dentro del proyecto**, incluso tras resolver enlaces.
 
 La salida normal es compacta. `--json` entrega un único objeto resumen en stdout;
-incluye conteos por código de incidencia y nombres de columnas, nunca valores de celdas.
+incluye conteos por código de incidencia y nombres de columnas, sin valores de celdas. Excepción:
+`consultar` muestra filas del resultado; `--show 0` las oculta de la terminal (no de los archivos).
 `--verbose` agrega detalle acotado. La ayuda y los errores de sintaxis de argparse son
 texto y usan el código 2. Los detalles completos se consultan en los archivos.
 

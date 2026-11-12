@@ -16,6 +16,8 @@
 6. Separar inspección, validación y transformación. Preservar códigos y ceros;
    pedir formato explícito si una fecha es ambigua. Revisar código de salida:
    0 correcto, 1 incidencias/advertencias, 2 error. No tratar 1 como éxito total.
+   En `ejecutar`, revisar `manifiesto.json`: solo `completada*` es un flujo terminado.
+   Usar `--vista-previa` antes de ejecutar una receta nueva; no valida datos.
 7. Preferir `--json`: su resumen suele bastar; leer `report.json` selectivamente. No imprimir archivos
    completos, credenciales, valores sensibles ni listados masivos. `--verbose` tiene
    límites; archivos de detalle y registros permanecen locales.
