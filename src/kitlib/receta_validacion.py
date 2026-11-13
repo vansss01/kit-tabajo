@@ -5,7 +5,7 @@ import json
 from dataclasses import replace
 from pathlib import Path
 
-from kitlib.operations import DECIMALS, check_plan, validate_config
+from kitlib.operations import DECIMALS, SQL_TYPES, check_plan, validate_config
 from kitlib.receta_modelo import (CODE, COMMON, CONSERVAR, EMPATE, ENTRY_KEYS, EXCLUSION_TESTS, EXISTENTES,
                                   FORMATS, INCIDENCIAS, NAME, OUTPUTS, PARAMS, READ_OPTIONS, RESERVED,
                                   SAMPLE_MAX, SEPARABLE, SQL_NAME, TOP_KEYS, TRAZA, VERSION, Entry, Recipe,
@@ -304,6 +304,21 @@ def cargar_receta(path, principal=None, overrides=None, principal_opcional=False
             numeric = spec.get("numeric", [])
             if not isinstance(numeric, list) or not all(isinstance(c, str) and c for c in numeric):
                 errors.append(error("parametro_invalido", "numeric: lista de columnas", name, "numeric"))
+            tipos = spec.get("tipos", {})
+            if not isinstance(tipos, dict) or not all(
+                    isinstance(cols, dict) and cols and all(isinstance(c, str) and c and k in SQL_TYPES
+                                                            for c, k in cols.items()) for cols in tipos.values()):
+                errors.append(error("parametro_invalido", "tipos: {tabla: {columna: number|string}}", name, "tipos",
+                                    'Ejemplo: {"t": {"horas": "number"}, "flota": {"equipo": "string"}}'))
+            elif isinstance(spec.get("tablas"), dict) and set(tipos) - set(spec["tablas"]):
+                errors.append(error("parametro_invalido", "tipos nombra tablas que no están en tablas: "
+                                    + ", ".join(sorted(set(tipos) - set(spec["tablas"])))[:120], name, "tipos"))
+            if not isinstance(spec.get("detector", True), bool):
+                errors.append(error("parametro_invalido", "detector debe ser true o false", name, "detector"))
+            limit = spec.get("detector_max_filas", 1)
+            if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1:
+                errors.append(error("parametro_invalido", "detector_max_filas: entero de 1 o más", name,
+                                    "detector_max_filas"))
         if op == "transformar" and spec.get("traza", "resumida") not in TRAZA:
             errors.append(error("parametro_invalido", "traza: \"resumida\" o \"detallada\"", name, "traza"))
         if op == "inspeccionar":

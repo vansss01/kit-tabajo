@@ -11,7 +11,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from kitlib import __version__, bitacora, contrato, receta_cli
-from kitlib.operations import compare, inspect_table, merge_tables, query, query_warnings, transform, validate
+from kitlib.operations import DETECTOR_MAX_ROWS, compare, inspect_table, merge_tables, query, query_warnings, transform, validate
 from kitlib.receta_modelo import error
 from kitlib.runtime import ROOT, KitError, error_info, inside, public_message
 from kitlib.tableio import (Options, Table, csv_write, excel_write, fingerprint,
@@ -65,8 +65,16 @@ def parser():
             cmd.add_argument("--tabla", action="append", default=[], metavar="NOMBRE=ARCHIVO",
                              help="Tabla adicional para JOIN; repetible")
             cmd.add_argument("--numeric", nargs="+", default=[], metavar="COLUMNA",
-                             help="Columnas a cargar como número según --decimal; el resto es texto. "
-                                  "Necesario para sumar, comparar u ordenar medidas")
+                             help="Columnas a cargar como número según --decimal en todas las tablas que las "
+                                  "tengan; el resto es texto. Necesario para sumar, comparar u ordenar medidas")
+            cmd.add_argument("--tipo", action="append", default=[], metavar="TABLA.COLUMNA=TIPO",
+                             help="Tipo explícito de una columna de una tabla: number o string; repetible")
+            cmd.add_argument("--detector-texto-numerico", choices=["si", "no"], default="si",
+                             help="Repetir la consulta con columnas de texto con decimales como número y avisar si "
+                                  "el resultado cambia (heurístico; no valida el SQL)")
+            cmd.add_argument("--detector-max-filas", type=int, default=DETECTOR_MAX_ROWS,
+                             help=f"Filas totales máximas para el detector ({DETECTOR_MAX_ROWS}); por encima avisa "
+                                  "detector_texto_numerico_omitido")
             cmd.add_argument("--show", type=int, default=20, help="Filas del resultado a mostrar en la terminal (0–100); 0 las oculta, los archivos no cambian")
         if name == "exportar":
             cmd.add_argument("--format", choices=["all", "xlsx", "csv", "json"], default="all")
@@ -150,6 +158,19 @@ def consolidate(paths, opts):
     return {"validos": output}, issues, warnings, {**details, "filas_analizadas": scanned}
 
 
+def sql_types(items):
+    """--tipo TABLA.COLUMNA=number|string → {(tabla, columna): tipo}."""
+    found: dict[tuple[str, str], str] = {}
+    for item in items:
+        target, sep, kind = item.rpartition("=")
+        table, dot, column = target.partition(".")
+        if not sep or not dot or not table or not column or kind not in ("number", "string") or (table, column) in found:
+            raise KitError("--tipo requiere TABLA.COLUMNA=number o TABLA.COLUMNA=string, sin repetir", "--tipo",
+                           "Ejemplo: --tipo t.horas=number --tipo flota.codigo=string")
+        found[table, column] = kind
+    return found
+
+
 def delimiter_hint(header, current):
     """Opción sugerida a partir del encabezado; no se relee ni se adivina el contenido."""
     best = max((d for d in ";,\t|" if d != current), key=header.count)
@@ -213,6 +234,8 @@ def execute(args):
     opts = Options(args.delimiter, args.encoding, args.decimal, args.date_format, args.sheet)
     extra_tables: list[tuple[str, Path]] = []
     if args.command == "consultar":
+        if args.detector_max_filas < 1:
+            raise KitError("--detector-max-filas debe ser 1 o más", "--detector-max-filas")
         if not 0 <= args.show <= 100:
             raise KitError("--show debe estar entre 0 y 100", "--show")
         for item in args.tabla:
@@ -268,7 +291,9 @@ def execute(args):
                     loaded[name] = read_table(location, opts)
                     processed += loaded[name].scanned
                     warnings.extend({"origen": loaded[name].source, "codigo": w} for w in loaded[name].warnings)
-                tables, issues, details = query(loaded, args.sql, set(args.numeric), opts)
+                tables, issues, details = query(loaded, args.sql, set(args.numeric), opts, None,
+                                                sql_types(args.tipo), args.detector_texto_numerico == "si",
+                                                args.detector_max_filas)
                 warnings.extend(query_warnings(details, table.source))
             elif args.command == "comparar":
                 after = read_table(args.after, replace(opts, sheet=args.after_sheet or opts.sheet))

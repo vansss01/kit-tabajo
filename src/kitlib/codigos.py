@@ -84,6 +84,8 @@ INCIDENCIAS = {
 ADVERTENCIAS = {
     "celdas_con_error_excel": "El libro trae celdas con error (#N/A…)",
     "codigos_numericos_con_formato_de_ceros_no_recuperado": "Números con formato 0000: los ceros no se recuperan",
+    "detector_texto_numerico_omitido": "consultar: el detector de texto numérico no se ejecutó por superar su límite "
+                                       "de filas; declare tipos (--tipo o --numeric)",
     "formulas_leidas_como_texto_no_evaluadas": "Fórmulas leídas como texto, sin calcular",
     "macros_no_ejecutadas_ni_conservadas": "Libro XLSM: macros ignoradas",
     "numeros_redondeados_por_precision_real": "consultar: un número no cabe exacto en REAL (15–17 cifras)",

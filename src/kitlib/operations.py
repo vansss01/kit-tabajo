@@ -8,6 +8,7 @@ from dataclasses import replace
 from decimal import Decimal, localcontext
 from typing import Any
 
+from kitlib.runtime import KitError
 from kitlib.tableio import ORIGEN, Table, convert, empty, infer, issue, literal, number, public_row, real_text
 
 # Definiciones compartidas por la validación de reglas y planes y por los esquemas (esquemas.py).
@@ -724,6 +725,9 @@ def query_warnings(details, source):
     if details["columnas_sin_numeric"]:
         found.append({"origen": source, "codigo": "resultado_depende_de_texto_sin_numeric",
                       "columnas": details["columnas_sin_numeric"]})
+    if details.get("detector_omitido_filas"):
+        found.append({"origen": source, "codigo": "detector_texto_numerico_omitido",
+                      "filas": details["detector_omitido_filas"]})
     return found
 
 
@@ -835,7 +839,11 @@ def _comparable(record, opts):
     return output
 
 
-def query(tables, sql, numeric, opts, trace=None):
+SQL_TYPES = ("number", "string")
+DETECTOR_MAX_ROWS = 200_000  # filas (todas las tablas) por encima de las cuales el detector no se ejecuta
+
+
+def query(tables, sql, numeric, opts, trace=None, types=None, detector=True, detector_max_rows=DETECTOR_MAX_ROWS):
     """Una consulta SELECT sobre tablas cargadas en SQLite en memoria; nada se escribe ni se adjunta.
     trace (solo recetas) recibe las tablas que la consulta leyó; el uso suelto no cambia su salida."""
     if not isinstance(sql, str) or not sql.strip():
@@ -851,6 +859,16 @@ def query(tables, sql, numeric, opts, trace=None):
             raise ValueError(f"La tabla {name} no tiene encabezado legible")
         issues.extend(table.issues)
     declared = {(name.lower(), c.lower()) for name, table in tables.items() for c in table.columns if c in numeric}
+    # Tipos explícitos por tabla y columna: --tipo t.horas=number solo afecta a esa columna de esa tabla.
+    as_text: set[tuple[str, str]] = set()
+    for (name, col), kind in (types or {}).items():
+        if name not in tables or col not in tables[name].columns or kind not in SQL_TYPES:
+            raise KitError(f"Tipo para una columna inexistente o tipo no admitido: {name[:40]}.{col[:40]}", "--tipo",
+                           "Use TABLA.COLUMNA=number|string con nombres exactos", codigo="columnas_incompatibles")
+        (declared if kind == "number" else as_text).add((name.lower(), col.lower()))
+    if declared & as_text:
+        raise KitError("Una columna está declarada a la vez como número y como texto", "--tipo",
+                       "Quítela de --numeric o cambie su --tipo")
     read: set[tuple[str, str]] = set()
 
     def authorize(action, first, second, *_):
@@ -888,7 +906,12 @@ def query(tables, sql, numeric, opts, trace=None):
     # Protección ante la omisión de --numeric: si la consulta lee columnas de texto con decimales,
     # se repite con ellas como número. Un resultado distinto significa que SQLite las usó como
     # texto en un cálculo, comparación u orden. No se analiza el SQL ni se cambia lo publicado.
-    suspects = sorted(_decimal_text_columns(tables, numeric, opts, read))
+    # Detector de texto numérico (heurístico, no valida el SQL): solo columnas sin tipo declarado y solo si
+    # el total de filas no supera detector_max_rows; si lo supera, no se repite la consulta y se avisa.
+    suspects = sorted(_decimal_text_columns(tables, numeric, opts, read) - declared - as_text) if detector else []
+    skipped = 0
+    if suspects and sum(len(t.rows) for t in tables.values()) > detector_max_rows:
+        skipped, suspects = sum(len(t.rows) for t in tables.values()), []
     undeclared: list[str] = []
     if suspects:
         try:
@@ -913,4 +936,5 @@ def query(tables, sql, numeric, opts, trace=None):
         trace["tablas_leidas"] = sorted({t for t, _ in read})
     return {"validos": Table(names, output)}, issues, {
         "filas_salida": len(output), "valores_no_numericos": total("no_numerico"),
-        "valores_redondeados": total("redondeo"), "columnas_sin_numeric": undeclared}
+        "valores_redondeados": total("redondeo"), "columnas_sin_numeric": undeclared,
+        **({"detector_omitido_filas": skipped} if skipped else {})}

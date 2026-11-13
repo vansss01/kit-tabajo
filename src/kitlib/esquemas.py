@@ -6,7 +6,7 @@ tablas evita una segunda lista de lo admitido. tests/test_esquemas.py comprueba 
 esquema y validador aceptan y rechazan lo mismo, salvo las REGLAS_SEMANTICAS listadas aquí.
 Publicados en schemas/*.schema.json (`python -B scripts/esquemas.py` los regenera).
 """
-from kitlib.operations import (AGGREGATES, CASES, DECIMALS, FILTER_OPERATORS, RULE_KEYS, SCHEMAS, TYPES,
+from kitlib.operations import (AGGREGATES, CASES, DECIMALS, FILTER_OPERATORS, RULE_KEYS, SCHEMAS, SQL_TYPES, TYPES,
                                UNKNOWN_VALUES)
 from kitlib.receta_modelo import (CODE, COMMON, CONSERVAR, EMPATE, ENTRY_KEYS, EXCLUSION_TESTS, EXISTENTES,
                                   FORMATS, INCIDENCIAS, NAME, PARAMS, READ_OPTIONS, RESERVED, SAMPLE_MAX,
@@ -42,7 +42,8 @@ REGLAS_SEMANTICAS = {
     "archivos_de_configuracion": ("reglas o plan dados como ruta: existir y ser válidos",
                                   "receta_validacion._config", "archivo_no_encontrado, configuracion_invalida"),
     "parametros_relacionados": ("completar: clave y clave_referencia del mismo largo; duplicados: fecha solo y "
-                                "siempre con mas_reciente, empate solo con mas_reciente",
+                                "siempre con mas_reciente, empate solo con mas_reciente; consultar: tipos solo "
+                                "de tablas presentes en tablas",
                                 "receta_validacion.cargar_receta", "parametro_invalido, parametro_ausente"),
     "plan_relacionados": ("filter contains requiere type string; sum/mean/min/max requieren column; alias de "
                           "agregado únicos y distintos de by; rename sin dos destinos iguales",
@@ -111,6 +112,10 @@ def _recipe_field(op, key):
         "reglas": {"oneOf": [{"$ref": "#/$defs/reglas"}, NONEMPTY]},
         "plan": {"oneOf": [{"$ref": "#/$defs/plan"}, NONEMPTY]}, "traza": {"enum": list(TRAZA)},
         "sql": TEXT, "numeric": {"type": "array", "items": NONEMPTY},
+        "tipos": {"type": "object", "propertyNames": {"pattern": _pattern(SQL_NAME)}, "additionalProperties": {
+            "type": "object", "minProperties": 1, "propertyNames": {"minLength": 1},
+            "additionalProperties": {"enum": list(SQL_TYPES)}}},
+        "detector": {"type": "boolean"}, "detector_max_filas": {"type": "integer", "minimum": 1},
         "entradas": {"type": "array", "minItems": 1, "items": REF},
         "clave": COLUMNS, "clave_referencia": COLUMNS, "columnas": COLUMNS, "comparar": COLUMNS,
         "formatos": {"type": "array", "minItems": 1, "uniqueItems": True, "items": {"enum": sorted(FORMATS)}},

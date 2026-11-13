@@ -15,7 +15,7 @@ códigos estables en `CODIGOS.md` y en `./kit catalogo`. La salida de texto no c
 | validar: reglas sin corregir | operations.py:validate | --rules JSON | [validación](tools/validar.md) |
 | transformar: plan declarativo (también rename, normalize, replace) | operations.py:transform | --plan JSON | [transformación](tools/transformar.md) |
 | exportar: CSV/JSON/Excel | tableio.py; cli.py:execute | --rules opcional, --format, --safe-csv | [exportación](tools/exportar.md) |
-| consultar: SQL solo lectura | operations.py:query | --sql, --tabla N=ARCHIVO, --numeric, --show | [consulta](tools/consultar.md) |
+| consultar: SQL solo lectura | operations.py:query | --sql, --tabla N=ARCHIVO, --tipo T.COL=number o string, --numeric, --show, --detector-texto-numerico, --detector-max-filas | [consulta](tools/consultar.md) |
 | ejecutar: receta de pasos con trazabilidad; pasos completar y duplicados; títulos y pies | recetas.py (ejecución), receta_modelo/validacion/vista/cli.py, traza.py | --receta JSON, --entrada N=ARCHIVO, --vista-previa | [recetas](tools/ejecutar.md) |
 | bitacora: diario e informe | bitacora.py | texto, --horas, --etiqueta, --ver, --informe | [bitácora](tools/bitacora.md) |
 | limpiar: ejecuciones antiguas | cli.py:clean | --keep N, --apply (sin él no borra) | [limpieza](tools/limpiar.md) |

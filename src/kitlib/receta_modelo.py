@@ -24,7 +24,7 @@ PARAMS: dict[str, tuple[set[str], set[str]]] = {  # operación: (permitidos, obl
     "inspeccionar": ({"entrada", "sample"}, {"entrada"}),
     "validar": ({"entrada", "reglas"}, {"entrada", "reglas"}),
     "transformar": ({"entrada", "plan", "traza"}, {"entrada", "plan"}),
-    "consultar": ({"tablas", "sql", "numeric"}, {"tablas", "sql"}),
+    "consultar": ({"tablas", "sql", "numeric", "tipos", "detector", "detector_max_filas"}, {"tablas", "sql"}),
     "consolidar": ({"entradas"}, {"entradas"}),
     "comparar": ({"antes", "despues", "clave"}, {"antes", "despues", "clave"}),
     "exportar": ({"tablas", "formatos", "archivo", "safe_csv"}, {"tablas"}),

@@ -12,15 +12,21 @@ Carga las tablas en una base SQLite en memoria y ejecuta **una** consulta `SELEC
 La entrada se llama `t` (`--name` la renombra); `--tabla NOMBRE=ARCHIVO` agrega otras para `JOIN`.
 
 - Todas las columnas son texto, igual que en el resto del kit: `'0007'` conserva sus ceros y
-  `'10' < '9'` como texto. Para sumar, promediar, comparar u ordenar numéricamente **declara las
-  columnas con `--numeric col1 col2`**; se interpretan con `--decimal`. Una celda vacía queda `NULL`
-  sin aviso; un texto no numérico queda `NULL` con `valores_no_numericos_cargados_como_null` (código 1).
+  `'10' < '9'` como texto. Para sumar, promediar, comparar u ordenar numéricamente **declara el tipo**:
+  - `--tipo TABLA.COLUMNA=number` (o `=string`), repetible: solo esa columna de esa tabla. Es lo
+    recomendado con varias tablas: `--tipo t.horas=number` no toca `flota.horas` si allí es un código.
+  - `--numeric col1 col2` (como siempre): esas columnas en **todas** las tablas que las tengan.
+  - En recetas: `"tipos": {"t": {"horas": "number"}, "flota": {"codigo": "string"}}`.
+  Los números se leen con `--decimal`. Nunca se convierten columnas sin declararlas (identificadores y
+  ceros iniciales intactos). Una celda vacía queda `NULL` sin aviso; un texto no numérico queda `NULL`
+  con `valores_no_numericos_cargados_como_null` (código 1). Una columna declarada número y texto a
+  la vez, o una columna o tabla inexistente en `--tipo`, es error (código 2).
 - Columnas con espacios o tildes van entre comillas dobles: `SELECT "año" FROM t`.
 - No se permite modificar, crear, adjuntar ni varias sentencias: responde error (código 2).
 
 `--show N` (20; 0–100) muestra las primeras filas en la terminal: **son valores de celdas**, también
 con `--json`. `--show 0` solo las oculta de la terminal: el resultado completo sigue guardado en
-`validos.csv` y `validos.json`, que requieren el mismo cuidado.
+`validos.csv` y `validos.json`, que requieren el mismo cuidado. `--ocultar-valores` equivale a `--show 0`.
 
 ## Números: qué es exacto y qué no
 
@@ -38,14 +44,24 @@ con `--json`. `--show 0` solo las oculta de la terminal: el resultado completo s
   o un resultado infinito, es un error (código 2): el mensaje nombra tabla y columna sin mostrar
   celdas, no se publica ninguna tabla y la carpeta queda con `FAILED.json`. No se detecta un
   *resultado calculado* que se vuelve cero por ser demasiado pequeño (p. ej. `1e-200 * 1e-200`).
-- **Omisión de `--numeric`.** Sobre texto SQLite calcula mal sin avisar: `SUM` de `2,5` y `3,5` da 5,
-  `'10,5' < '9,5'` y `v > 3` compara letras. Protección: si la consulta lee una columna de texto
-  cuyos valores son en su mayoría números y alguno tiene decimales (sin códigos con ceros
-  iniciales), el kit la repite en memoria con esa columna como número; si el resultado cambia,
-  publica igualmente el resultado como texto, pero con la advertencia
-  `resultado_depende_de_texto_sin_numeric` (código 1) y la sugerencia `--numeric columna`.
-  No analiza el SQL. Alcance: no avisa por columnas solo de enteros (su `SUM` es correcto, pero
-  orden, `MAX` y comparaciones siguen siendo de texto), ni con mayoría de valores no numéricos.
-  Falsos positivos: tratar a propósito como texto una columna con decimales (`LENGTH(v)`,
-  `v || ' h'`, `v = '2,50'`), funciones aleatorias, u orden distinto de filas sin `ORDER BY`.
-  La repetición duplica tiempo y memoria solo en ese caso.
+- **Detector de texto numérico** (cuando falta el tipo). Sobre texto SQLite calcula mal sin avisar:
+  `SUM` de `2,5` y `3,5` da 5, `'10,5' < '9,5'` y `v > 3` compara letras. Si la consulta lee una
+  columna **sin tipo declarado** cuyos valores son en su mayoría números y alguno tiene decimales (sin
+  códigos con ceros iniciales), el kit repite la consulta en memoria con esa columna como número; si
+  el resultado cambia, publica el resultado como texto con la advertencia
+  `resultado_depende_de_texto_sin_numeric` (código 1) y la sugerencia de declararla.
+  - **No es una validación del SQL**: es una comparación heurística de dos ejecuciones. No avisa por
+    columnas solo de enteros (su `SUM` es correcto, pero orden, `MAX` y comparaciones siguen siendo
+    de texto) ni con mayoría de valores no numéricos. Falsos positivos: tratar a propósito como texto
+    una columna con decimales (`LENGTH(v)`, `v || ' h'`), funciones aleatorias, u orden distinto de
+    filas sin `ORDER BY` (declara `=string` para silenciarlo a sabiendas).
+  - **Coste acotado**: la repetición duplica tiempo y memoria. Solo se hace si el total de filas de
+    todas las tablas de la consulta no supera `--detector-max-filas` (200 000 por defecto; en recetas
+    `detector_max_filas`). Por encima no se repite y se avisa `detector_texto_numerico_omitido`
+    (código 1): declara los tipos. Es un límite de filas, no de tiempo, para que el resultado sea
+    siempre el mismo.
+  - **Configurable**: `--detector-texto-numerico no` (recetas: `"detector": false`) lo apaga; es una
+    decisión explícita y no se avisa. Las columnas con tipo declarado nunca se revisan.
+  - Para el caso `2,5 + 3,5` la alternativa clara es declarar el tipo: `--tipo t.v=number` da 6.
+- **Exactitud.** SQLite REAL no es decimal exacto. Para sumas o medias exactas al dígito usa
+  `transformar` (op `group`, aritmética Decimal).

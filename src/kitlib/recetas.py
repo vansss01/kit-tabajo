@@ -20,7 +20,7 @@ from typing import Any
 from uuid import uuid4
 
 from kitlib import __version__, traza
-from kitlib.operations import (compare, inspect_table, merge_tables, query, query_warnings,
+from kitlib.operations import (DETECTOR_MAX_ROWS, compare, inspect_table, merge_tables, query, query_warnings,
                                enrich, new_trace, split_duplicates, transform, validate)
 from kitlib.runtime import ROOT, inside, public_message
 from kitlib.tableio import (ORIGEN, Table, atomic_json, csv_write, excel_write, fingerprint, json_write,
@@ -53,7 +53,10 @@ def _step_transformar(step, get):
 def _step_consultar(step, get):
     loaded = {alias: get(ref) for alias, ref in step.refs["tablas"].items()}
     trace: dict = {}
-    tables, issues, details = query(loaded, step.spec["sql"], set(step.spec.get("numeric", [])), step.opts, trace)
+    types = {(alias, col): kind for alias, cols in step.spec.get("tipos", {}).items() for col, kind in cols.items()}
+    tables, issues, details = query(loaded, step.spec["sql"], set(step.spec.get("numeric", [])), step.opts, trace,
+                                    types, step.spec.get("detector", True),
+                                    step.spec.get("detector_max_filas", DETECTOR_MAX_ROWS))
     return {"resultado": tables["validos"]}, issues, query_warnings(details, step.nombre), {**details, "_traza": trace}
 
 

@@ -26,6 +26,7 @@ ENCABEZADOS = ["tests.test_transformaciones.EncabezadosTests"]
 CONTRATO = ["tests.test_contrato"]
 ERRORES = ["tests.test_contrato.ErroresTests"]
 RESULTADOS = ["tests.test_contrato.ResultadosTests", "tests.test_contrato.PrivacidadTests"]
+SQL = ["tests.test_sql", "tests.test_esquemas"]
 ESQUEMAS = ["tests.test_esquemas.EquivalenciaTests.test_examples_and_valid_cases_pass_both",
             "tests.test_esquemas.EquivalenciaTests.test_invalid_cases_are_rejected_by_both_or_are_listed_semantic_rules"]
 MUTATIONS = [
@@ -237,6 +238,25 @@ MUTATIONS = [
      '    if args.ocultar_valores and args.command == "inspeccionar":\n        pass', RESULTADOS),
     ("receta ignora ocultar valores", "src/kitlib/receta_cli.py",
      '                step.spec = {**step.spec, "sample": 0}', "                pass", RESULTADOS),
+    # Etapa 4: SQL
+    ("tipo por tabla se aplica a todas", "src/kitlib/operations.py",
+     '(declared if kind == "number" else as_text).add((name.lower(), col.lower()))',
+     '(declared if kind == "number" else as_text).update((n.lower(), col.lower()) for n in tables)', SQL),
+    ("tipos ignorados", "src/kitlib/operations.py",
+     '(declared if kind == "number" else as_text).add((name.lower(), col.lower()))', "pass", SQL),
+    ("texto declarado sigue sospechoso", "src/kitlib/operations.py",
+     "_decimal_text_columns(tables, numeric, opts, read) - declared - as_text)",
+     "_decimal_text_columns(tables, numeric, opts, read) - declared)", SQL),
+    ("límite del detector invertido", "src/kitlib/operations.py",
+     "if suspects and sum(len(t.rows) for t in tables.values()) > detector_max_rows:",
+     "if suspects and sum(len(t.rows) for t in tables.values()) < detector_max_rows:", SQL),
+    ("detector omitido en silencio", "src/kitlib/operations.py",
+     '    if details.get("detector_omitido_filas"):', "    if False:", SQL),
+    ("detector no se puede apagar", "src/kitlib/operations.py",
+     "opts, read) - declared - as_text) if detector else []", "opts, read) - declared - as_text)", SQL),
+    ("receta admite tipos de tablas ausentes", "src/kitlib/receta_validacion.py",
+     'elif isinstance(spec.get("tablas"), dict) and set(tipos) - set(spec["tablas"]):', "elif False:", SQL),
+    ("número y texto a la vez", "src/kitlib/operations.py", "    if declared & as_text:", "    if False:", SQL),
 ]
 
 

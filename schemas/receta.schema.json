@@ -421,6 +421,13 @@
                   }
                 }
               },
+              "detector": {
+                "type": "boolean"
+              },
+              "detector_max_filas": {
+                "type": "integer",
+                "minimum": 1
+              },
               "numeric": {
                 "type": "array",
                 "items": {
@@ -441,6 +448,25 @@
                 },
                 "propertyNames": {
                   "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,40}$"
+                }
+              },
+              "tipos": {
+                "type": "object",
+                "propertyNames": {
+                  "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,40}$"
+                },
+                "additionalProperties": {
+                  "type": "object",
+                  "minProperties": 1,
+                  "propertyNames": {
+                    "minLength": 1
+                  },
+                  "additionalProperties": {
+                    "enum": [
+                      "number",
+                      "string"
+                    ]
+                  }
                 }
               }
             }
