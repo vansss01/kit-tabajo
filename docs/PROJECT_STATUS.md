@@ -11,6 +11,29 @@ Comandos: inspeccionar, comparar, consolidar, validar, transformar, exportar, co
 ejecutar, bitacora, limpiar, catalogo, comprobar, resultados. Recetas de ejemplo: `recetas/`
 (revisión de órdenes, consolidación de turnos, enriquecimiento con flota).
 
+## Garantías que el historial no acredita (declaradas en 1.5.1 tras la auditoría de 1.5.0)
+
+La auditoría independiente de la 1.5.0 (`docs/AUDITORIA_1.5.0.md`, hallazgo 3) señaló tres cosas que no se
+pueden demostrar desde este repositorio y que no se corrigen con código:
+
+- **Esperados de las recetas de ejemplo.** `examples/recetas/esperados/*.json` están en archivos propios y una
+  prueba (`tests/test_recetas_ejemplo.py`) ejecuta las recetas y los compara. El historial de Git **no demuestra**
+  que se escribieran antes que su comprobador ni independientemente de la salida del kit: el primer esperado y la
+  prueba entraron en el mismo commit (89abf8b) y los otros dos después (42ef457, 1e7f605). Lo único acreditado es
+  que coinciden con lo que el kit produce hoy. Por eso la documentación ya no dice «escritos a mano».
+- **No existe una instantánea 1.4.1.** Las correcciones de `consultar` descritas como 1.4.1 no tienen commit propio:
+  entraron con la etapa 1 de 1.5.0 (068e891, «sin commit previo», como dice su mensaje). La primera instantánea con
+  esas correcciones es 068e891, ya etiquetada 1.5.0-etapa1; la última versión auténtica anterior es 1.4.0 (71ce812).
+  Toda comparación «con 1.4.1» de esta documentación se hizo en realidad contra 068e891.
+- **Cambio de compatibilidad en tablas grandes (detector de texto numérico de `consultar`).** Desde 1.5.0-etapa4,
+  cuando el total de filas de todas las tablas de la consulta **supera 200 000** (`DETECTOR_MAX_ROWS`; es decir, a partir de
+  200 001 filas) el detector no se ejecuta: en vez del aviso `resultado_depende_de_texto_sin_numeric` con su
+  sugerencia `--numeric COLUMNA` y `columnas_sin_numeric`, se emite `detector_texto_numerico_omitido` con el conteo
+  `detector_omitido_filas`. El código de salida (1) y el resultado publicado no cambian; sí cambian la terminal,
+  `report.json` y `audit.json`. El revisor lo observó con 200 001 valores `2,5`. Para recuperar el comportamiento anterior:
+  `--detector-max-filas N` con N igual o mayor que el total de filas (en recetas, `detector_max_filas`), o,
+  mejor, declarar los tipos (`--tipo t.col=number`), con lo que no hay nada que detectar.
+
 ## Cambios de 1.5.0-etapa5 (auditoría, recetas de ejemplo, mediciones y cierre)
 
 - Auditoría de la etapa 4 contra lo pedido: todo estaba implementado y probado; lo único que faltaba
