@@ -23,6 +23,7 @@ REEMPLAZAR = ["tests.test_transformaciones.ReemplazarTests"]
 COMPLETAR = ["tests.test_transformaciones.CompletarTests"]
 DUPLICADOS = ["tests.test_transformaciones.DuplicadosTests"]
 ENCABEZADOS = ["tests.test_transformaciones.EncabezadosTests"]
+CONTRATO = ["tests.test_contrato"]
 ESQUEMAS = ["tests.test_esquemas.EquivalenciaTests.test_examples_and_valid_cases_pass_both",
             "tests.test_esquemas.EquivalenciaTests.test_invalid_cases_are_rejected_by_both_or_are_listed_semantic_rules"]
 MUTATIONS = [
@@ -182,6 +183,23 @@ MUTATIONS = [
     ("validador admite versión true", "src/kitlib/receta_validacion.py",
      'elif raw["version"] != VERSION or isinstance(raw["version"], bool):', 'elif raw["version"] != VERSION:',
      ESQUEMAS),
+    # Etapa 4: catálogo y comprobar
+    ("comprobar siempre válido", "src/kitlib/contrato.py", "    code = 2 if found else 0", "    code = 0", CONTRATO),
+    ("comprobar exige la entrada principal", "src/kitlib/receta_validacion.py",
+     "            continue  # comprobar sin datos", "            pass  # comprobar sin datos", CONTRATO),
+    ("catálogo con otra versión", "src/kitlib/contrato.py", '"version_kit": __version__,', '"version_kit": "x",',
+     CONTRATO),
+    ("comprobar confunde planes y reglas", "src/kitlib/contrato.py",
+     '        if "steps" in config:\n            return "plan"', '        if "steps" in config:\n            return "reglas"',
+     CONTRATO),
+    ("código sin registrar", "src/kitlib/codigos.py",
+     '    "valor_no_unico": "Valor repetido en una columna unique",\n', "", CONTRATO),
+    ("comprobar sin aviso de alcance", "src/kitlib/contrato.py",
+     '"version_esquema": SCHEMA_VERSION, "alcance": ALCANCE,', '"version_esquema": SCHEMA_VERSION, "alcance": "",',
+     CONTRATO),
+    ("catálogo pierde una operación", "src/kitlib/contrato.py",
+     "for op, (allowed, required) in PARAMS.items()},", "for op, (allowed, required) in PARAMS.items() if op != 'completar'},",
+     CONTRATO),
 ]
 
 

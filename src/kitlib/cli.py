@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from kitlib import __version__, bitacora, receta_cli
+from kitlib import __version__, bitacora, contrato, receta_cli
 from kitlib.operations import compare, inspect_table, merge_tables, query, query_warnings, transform, validate
 from kitlib.runtime import ROOT, inside, public_message
 from kitlib.tableio import (Options, Table, csv_write, excel_write, fingerprint,
@@ -77,6 +77,7 @@ def parser():
     cmd.set_defaults(verbose=False)
     bitacora.add_parser(sub)
     receta_cli.add_parser(sub)
+    contrato.add_parsers(sub)
     return p
 
 
@@ -363,6 +364,8 @@ def main(argv=None):
             return bitacora.run(args)
         if args.command == "ejecutar":
             return receta_cli.run(args)
+        if args.command in ("catalogo", "comprobar"):
+            return contrato.run(args, parser)
         return execute(args)
     except Exception as exc:
         # No volcar valores de celdas, configuraciones ni traceback por terminal.

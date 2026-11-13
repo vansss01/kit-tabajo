@@ -81,7 +81,7 @@ def _config(value, base, step, campo, errors):
     return None, None
 
 
-def cargar_receta(path, principal=None, overrides=None):
+def cargar_receta(path, principal=None, overrides=None, principal_opcional=False):
     """Comprueba y resuelve una receta sin leer datos. Lanza RecipeError con todos los errores."""
     path = Path(path).resolve()
     base = path.parent
@@ -157,6 +157,8 @@ def cargar_receta(path, principal=None, overrides=None):
         errors.append(error("entrada_desconocida", f"--entrada {name}: la receta no tiene esa entrada", None,
                             "--entrada", _near(name, entries)))
     for entry in entries.values():
+        if entry.ruta is None and principal_opcional and len(principals) == 1 and entry.nombre == principals[0]:
+            continue  # comprobar sin datos: el archivo principal se indica al ejecutar
         if entry.ruta is None:
             errors.append(error("entrada_sin_ruta", "La entrada no tiene archivo", None, f"entradas.{entry.nombre}",
                                 f"Añada \"ruta\" o use --entrada {entry.nombre}=ARCHIVO"))

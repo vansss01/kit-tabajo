@@ -17,6 +17,8 @@ Opciones comunes: `--delimiter`, `--encoding`, `--decimal`, `--date-format`, `--
 | ejecutar: receta de pasos con trazabilidad; pasos completar y duplicados; títulos y pies | recetas.py (ejecución), receta_modelo/validacion/vista/cli.py, traza.py | --receta JSON, --entrada N=ARCHIVO, --vista-previa | [recetas](tools/ejecutar.md) |
 | bitacora: diario e informe | bitacora.py | texto, --horas, --etiqueta, --ver, --informe | [bitácora](tools/bitacora.md) |
 | limpiar: ejecuciones antiguas | cli.py:clean | --keep N, --apply (sin él no borra) | [limpieza](tools/limpiar.md) |
+| catalogo: capacidades en JSON | contrato.py, codigos.py, esquemas.py | (sin opciones) | [catálogo y comprobar](tools/comprobar.md) |
+| comprobar: receta/plan/reglas sin ejecutar | contrato.py | --tipo, --principal, --json | [catálogo y comprobar](tools/comprobar.md) |
 
 El resumen `--json` ya trae `incidencias_por_codigo`, `advertencias_por_codigo`, `conteos` y,
 al inspeccionar, `tablas` (columnas por hoja). Abrir `report.json` solo si falta la fila exacta.

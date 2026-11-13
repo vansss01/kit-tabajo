@@ -29,3 +29,6 @@ existía con mensajes y códigos estables que agentes y pruebas usan.
 
 Otra diferencia: un número entero escrito con decimales (`"sample": 1.0`) es entero para JSON
 Schema, pero el kit lo rechaza; escribe enteros sin decimales.
+
+Comprobar una configuración sin ejecutar nada: `./kit comprobar ARCHIVO.json` (ver
+`tools/comprobar.md`). Catálogo de capacidades: `./kit catalogo`.
