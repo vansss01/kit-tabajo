@@ -267,10 +267,14 @@ class KitTests(unittest.TestCase):
     def test_cli_codes_and_invalid_arguments(self):
         p = self.csv("id\n001\n")
         self.assertEqual(self.cli("inspeccionar", p)["codigo_salida"], 0)
-        self.cli("inspeccionar", p, "--sample", "21", expected=2)
-        self.cli("exportar", self.folder / "inexistente.csv", expected=2)
-        self.cli("inspeccionar", self.csv("", "vacio.csv"), expected=1)
-        self.cli("inspeccionar", p, "--run-name", "NUL", expected=2)
+        sample = self.cli("inspeccionar", p, "--sample", "21", expected=2)["errores"][0]
+        self.assertEqual((sample["codigo"], sample["campo"]), ("argumento_invalido", "--sample"))
+        missing = self.cli("exportar", self.folder / "inexistente.csv", expected=2)
+        self.assertEqual(missing["errores"][0]["codigo"], "archivo_no_encontrado")
+        empty = self.cli("inspeccionar", self.csv("", "vacio.csv"), expected=1)
+        self.assertEqual((empty["filas_procesadas"], empty["incidencias_por_codigo"]), (0, {"archivo_vacio": 1}))
+        reserved = self.cli("inspeccionar", p, "--run-name", "NUL", expected=2)["errores"][0]
+        self.assertEqual((reserved["codigo"], reserved["campo"]), ("argumento_invalido", "--run-name"))
 
     def test_table_json_is_one_row_per_line_and_excel_keeps_error_like_text(self):
         table = Table(["id", "v"], [{"id": "001", "v": "#N/A"}, {"id": "002", "v": None}])
@@ -286,10 +290,34 @@ class KitTests(unittest.TestCase):
         self.assertEqual(back.warnings, [])
 
     def test_help_all_commands(self):
-        for command in ([], ["inspeccionar"], ["comparar"], ["consolidar"], ["validar"], ["transformar"], ["exportar"], ["limpiar"],
-                        ["consultar"], ["bitacora"]):
-            result = subprocess.run([sys.executable, "-B", str(ROOT / "kit.py"), *command, "--help"], capture_output=True)
-            self.assertEqual(result.returncode, 0)
+        """La ayuda de cada comando sale por stdout y nombra sus opciones (hallazgo 5 de la auditoría 1.5.0: antes
+        solo se miraba el código de salida y la prueba pasaba con la ayuda vacía). Textos esperados a mano."""
+        common = ["--delimiter", "--encoding", "--decimal", "--date-format", "--sheet", "--output", "--run-name",
+                  "--json", "--verbose", "--ocultar-valores"]
+        expected = {
+            (): ["inspeccionar", "comparar", "consolidar", "validar", "transformar", "exportar", "consultar", "ejecutar",
+                 "bitacora", "limpiar", "catalogo", "comprobar", "resultados", "Sin IA ni servicios externos"],
+            ("inspeccionar",): common + ["--sample", "--limit", "Filas de muestra"],
+            ("comparar",): common + ["after", "--key", "--after-sheet", "Una o más columnas clave"],
+            ("consolidar",): common + ["--glob", "--recursive", "--exclude"],
+            ("validar",): common + ["--rules", "Reglas JSON de validación"],
+            ("transformar",): common + ["--plan"],
+            ("exportar",): common + ["--rules", "--format", "--safe-csv"],
+            ("consultar",): common + ["--sql", "--tabla", "--tipo", "--numeric", "--show", "--detector-max-filas"],
+            ("ejecutar",): ["--receta", "--entrada", "--vista-previa", "--output", "--json", "--ocultar-valores"],
+            ("limpiar",): ["--keep", "--apply", "--json"],
+            ("bitacora",): ["--horas", "--etiqueta", "--ver", "--informe", "--desde", "--hasta"],
+            ("catalogo",): ["usage:"],
+            ("comprobar",): ["archivo", "--tipo", "--principal", "--json"],
+            ("resultados",): ["--paso", "--incidencias", "--n", "--json"],
+        }
+        for command, texts in expected.items():
+            result = subprocess.run([sys.executable, "-B", str(ROOT / "kit.py"), *command, "--help"], capture_output=True,
+                                    text=True, encoding="utf-8")
+            self.assertEqual((result.returncode, result.stderr), (0, ""), command)
+            self.assertTrue(result.stdout.startswith("usage: "), command)
+            for text in texts:
+                self.assertIn(text, result.stdout, command)
 
 
     def test_global_decimal_and_date_format_apply_to_bounds(self):

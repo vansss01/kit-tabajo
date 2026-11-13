@@ -50,6 +50,9 @@ MUTATIONS = [
      'broken = [c["regla"] for c in checks if not c["cumple"]]', "broken: list = []", TRAZA),
     ("convert no registra cambios", "src/kitlib/operations.py",
      "if trace is not None and row[col] != before:", "if False:", TRAZA),
+    # 1.5.1 (hallazgo 5): la ayuda debe tener contenido real
+    ("ayuda sin --rules", "src/kitlib/cli.py", 'required=name == "validar", help="Reglas JSON de validación")',
+     'required=name == "validar", help=argparse.SUPPRESS)', ["tests.test_kit.KitTests.test_help_all_commands"]),
     # Etapa 3: renombrar
     ("rename acepta dos salidas iguales", "src/kitlib/operations.py",
      "        if repeated:\n            raise ValueError(\"rename: dos columnas",
