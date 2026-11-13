@@ -83,8 +83,9 @@ pueden demostrar desde este repositorio y que no se corrigen con código:
 - Auditoría de la etapa 4 contra lo pedido: todo estaba implementado y probado; lo único que faltaba
   era documentar en `tools/validar.md` que una clave JSON repetida también es error con `--rules`
   suelto (ya lo era en el código y en una prueba). La CI no necesitó cambios.
-- Tres recetas completas con entradas ficticias (`examples/recetas/`) y **resultados esperados escritos
-  a mano** (`examples/recetas/esperados/`): `revision_ordenes` (3 aceptadas, 7 rechazadas, 7
+- Tres recetas completas con entradas ficticias (`examples/recetas/`) y **resultados esperados en archivos
+  aparte** (`examples/recetas/esperados/`; que se escribieran a mano antes de ejecutar el kit no lo acredita el
+  historial, ver «Garantías que el historial no acredita»): `revision_ordenes` (3 aceptadas, 7 rechazadas, 7
   incidencias), `consolidacion_turnos` (`rename` + `consolidar` + `duplicados`: 5 conservadas, 1 idéntica,
   2 en conflicto) y `enriquecimiento_flota` (`completar`: 3 completadas, 1 sin coincidencia, 1 ambigua,
   1 clave vacía). Cada una se repite sobre un segundo archivo cambiando solo la ruta
