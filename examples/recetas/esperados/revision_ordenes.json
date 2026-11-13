@@ -1,0 +1,47 @@
+{
+  "_nota": "Resultados esperados escritos a mano a partir de las filas de ordenes_semana_1.csv y de examples/reglas.json y examples/plan.json. Filas: 2 OT100 correcta; 3 OT101 correcta (cerrada); 4 OT102 orden repetida con la fila 9; 5 OT103 fecha 03/11/2026 ambigua (no ISO); 6 OT104 equipo vacío; 7 OT105 horas 25 > 24; 8 OT106 horas -1,0 < 0; 9 OT102 repetida; 10 OT107 horas vacía; 11 OT108 correcta. El resumen cuenta solo aceptadas abiertas: 0007 = OT100 2,5 + OT108 0,5.",
+  "receta": "recetas/revision_ordenes.json",
+  "principal": "examples/recetas/ordenes_semana_1.csv",
+  "entradas": {},
+  "estado": "completada_con_incidencias",
+  "codigo_salida": 1,
+  "pasos": {
+    "perfil": {"estado": "completado", "filas": {}},
+    "revision": {"estado": "completado_con_incidencias",
+                 "filas": {"aceptadas": 3, "rechazadas": 7, "incidencias": 7},
+                 "incidencias_por_codigo": {"valor_no_unico": 2, "campo_vacio": 2, "tipo_o_fecha_invalido": 1,
+                                            "fuera_de_rango_max": 1, "fuera_de_rango_min": 1}},
+    "resumen": {"estado": "completado", "filas": {"resultado": 1}},
+    "entrega": {"estado": "completado"}
+  },
+  "columnas": {
+    "02-revision/aceptadas.csv": {"orden": ["OT100", "OT101", "OT108"]},
+    "02-revision/rechazadas.csv": {"orden": ["OT102", "OT103", "OT104", "OT105", "OT106", "OT102", "OT107"]}
+  },
+  "incidencias": {
+    "02-revision/incidencias.csv": [
+      ["4", "orden", "valor_no_unico"], ["9", "orden", "valor_no_unico"],
+      ["5", "fecha", "tipo_o_fecha_invalido"], ["6", "equipo", "campo_vacio"],
+      ["7", "horas", "fuera_de_rango_max"], ["8", "horas", "fuera_de_rango_min"],
+      ["10", "horas", "campo_vacio"]]
+  },
+  "tablas": {
+    "03-resumen/resultado.csv": [["equipo", "ordenes", "horas_totales"], ["0007", "2", "3.0"]]
+  },
+  "exportados": ["04-entrega/revision_ordenes.xlsx"],
+  "otra_entrada": {
+    "_nota": "La misma receta sobre ordenes_semana_2.csv (todas correctas): 0007 = OT200 3,0 + OT204 1,0; 0012 = OT203 6,0; 0042 = OT201 2,0 (OT202 cerrada no entra).",
+    "principal": "examples/recetas/ordenes_semana_2.csv",
+    "entradas": {},
+    "estado": "completada",
+    "codigo_salida": 0,
+    "pasos": {
+      "revision": {"estado": "completado", "filas": {"aceptadas": 5, "rechazadas": 0, "incidencias": 0}},
+      "resumen": {"estado": "completado", "filas": {"resultado": 3}}
+    },
+    "tablas": {
+      "03-resumen/resultado.csv": [["equipo", "ordenes", "horas_totales"], ["0007", "2", "4.0"], ["0012", "1", "6.0"],
+                                   ["0042", "1", "2.0"]]
+    }
+  }
+}

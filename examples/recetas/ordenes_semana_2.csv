@@ -1,0 +1,6 @@
+orden;equipo;fecha;horas;estado
+OT200;0007;2026-11-09;3,0;abierta
+OT201;0042;2026-11-09;2,0;abierta
+OT202;0042;2026-11-10;1,5;cerrada
+OT203;0012;2026-11-10;6,0;abierta
+OT204;0007;2026-11-11;1,0;abierta
