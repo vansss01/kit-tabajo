@@ -62,6 +62,41 @@ class SqlTests(unittest.TestCase):
         self.assertEqual(self.query("--tipo", "t.v=string", sql=total, source=source)["resultado"]["filas"],
                          [{"total": "5"}])
 
+    def test_null_conversions_suggest_the_other_decimal_only_when_it_would_parse(self):
+        """Hallazgo 2 de la auditoría 1.5.0: con --tipo number y el decimal equivocado los valores quedan NULL con
+        código 1 y aviso, pero sin decir que con --decimal ',' sí serían números. Esperados a mano: 2 valores con
+        coma leídos con punto → 2 no numéricos y 2 que sí serían números con el otro decimal; 'abc' no cuenta."""
+        def run(source, *extra, json_output=True):
+            result = subprocess.run([sys.executable, "-B", str(ROOT / "kit.py"), "consultar", str(source), "--delimiter", ";",
+                                     "--tipo", "t.v=number", "--sql", "SELECT SUM(v) AS total FROM t", "--output", str(self.folder / "out2"),
+                                     *(["--json"] if json_output else []), *extra], cwd=ROOT, capture_output=True, text=True,
+                                    encoding="utf-8")
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            return json.loads(result.stdout) if json_output else result.stdout
+        comma = self.write("coma.csv", "v\n2,5\n3,5\n")
+        summary = run(comma)  # --decimal predeterminado: punto
+        self.assertEqual(summary["advertencias_por_codigo"], {"valores_no_numericos_cargados_como_null": 1})
+        self.assertEqual((summary["conteos"]["valores_no_numericos"], summary["conteos"]["valores_con_otro_decimal"]), (2, 2))
+        self.assertEqual(summary["resultado"]["filas"], [{"total": None}])
+        self.assertIn("--decimal ','", summary["sugerencia"])
+        report = json.loads((Path(summary["ruta_resultados"]) / "report.json").read_text(encoding="utf-8"))
+        self.assertIn("--decimal ','", report["advertencias_detalle"][0]["sugerencia"])
+        # Salida de texto: la sugerencia se ve en la terminal.
+        text = run(comma, json_output=False)
+        self.assertTrue(text.startswith("incidencias | filas=2 | incidencias=0 | advertencias=1\n"), text)
+        self.assertIn("Sugerencia: ", text)
+        self.assertIn("--decimal ','", text)
+        # Al revés: valores con punto leídos con coma sugieren --decimal '.'.
+        dot = self.write("punto.csv", "v\n2.5\n3.5\n")
+        self.assertIn("--decimal '.'", run(dot, "--decimal", ",")["sugerencia"])
+        # Texto que no es número con ningún decimal: aviso igual, pero sin sugerencia ni conteo de otro decimal.
+        words = self.write("letras.csv", "v\nabc\n2.5\n")
+        plain = run(words)
+        self.assertEqual(plain["advertencias_por_codigo"], {"valores_no_numericos_cargados_como_null": 1})
+        self.assertEqual(plain["conteos"]["valores_no_numericos"], 1)
+        self.assertNotIn("valores_con_otro_decimal", plain["conteos"])
+        self.assertNotIn("sugerencia", plain)
+
     def test_detector_cost_limit_and_switch(self):
         # t y f suman 5 filas: con límite 5 el detector se ejecuta; con 4 no, y se avisa que no se hizo.
         ran = self.query("--detector-max-filas", "5", expected=1)

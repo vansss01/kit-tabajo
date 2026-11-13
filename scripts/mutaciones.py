@@ -260,6 +260,12 @@ MUTATIONS = [
     ("receta admite tipos de tablas ausentes", "src/kitlib/receta_validacion.py",
      'elif isinstance(spec.get("tablas"), dict) and set(tipos) - set(spec["tablas"]):', "elif False:", SQL),
     ("número y texto a la vez", "src/kitlib/operations.py", "    if declared & as_text:", "    if False:", SQL),
+    # 1.5.1 (hallazgo 2): NULL evitables con el otro --decimal se sugieren; el ejemplo SQL del reporte funciona
+    ("sin sugerencia de --decimal", "src/kitlib/operations.py",
+     "                                if _parses_with_other_decimal(value, opts.decimal):",
+     "                                if False:", SQL),
+    ("reporte con el SQL sin --decimal", "docs/REPORTE_KIT.html",
+     "--delimiter ';' --decimal ',' --tipo t.horas=number", "--delimiter ';' --tipo t.horas=number", ["tests.test_reporte"]),
     # Etapa 5: recetas de ejemplo con esperados a mano (rompen un paso que esas recetas usan)
     ("completar copia solo la primera columna", "src/kitlib/operations.py",
      "        for col in columns:\n            value = match[col]", "        for col in columns[:1]:\n            value = match[col]",

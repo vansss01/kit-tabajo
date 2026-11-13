@@ -57,7 +57,8 @@ def _step_consultar(step, get):
     tables, issues, details = query(loaded, step.spec["sql"], set(step.spec.get("numeric", [])), step.opts, trace,
                                     types, step.spec.get("detector", True),
                                     step.spec.get("detector_max_filas", DETECTOR_MAX_ROWS))
-    return {"resultado": tables["validos"]}, issues, query_warnings(details, step.nombre), {**details, "_traza": trace}
+    return ({"resultado": tables["validos"]}, issues, query_warnings(details, step.nombre, step.opts.decimal),
+            {**details, "_traza": trace})
 
 
 def _step_consolidar(step, get):

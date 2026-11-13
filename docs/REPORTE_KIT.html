@@ -157,9 +157,9 @@ Los archivos de ejemplo usan punto y coma como separador, por eso llevan <code>-
 <p>Genera CSV, JSON y un Excel con hojas separadas: válidos, inválidos, incidencias y resumen. Para tablas grandes agrega <code>--format csv</code>: escribir Excel es lo más lento.</p>
 
 <h3><span class="tag t1">consultar</span> Hacer preguntas con SQL</h3>
-<pre><code>./kit consultar examples/minera/ordenes.csv --delimiter ';' --tipo t.horas=number \
+<pre><code>./kit consultar examples/minera/ordenes.csv --delimiter ';' --decimal ',' --tipo t.horas=number \
     --sql "SELECT estado, COUNT(*) AS n, SUM(horas) AS horas FROM t GROUP BY estado"</code></pre>
-<p>Carga la tabla en una base de datos temporal y responde una consulta SQL; tu archivo se llama <code>t</code>. Con <code>--tabla flota=archivo.csv</code> agregas otra tabla para cruzarlas con <code>JOIN</code>. Para sumar o promediar declara el tipo con <code>--tipo</code>: sin eso, SQLite suma <code>2,5</code> y <code>3,5</code> como texto y da 5 en vez de 6 (el kit lo avisa). Solo permite leer.</p>
+<p>Carga la tabla en una base de datos temporal y responde una consulta SQL; tu archivo se llama <code>t</code>. Con <code>--tabla flota=archivo.csv</code> agregas otra tabla para cruzarlas con <code>JOIN</code>. Para sumar o promediar declara el tipo con <code>--tipo</code>: sin eso, SQLite suma <code>2,5</code> y <code>3,5</code> como texto y da 5 en vez de 6 (el kit lo avisa). Las horas del ejemplo llevan coma decimal, por eso va <code>--decimal ','</code>: sin esa opción los 598 valores con coma no se convierten, las sumas salen vacías y el kit termina con código 1, el aviso <code>valores_no_numericos_cargados_como_null</code> y la sugerencia de repetir con <code>--decimal ','</code> (no lo cambia por su cuenta). Solo permite leer.</p>
 
 <h3><span class="tag t1">ejecutar</span> Repetir un flujo completo (receta)</h3>
 <pre><code>./kit ejecutar examples/recetas/ordenes_semana_1.csv --receta recetas/revision_ordenes.json --vista-previa

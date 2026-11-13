@@ -715,11 +715,14 @@ def merge_tables(items):
     return output, issues, {"aceptados": accepted, "rechazados": rejected, "filas_salida": len(rows)}
 
 
-def query_warnings(details, source):
-    """Advertencias de consultar a partir de sus conteos (CLI y recetas)."""
+def query_warnings(details, source, decimal="."):
+    """Advertencias de consultar a partir de sus conteos (CLI y recetas). `decimal`: el separador con que se leyó."""
     found = []
     if details["valores_no_numericos"]:
-        found.append({"origen": source, "codigo": "valores_no_numericos_cargados_como_null"})
+        warning = {"origen": source, "codigo": "valores_no_numericos_cargados_como_null"}
+        if details.get("valores_con_otro_decimal"):
+            warning["sugerencia"] = decimal_hint(decimal, details["valores_con_otro_decimal"])
+        found.append(warning)
     if details["valores_redondeados"]:
         found.append({"origen": source, "codigo": "numeros_redondeados_por_precision_real"})
     if details["columnas_sin_numeric"]:
@@ -801,6 +804,10 @@ def _load(tables, numeric, opts, strict):
                             try:
                                 value, state = _real(value, opts.decimal)
                             except ValueError:
+                                # Si con el otro separador decimal sí sería un número, se cuenta para sugerir
+                                # --decimal (solo una sugerencia: nunca se convierte por cuenta del kit).
+                                if _parses_with_other_decimal(value, opts.decimal):
+                                    counts[("otro_decimal", name, col)] += 1
                                 value, state = None, "no_numerico"
                             if state:
                                 counts[(state, name, col)] += 1
@@ -818,6 +825,29 @@ def _load(tables, numeric, opts, strict):
         db.close()
         raise
     return db, counts
+
+
+def other_decimal(decimal):
+    return "," if decimal == "." else "."
+
+
+def _parses_with_other_decimal(value, decimal):
+    text = str(value)
+    if other_decimal(decimal) not in text:
+        return False
+    try:
+        number(text, other_decimal(decimal))
+    except ValueError:
+        return False
+    return True
+
+
+def decimal_hint(decimal, count):
+    """Sugerencia cuando `count` valores no numéricos sí serían números con el otro separador decimal."""
+    other = other_decimal(decimal)
+    return (f"{count} valores no se convirtieron a número pero sí serían números con el separador decimal '{other}'; "
+            f"si esa columna usa '{other}' como decimal, repita con --decimal '{other}' (en recetas, opción decimal de la "
+            f"entrada). El kit no lo cambia por su cuenta")
 
 
 def _same_number(a, b):
@@ -937,4 +967,5 @@ def query(tables, sql, numeric, opts, trace=None, types=None, detector=True, det
     return {"validos": Table(names, output)}, issues, {
         "filas_salida": len(output), "valores_no_numericos": total("no_numerico"),
         "valores_redondeados": total("redondeo"), "columnas_sin_numeric": undeclared,
+        **({"valores_con_otro_decimal": total("otro_decimal")} if total("otro_decimal") else {}),
         **({"detector_omitido_filas": skipped} if skipped else {})}

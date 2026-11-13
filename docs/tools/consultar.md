@@ -19,8 +19,11 @@ La entrada se llama `t` (`--name` la renombra); `--tabla NOMBRE=ARCHIVO` agrega 
   - En recetas: `"tipos": {"t": {"horas": "number"}, "flota": {"codigo": "string"}}`.
   Los números se leen con `--decimal`. Nunca se convierten columnas sin declararlas (identificadores y
   ceros iniciales intactos). Una celda vacía queda `NULL` sin aviso; un texto no numérico queda `NULL`
-  con `valores_no_numericos_cargados_como_null` (código 1). Una columna declarada número y texto a
-  la vez, o una columna o tabla inexistente en `--tipo`, es error (código 2).
+  con `valores_no_numericos_cargados_como_null` (código 1). Si esos textos sí serían números con el otro
+  separador decimal (`2,5` leído con `--decimal .`), el resumen añade `valores_con_otro_decimal` y una
+  `sugerencia` para repetir con `--decimal ','` (o `'.'`); es solo una sugerencia, el kit nunca convierte por su
+  cuenta. Una columna declarada número y texto a la vez, o una columna o tabla inexistente en `--tipo`, es
+  error (código 2).
 - Columnas con espacios o tildes van entre comillas dobles: `SELECT "año" FROM t`.
 - No se permite modificar, crear, adjuntar ni varias sentencias: responde error (código 2).
 

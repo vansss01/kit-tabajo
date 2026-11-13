@@ -12,7 +12,8 @@ from pathlib import Path
 from uuid import uuid4
 
 from kitlib import __version__, bitacora, contrato, receta_cli
-from kitlib.operations import DETECTOR_MAX_ROWS, compare, inspect_table, merge_tables, query, query_warnings, transform, validate
+from kitlib.operations import (DETECTOR_MAX_ROWS, compare, decimal_hint, inspect_table, merge_tables, query, query_warnings,
+                               transform, validate)
 from kitlib.receta_modelo import error
 from kitlib.runtime import ROOT, KitError, error_info, inside, public_message
 from kitlib.tableio import (Options, Table, csv_write, excel_write, fingerprint,
@@ -362,7 +363,7 @@ def execute(args):
                 tables, issues, details = query(loaded, args.sql, set(args.numeric), opts, None,
                                                 sql_types(args.tipo), args.detector_texto_numerico == "si",
                                                 args.detector_max_filas)
-                warnings.extend(query_warnings(details, table.source))
+                warnings.extend(query_warnings(details, table.source, opts.decimal))
             elif args.command == "comparar":
                 after = read_table(args.after, replace(opts, sheet=args.after_sheet or opts.sheet))
                 processed += after.scanned
@@ -423,9 +424,14 @@ def execute(args):
         if args.command != "consolidar" and len(table.columns) == 1 and any(
                 w["codigo"] == "posible_delimitador_incorrecto" for w in warnings):
             extras["sugerencia"] = delimiter_hint(table.columns[0], args.delimiter)
+        hints = []
+        if details.get("valores_con_otro_decimal"):  # consultar: NULL evitables con el otro --decimal
+            hints.append(decimal_hint(opts.decimal, details["valores_con_otro_decimal"]))
         if details.get("columnas_sin_numeric"):
-            extras["sugerencia"] = ("el resultado cambia si estas columnas se cargan como número; si son medidas, "
-                                    "repita con --numeric " + " ".join(c[:60] for c in details["columnas_sin_numeric"][:10]))
+            hints.append("el resultado cambia si estas columnas se cargan como número; si son medidas, "
+                         "repita con --numeric " + " ".join(c[:60] for c in details["columnas_sin_numeric"][:10]))
+        if hints:
+            extras["sugerencia"] = "; ".join(hints)
         if args.command == "inspeccionar":
             detail["analisis"] = details["analisis"][:5]
             extras["tablas"] = [{"hoja": a["hoja"], "filas": a["filas_analizadas"], "alcance": a["alcance"],
