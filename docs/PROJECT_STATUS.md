@@ -1,15 +1,59 @@
 # Estado del proyecto
 
-Actualizado: 2026-11-13. Versión 1.5.0 (cierre de la etapa 5), publicada en `main` (commit f605d12).
-Repositorio: `github.com/vansss01/kit-tabajo` (privado).
-Comprobado en local (Linux, Python 3.14.9): 122 pruebas, Ruff y mypy con `scripts/check.py`, flujo
-`scripts/demo.py` y 97/97 mutaciones (`scripts/mutaciones.py`). La CI (`.github/workflows/check.yml`:
-`check.py`, `demo.py`, instalación sin red y lanzadores) pasó en **Linux y Windows con Python 3.11 y
-3.14** sobre ese commit (run 43480431875, 2026-11-13). Sin dependencia de proveedores de IA.
+Actualizado: 2026-11-13. Versión 1.5.1 (correcciones de la auditoría independiente de la 1.5.0), solo en el
+repositorio local: **no se ha subido** y su CI no ha corrido. Repositorio: `github.com/vansss01/kit-tabajo` (privado).
+Comprobado en local (Linux, Python 3.14.9): 126 pruebas, Ruff y mypy con `scripts/check.py`, flujo
+`scripts/demo.py` y 103/103 mutaciones (`scripts/mutaciones.py`). La última CI verde (`.github/workflows/check.yml`:
+`check.py`, `demo.py`, instalación sin red y lanzadores) es la de la **1.5.0** en Linux y Windows con Python 3.11 y
+3.14 (commit f605d12, run 43480431875, 2026-11-13); la 1.5.1 no está probada en Windows. Sin dependencia de
+proveedores de IA.
 
 Comandos: inspeccionar, comparar, consolidar, validar, transformar, exportar, consultar,
 ejecutar, bitacora, limpiar, catalogo, comprobar, resultados. Recetas de ejemplo: `recetas/`
 (revisión de órdenes, consolidación de turnos, enriquecimiento con flota).
+
+## Cambios de 1.5.1 (hallazgos de la auditoría independiente de la 1.5.0)
+
+Informe completo con una nota de cierre por hallazgo: `docs/AUDITORIA_1.5.0.md`. Veredicto original: «listo con
+reservas». Cada hallazgo se reprodujo antes de tocar nada; cada corrección tiene su prueba y su mutación.
+
+- **Errores de argumentos estructurados con `--json`** (hallazgo 1). Antes, con `--json`, una opción obligatoria
+  ausente, un valor inválido (`--show abc`) o un comando desconocido salían como texto de argparse por stderr con
+  stdout vacío. Ahora salen por stdout como el mismo objeto `errores` (código estable, campo, mensaje, sugerencia) con
+  código 2, en todos los comandos. Códigos nuevos: `argumento_ausente`, `argumento_desconocido`, `comando_desconocido`
+  (`CODIGOS.md`, `./kit catalogo`). Sin `--json` la salida y el código son los de siempre. `--help` y `--version` no
+  cambian.
+- **Ejemplo SQL del reporte y sugerencia de `--decimal`** (hallazgo 2). El comando de `REPORTE_KIT.html` carecía de
+  `--decimal ','`: 598 valores de `horas` quedaban NULL. Ya daba código 1 y el aviso
+  `valores_no_numericos_cargados_como_null` (no había silencio), pero sin decir qué hacer. Ahora, cuando los valores
+  que no se pudieron convertir sí serían números con el otro separador decimal, el resumen trae el conteo
+  `valores_con_otro_decimal` y una `sugerencia` con `--decimal ','` (o `'.'`), también en `report.json` y en recetas.
+  Es solo una sugerencia: el kit no convierte por su cuenta. Prueba nueva `tests/test_reporte.py`: ejecuta los comandos
+  `./kit` de `REPORTE_KIT.html` y compara su código de salida con el que el reporte da a entender (límite declarado:
+  solo ese archivo; los manuales, `EJERCICIOS.md` y `APRENDER.md` traen rutas genéricas y fragmentos). En
+  `EJERCICIOS.md` y los manuales el mismo comando ya llevaba `--decimal ','`.
+- **Garantías históricas** (hallazgo 3): declaradas en la sección siguiente; sin cambios de código.
+- **Medición de comparar** (hallazgo 4). `scripts/medir.py` aplicaba el 1 % de modificaciones a filas que ya había
+  excluido (múltiplos de 100 ⊂ múltiplos de 50): el conjunto salía con 0 modificadas. Corregido (residuo 25 mod 100) y
+  el script falla si el conjunto generado no tiene las proporciones anunciadas (`comprobar_proporciones`;
+  `tests/test_medir.py`). Las demás mediciones no dependían de ese defecto (validar usa 1 de cada 1000 filas; consolidar,
+  los 4 turnos). Mediciones repetidas: `MEDICIONES.md`, que declara que la cifra anterior de comparar no era válida.
+- **Pruebas que solo miraban el código de salida** (hallazgo 5). De 122 pruebas, 2 lo hacían:
+  `test_help_all_commands` (ahora exige `usage:` y las opciones de cada uno de los 13 comandos, con textos escritos a mano)
+  y `test_cli_codes_and_invalid_arguments` (ahora comprueba código, campo e incidencias de cada caso). El resto afirma
+  contenido; las de una sola aserción se revisaron y se dejaron (su aserción compara resultados concretos).
+- **Reporte y manuales ajustados a lo verificado** (hallazgo 6): trazabilidad completa solo en recetas; sin procedencia
+  fila a fila tras `group` ni SQL; invariante distinta según el paso (partición, participación, claves o ninguna); los
+  cinco pasos comunes son de los ocho comandos de tablas; SQLite REAL no es exacto (`0.1 + 0.2` da
+  `0.30000000000000004` sin aviso); `1.0` se rechaza solo donde se exige entero; «esperados escritos a mano» pasa a
+  «esperados en archivo aparte»; el límite de filas es una decisión de alcance, no un umbral demostrado. Sin funciones
+  nuevas: solo texto.
+- Mutaciones: 97 → 103 (dos del hallazgo 1, dos del 2, una del 4, una del 5). `mutaciones.py` copia ahora también
+  `scripts/` para que la de medir funcione.
+- **Compatibilidad**: la salida por defecto no cambia salvo en el caso que antes fallaba (con `--json`, los errores
+  de argumentos pasan de stderr a un JSON por stdout; sin `--json`, idéntico). En `consultar`, el conteo
+  `valores_con_otro_decimal` y la `sugerencia` aparecen solo cuando hay valores NULL evitables. `query_warnings` admite
+  un tercer parámetro opcional (`decimal`).
 
 ## Garantías que el historial no acredita (declaradas en 1.5.1 tras la auditoría de 1.5.0)
 

@@ -4,7 +4,8 @@ Desde la raíz: `./kit COMANDO` (Linux) o `kit COMANDO` (Windows); equivale a
 `python -B kit.py COMANDO` con el entorno activado. Ayuda: `./kit COMANDO --help`.
 Opciones comunes: `--delimiter`, `--encoding`, `--decimal`, `--date-format`, `--sheet`,
 `--output`, `--run-name`, `--json`, `--verbose`. Códigos 0/1/2: éxito/incidencias/error.
-Con `--json`, un error trae además `errores`: `[{codigo, paso, campo, mensaje, sugerencia}]`;
+Con `--json`, un error trae además `errores`: `[{codigo, paso, campo, mensaje, sugerencia}]`, incluidos los
+de la propia línea de comandos (opción obligatoria ausente, valor inválido, comando desconocido; desde 1.5.1);
 códigos estables en `CODIGOS.md` y en `./kit catalogo`. La salida de texto no cambia.
 
 | Comando / propósito | Implementación | Opciones principales | Manual |
@@ -42,7 +43,9 @@ python -B kit.py exportar 'examples/con incidencias.csv' --delimiter ';' --rules
 Tablas grandes: `exportar --format csv` evita el XLSX, que es lo más lento.
 Datos mineros ficticios y ejercicios con respuesta: `examples/minera/`, `docs/EJERCICIOS.md`
 (material de estudio; no hace falta leerlo para trabajar). `consultar` muestra valores de
-celdas en la terminal: con datos sensibles usar `--show 0` (los archivos siguen conteniéndolos).
+celdas en la terminal: con datos sensibles usar `--show 0` (los archivos siguen conteniéndolos). Si una columna
+`number` queda con NULL porque sus valores usan el otro separador decimal, el resumen lo dice
+(`valores_con_otro_decimal`) y sugiere `--decimal ','`; nunca lo cambia por su cuenta.
 Para calcular con SQL declarar `--numeric`; sin él puede avisar `resultado_depende_de_texto_sin_numeric`.
 Sumas exactas al dígito: `transformar`. Límites numéricos: manual de consulta.
 Recetas de ejemplo listas para copiar (revisión de órdenes, consolidación de turnos, enriquecimiento
@@ -50,4 +53,5 @@ con flota): `recetas/*.json`, entradas en `examples/recetas/`, esperados en arch
 `examples/recetas/esperados/`; tabla en `tools/ejecutar.md` («Recetas de ejemplo»).
 Flujo comprobado con aserciones: `python -B scripts/demo.py`.
 Verificación completa: `python -B scripts/check.py`. Mutaciones (comprueban que las pruebas detectan errores reales; lento): `python -B scripts/mutaciones.py [nombre]`.
+Los comandos de `REPORTE_KIT.html` se ejecutan en `tests/test_reporte.py`; auditoría externa de la 1.5.0: `AUDITORIA_1.5.0.md`.
 Tiempos, memoria y tamaño de salidas con datos generados (no se commitean): `python -B scripts/medir.py`; cifras en `MEDICIONES.md`.

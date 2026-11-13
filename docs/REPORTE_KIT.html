@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Reporte KIT TABAJO 1.5.0</title>
+<title>Reporte KIT TABAJO 1.5.1</title>
 <style>
   :root {
     --bg: #f6f5f1; --card: #ffffff; --ink: #1d2327; --soft: #5b6670; --line: #dcd9d0;
@@ -52,7 +52,7 @@
 <body>
 <main>
 <h1>Reporte KIT TABAJO</h1>
-<p class="sub">Qué es, cómo se usa, cómo leer lo que responde y qué no hace. Versión 1.5.0 · 13 de noviembre de 2026.</p>
+<p class="sub">Qué es, cómo se usa, cómo leer lo que responde y qué no hace. Versión 1.5.1 · 13 de noviembre de 2026 (revisada tras la auditoría independiente de la 1.5.0, <code>docs/AUDITORIA_1.5.0.md</code>).</p>
 
 <div class="card key">
   <b>En una frase:</b> es un programa que se usa escribiendo comandos en la terminal y que revisa,
@@ -306,8 +306,9 @@ docs/TOOLS_INDEX.md y docs/PROJECT_STATUS.md. Reutiliza los comandos existentes.
 </ul>
 <h3>Estado de verificación</h3>
 <ul>
-  <li>Comprobado en Linux con Python 3.14: 122 pruebas automáticas, revisión de estilo y tipos (<code>scripts/check.py</code>), una demostración completa con aserciones (<code>scripts/demo.py</code>) y 97 mutaciones (se rompe el código a propósito de 97 maneras y se comprueba que alguna prueba lo detecte).</li>
-  <li><b>Probado también en Windows.</b> La integración continua (GitHub Actions, Linux y Windows, Python 3.11 y 3.14) pasó completa sobre el commit de la 1.5.0 el 13 de noviembre de 2026: pruebas, demostración, instalación sin red y lanzadores.</li>
+  <li>Comprobado en Linux con Python 3.14: 126 pruebas automáticas, revisión de estilo y tipos (<code>scripts/check.py</code>), una demostración completa con aserciones (<code>scripts/demo.py</code>) y 103 mutaciones (se rompe el código a propósito de 103 maneras y se comprueba que alguna prueba lo detecte). Entre las pruebas hay una que ejecuta los comandos de este reporte y comprueba su código de salida.</li>
+  <li><b>Windows: probado en la 1.5.0, no todavía en la 1.5.1.</b> La integración continua (GitHub Actions, Linux y Windows, Python 3.11 y 3.14) pasó completa sobre el commit f605d12 de la 1.5.0 el 13 de noviembre de 2026: pruebas, demostración, instalación sin red y lanzadores. La 1.5.1 es local y aún no se ha subido, así que su CI no ha corrido.</li>
+  <li>Una revisión independiente de la 1.5.0 (<code>docs/AUDITORIA_1.5.0.md</code>) dio «listo con reservas» con seis hallazgos; la 1.5.1 los corrige o los declara (la nota al inicio de ese archivo dice cuál quedó en qué commit).</li>
   <li>Está probado con datos inventados. Las reglas reales las tendrías que escribir cuando conozcas los archivos de la empresa.</li>
 </ul>
 
@@ -346,13 +347,13 @@ otro proceso en paralelo, y su cifra de comparar no valía: el conjunto generado
   <tr><td><code>logs/</code></td><td>Copia de la auditoría de cada ejecución y registros de las pruebas</td></tr>
   <tr><td><code>docs/</code></td><td>Manuales cortos (uno por comando en <code>docs/tools/</code>), guía para agentes, estado, códigos, mediciones, <code>APRENDER.md</code> y este reporte</td></tr>
   <tr><td><code>src/kitlib/</code></td><td>El código del programa (unas 4 000 líneas de Python)</td></tr>
-  <tr><td><code>tests/</code></td><td>122 pruebas automáticas</td></tr>
+  <tr><td><code>tests/</code></td><td>126 pruebas automáticas</td></tr>
   <tr><td><code>scripts/</code></td><td>Instalar el entorno, correr las pruebas, la demostración, las mutaciones y las mediciones</td></tr>
   <tr><td><code>.venv/</code>, <code>vendor/</code></td><td>El Python propio del kit y sus dependencias guardadas para instalar sin internet</td></tr>
 </table>
 </div>
 <p>El código está respaldado en GitHub como repositorio privado: <code>github.com/vansss01/kit-tabajo</code>. La 1.5.0 está
-subida y su CI pasó en Linux y Windows.</p>
+subida y su CI pasó en Linux y Windows; la 1.5.1 existe solo en el repositorio local hasta que se suba.</p>
 
 <h2 id="plan">Plan de práctica</h2>
 <div class="tablewrap">
@@ -393,7 +394,7 @@ subida y su CI pasó en Linux y Windows.</p>
 </table>
 </div>
 
-<footer>Reporte generado el 13 de noviembre de 2026 para la versión 1.5.0 del kit, dentro del proyecto (<code>docs/REPORTE_KIT.html</code>). Los datos de los ejemplos son ficticios.</footer>
+<footer>Reporte generado el 13 de noviembre de 2026 para la versión 1.5.1 del kit, dentro del proyecto (<code>docs/REPORTE_KIT.html</code>). Los datos de los ejemplos son ficticios.</footer>
 </main>
 </body>
 </html>
