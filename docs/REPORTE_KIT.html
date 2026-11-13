@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reporte KIT TABAJO 1.5.0</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #ffffff; --ink: #1d2327; --soft: #5b6670; --line: #dcd9d0;
+    --accent: #1f5f7a; --accent-soft: #e3eef2; --ok: #2f7d4f; --warn: #a8641a; --bad: #a83a32;
+    --code-bg: #20262b; --code-ink: #e8ecef;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15191c; --card: #1e2428; --ink: #e8ecef; --soft: #9aa7b1; --line: #313a41;
+      --accent: #7cc0dc; --accent-soft: #1f3540; --ok: #6fca93; --warn: #e0a55a; --bad: #ef8a80;
+      --code-bg: #0f1315; --code-ink: #e8ecef;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 32px 16px 80px; }
+  h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 6px; }
+  h2 { font-size: 1.35rem; margin: 44px 0 10px; padding-top: 18px; border-top: 2px solid var(--line); }
+  h3 { font-size: 1.05rem; margin: 22px 0 6px; }
+  p { margin: 8px 0; }
+  .sub { color: var(--soft); margin-bottom: 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin: 14px 0; }
+  .key { border-left: 5px solid var(--accent); }
+  code { font: 0.9em ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+         background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
+  pre { background: var(--code-bg); color: var(--code-ink); padding: 14px 16px; border-radius: 8px;
+        overflow-x: auto; font: 14px/1.5 ui-monospace, "Cascadia Code", Menlo, Consolas, monospace; margin: 10px 0; }
+  pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+  .tablewrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--soft); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  .flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; margin: 14px 0; }
+  .step { flex: 1 1 150px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .step b { display: block; color: var(--accent); margin-bottom: 4px; }
+  .step span { font-size: 0.9rem; color: var(--soft); }
+  .tag { display: inline-block; font-size: 0.78rem; font-weight: 600; padding: 2px 8px; border-radius: 99px; margin-right: 6px; }
+  .t1 { background: var(--accent-soft); color: var(--accent); }
+  .ok { color: var(--ok); font-weight: 600; } .warn { color: var(--warn); font-weight: 600; } .bad { color: var(--bad); font-weight: 600; }
+  ul, ol { padding-left: 22px; margin: 8px 0; } li { margin: 5px 0; }
+  .toc a { color: var(--accent); text-decoration: none; } .toc a:hover { text-decoration: underline; }
+  footer { margin-top: 50px; color: var(--soft); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<main>
+<h1>Reporte KIT TABAJO</h1>
+<p class="sub">Qué es, cómo se usa, cómo leer lo que responde y qué no hace. Versión 1.5.0 · 13 de noviembre de 2026.</p>
+
+<div class="card key">
+  <b>En una frase:</b> es un programa que se usa escribiendo comandos en la terminal y que revisa,
+  compara, junta, limpia y resume tablas (Excel o CSV) sin tocar nunca el archivo original, dejando
+  constancia de cada fila que apartó y de cada celda que cambió. No es una app con ventanas. No necesita
+  internet ni inteligencia artificial para funcionar.
+</div>
+
+<div class="card toc">
+  <b>Contenido</b>
+  <ol>
+    <li><a href="#que">Qué problema resuelve</a></li>
+    <li><a href="#nuevo">Qué cambió desde la versión 1.4.0</a></li>
+    <li><a href="#como">Cómo funciona por dentro</a></li>
+    <li><a href="#comandos">Los 13 comandos, con ejemplos</a></li>
+    <li><a href="#recetas">Las recetas: repetir un flujo completo</a></li>
+    <li><a href="#leer">Cómo leer lo que responde</a></li>
+    <li><a href="#traza">Trazabilidad: saber qué pasó con cada fila</a></li>
+    <li><a href="#agentes">Cómo se usa con un agente de IA</a></li>
+    <li><a href="#limites">Límites: números, memoria, privacidad</a></li>
+    <li><a href="#mediciones">Mediciones</a></li>
+    <li><a href="#carpetas">Qué hay en cada carpeta</a></li>
+    <li><a href="#plan">Plan de práctica</a></li>
+    <li><a href="#glosario">Glosario</a></li>
+  </ol>
+</div>
+
+<h2 id="que">Qué problema resuelve</h2>
+<p>En casi cualquier empresa los datos llegan en planillas: órdenes de mantención, listados de equipos,
+turnos, inventarios. El trabajo típico es siempre parecido:</p>
+<ul>
+  <li>Te pasan un archivo y tienes que entender qué trae.</li>
+  <li>Hay errores: fechas mal escritas, códigos repetidos, celdas vacías, horas imposibles.</li>
+  <li>Te pasan la versión nueva y te preguntan qué cambió respecto a la anterior.</li>
+  <li>Hay un archivo por turno o por área, a veces con las columnas con otro nombre, y hay que juntarlos.</li>
+  <li>Falta un dato (el área del equipo) que está en otra planilla.</li>
+  <li>Al final hay que entregar un resumen limpio y poder explicar de dónde salió cada número.</li>
+</ul>
+<p>Hacer eso a mano en Excel es lento y es fácil equivocarse sin darse cuenta. El kit lo hace con un
+comando, siempre igual, y deja registro de lo que hizo y de lo que dejó fuera.</p>
+
+<h2 id="nuevo">Qué cambió desde la versión 1.4.0</h2>
+<div class="tablewrap">
+<table>
+  <tr><th>Novedad</th><th>Qué permite</th></tr>
+  <tr><td><b>Recetas</b> (<code>ejecutar</code>)</td><td>Escribir una vez los pasos (revisar, validar, resumir, entregar…) en un archivo JSON y repetirlos sobre el archivo de cada semana. Un <code>manifiesto.json</code> dice si terminó y cómo.</td></tr>
+  <tr><td><b>Trazabilidad</b></td><td>Cada fila recuerda su archivo y fila de origen. Las filas apartadas y las celdas cambiadas quedan en archivos propios; el kit comprueba que nada se pierda (entrada = salidas + apartadas).</td></tr>
+  <tr><td><b>Limpieza controlada</b></td><td>Renombrar columnas, normalizar espacios y mayúsculas, reemplazar valores con una lista explícita, completar datos desde otra planilla, separar duplicados idénticos de contradictorios, leer reportes con título arriba y total abajo.</td></tr>
+  <tr><td><b>Contrato para agentes</b></td><td><code>catalogo</code> (qué admite el kit), <code>comprobar</code> (revisar una receta sin ejecutarla), <code>resultados</code> (leer una ejecución sin abrir carpetas), errores con código estable y <code>--ocultar-valores</code>.</td></tr>
+  <tr><td><b>SQL más seguro</b></td><td>Tipos declarados por tabla y columna (<code>--tipo t.horas=number</code>); aviso cuando una suma depende de texto; números sin notación científica.</td></tr>
+  <tr><td><b>Tres recetas de ejemplo</b></td><td>Listas para copiar, con datos ficticios y el resultado esperado escrito a mano: revisión de órdenes, consolidación de turnos y enriquecimiento con la flota.</td></tr>
+  <tr><td><b>Mediciones</b></td><td>Tiempos, memoria y tamaño de salidas con 100 000 filas, reproducibles con <code>scripts/medir.py</code>.</td></tr>
+</table>
+</div>
+
+<h2 id="como">Cómo funciona por dentro</h2>
+<p>Todos los comandos siguen los mismos cinco pasos:</p>
+<div class="flow">
+  <div class="step"><b>1. Lee</b><span>Abre tu archivo en modo lectura. Todo se lee como texto: <code>0007</code> sigue siendo <code>0007</code>.</span></div>
+  <div class="step"><b>2. Procesa</b><span>Hace lo que pediste (revisar, comparar, juntar…) en memoria.</span></div>
+  <div class="step"><b>3. Guarda aparte</b><span>Crea una carpeta nueva en <code>results/</code>. Nunca sobrescribe.</span></div>
+  <div class="step"><b>4. Deja constancia</b><span>Informe, auditoría con huella digital de cada archivo y, en recetas, la traza de cada fila.</span></div>
+  <div class="step"><b>5. Resume</b><span>Dos o tres líneas en la terminal y un código de salida: 0, 1 o 2.</span></div>
+</div>
+<p>Cuatro ideas de diseño explican casi todo lo demás:</p>
+<ul>
+  <li><b>Nunca modifica ni sobrescribe.</b> El original queda intacto y cada ejecución tiene su propia carpeta. Si te equivocas, no rompes nada.</li>
+  <li><b>No adivina.</b> Si una fecha dice <code>03/04/2026</code>, no decide por ti si es marzo o abril: la marca y te obliga a decir el formato. Si dos filas se contradicen, no elige una: las aparta para que alguien decida.</li>
+  <li><b>Las reglas se escriben en un archivo, no en código.</b> Describes qué esperas de cada columna en un JSON y el kit lo comprueba. No se ejecuta código de planillas ni de configuraciones.</li>
+  <li><b>Nada desaparece en silencio.</b> Lo que sale de una tabla queda en otra, con su fila de origen y su motivo.</li>
+</ul>
+
+<h2 id="comandos">Los 13 comandos, con ejemplos</h2>
+<p>Primero entra a la carpeta. Las comillas son necesarias porque el nombre tiene un espacio:</p>
+<pre><code>cd '/mnt/DATA/KIT TABAJO'</code></pre>
+<p>Todos los ejemplos usan los datos ficticios de la carpeta <code>examples/</code>, así que puedes ejecutarlos sin miedo.
+Los archivos de ejemplo usan punto y coma como separador, por eso llevan <code>--delimiter ';'</code>. En Windows se escribe
+<code>kit</code> en vez de <code>./kit</code>.</p>
+
+<h3><span class="tag t1">inspeccionar</span> ¿Qué trae este archivo?</h3>
+<pre><code>./kit inspeccionar examples/equipos.csv --delimiter ';'</code></pre>
+<p>Cuántas filas hay, qué columnas tiene, tipos de dato observados, celdas vacías y duplicados. Es lo primero que conviene correr con cualquier archivo nuevo.</p>
+
+<h3><span class="tag t1">validar</span> ¿Cumple las reglas?</h3>
+<pre><code>./kit validar 'examples/con incidencias.csv' --delimiter ';' --rules examples/reglas.json</code></pre>
+<p>Compara cada fila con las reglas de <code>reglas.json</code> y separa válidas de inválidas. Con el ejemplo: 1 válida, 2 inválidas, 6 incidencias. No corrige nada: solo señala.</p>
+
+<h3><span class="tag t1">comparar</span> ¿Qué cambió entre dos versiones?</h3>
+<pre><code>./kit comparar examples/anterior.csv 'examples/entradas/turno A.csv' --delimiter ';' --key orden</code></pre>
+<p>Usa una columna como identificador y dice qué filas son nuevas, cuáles desaparecieron y qué campos cambiaron, con el valor de antes y el de después.</p>
+
+<h3><span class="tag t1">consolidar</span> Juntar varios archivos</h3>
+<pre><code>./kit consolidar examples/entradas --delimiter ';'</code></pre>
+<p>Une todos los CSV de una carpeta en una sola tabla y agrega dos columnas que dicen de qué archivo y de qué fila vino cada dato. Si un archivo tiene columnas distintas, lo rechaza y avisa.</p>
+
+<h3><span class="tag t1">transformar</span> Filtrar, ordenar, agrupar, renombrar, limpiar</h3>
+<pre><code>./kit transformar 'examples/entradas/turno A.csv' --delimiter ';' --decimal ',' --plan examples/plan.json</code></pre>
+<p>Ejecuta los pasos escritos en <code>plan.json</code>: seleccionar, filtrar, ordenar, convertir, agrupar y sumar (lo que en Excel sería una tabla dinámica), y desde 1.5.0 también <code>rename</code>, <code>normalize</code> y <code>replace</code>. El plan de ejemplo deja solo las órdenes abiertas y suma las horas por equipo.</p>
+
+<h3><span class="tag t1">exportar</span> Entregar el resultado</h3>
+<pre><code>./kit exportar 'examples/con incidencias.csv' --delimiter ';' --rules examples/reglas.json</code></pre>
+<p>Genera CSV, JSON y un Excel con hojas separadas: válidos, inválidos, incidencias y resumen. Para tablas grandes agrega <code>--format csv</code>: escribir Excel es lo más lento.</p>
+
+<h3><span class="tag t1">consultar</span> Hacer preguntas con SQL</h3>
+<pre><code>./kit consultar examples/minera/ordenes.csv --delimiter ';' --tipo t.horas=number \
+    --sql "SELECT estado, COUNT(*) AS n, SUM(horas) AS horas FROM t GROUP BY estado"</code></pre>
+<p>Carga la tabla en una base de datos temporal y responde una consulta SQL; tu archivo se llama <code>t</code>. Con <code>--tabla flota=archivo.csv</code> agregas otra tabla para cruzarlas con <code>JOIN</code>. Para sumar o promediar declara el tipo con <code>--tipo</code>: sin eso, SQLite suma <code>2,5</code> y <code>3,5</code> como texto y da 5 en vez de 6 (el kit lo avisa). Solo permite leer.</p>
+
+<h3><span class="tag t1">ejecutar</span> Repetir un flujo completo (receta)</h3>
+<pre><code>./kit ejecutar examples/recetas/ordenes_semana_1.csv --receta recetas/revision_ordenes.json --vista-previa
+./kit ejecutar examples/recetas/ordenes_semana_1.csv --receta recetas/revision_ordenes.json</code></pre>
+<p>Corre en orden los pasos de una receta JSON (ver la sección siguiente). <code>--vista-previa</code> muestra qué haría sin leer los datos.</p>
+
+<h3><span class="tag t1">comprobar</span> y <span class="tag t1">catalogo</span> Revisar antes de ejecutar</h3>
+<pre><code>./kit comprobar recetas/consolidacion_turnos.json
+./kit catalogo | head -40</code></pre>
+<p><code>comprobar</code> revisa una receta, un plan o unas reglas y dice qué está mal escrito, con una sugerencia, sin ejecutar nada. <code>catalogo</code> imprime todo lo que el kit admite (comandos, operaciones, valores, códigos), generado desde el propio programa.</p>
+
+<h3><span class="tag t1">resultados</span> Leer una ejecución sin abrir carpetas</h3>
+<pre><code>./kit resultados                                      # la más reciente
+./kit resultados NOMBRE --paso revision
+./kit resultados NOMBRE --incidencias valor_no_unico --n 5</code></pre>
+<p>Estado, filas por paso, conteos por código y las primeras incidencias de un tipo (hasta 100). Nunca muestra valores de celdas.</p>
+
+<h3><span class="tag t1">bitacora</span> Anotar lo que haces cada día</h3>
+<pre><code>./kit bitacora "Revisé la planilla de órdenes y encontré 32 filas con errores" --horas 2,5 --etiqueta datos
+./kit bitacora --informe</code></pre>
+<p>Una línea por actividad en <code>data/bitacora/bitacora.csv</code> (no se sube a GitHub). <code>--informe</code> arma el borrador del informe de práctica por semana.</p>
+
+<h3><span class="tag t1">limpiar</span> Borrar ejecuciones viejas</h3>
+<pre><code>./kit limpiar</code></pre>
+<p>Dice cuántas carpetas de resultados antiguas hay. Solo borra si agregas <code>--apply</code>, y conserva las 20 más recientes.</p>
+
+<div class="card">
+  <b>Ayuda rápida:</b> cualquier comando acepta <code>--help</code>, por ejemplo <code>./kit validar --help</code>.
+  Con datos reales agrega <code>--ocultar-valores</code> antes de pegar una salida en un chat.
+</div>
+
+<h2 id="recetas">Las recetas: repetir un flujo completo</h2>
+<p>Una receta es un archivo JSON que lista pasos con los comandos anteriores y una <b>política</b> por paso:
+sin política, el flujo se <b>detiene</b> ante cualquier incidencia; con <code>"incidencias": "separar"</code>
+las filas con problemas van a una tabla aparte y el flujo sigue. Las tres recetas de ejemplo están en
+<code>recetas/</code>, con sus datos en <code>examples/recetas/</code> y el resultado esperado escrito a mano
+en <code>examples/recetas/esperados/</code>; una prueba automática las ejecuta y compara.</p>
+<div class="tablewrap">
+<table>
+  <tr><th>Receta</th><th>Qué hace</th><th>Con los datos de ejemplo</th></tr>
+  <tr><td><code>revision_ordenes</code></td><td>Perfila, valida con reglas, aparta las órdenes rechazadas, resume horas por equipo con las aceptadas y entrega CSV + Excel.</td><td>10 órdenes → 3 aceptadas, 7 rechazadas, 7 incidencias (orden repetida, fecha ambigua, equipo vacío, horas 25 y −1, horas vacía). Resumen: equipo 0007, 2 órdenes, 3.0 h.</td></tr>
+  <tr><td><code>consolidacion_turnos</code></td><td>Renombra las columnas del turno exportado (<code>OT</code> → <code>orden</code>…), une los dos turnos, separa órdenes repetidas idénticas de las contradictorias y resume solo las conservadas.</td><td>8 filas unidas; 1 copia idéntica a <code>excluidas</code>; OT303 con horas 1,0 y 3,0 a <code>conflictos</code> (nadie elige por ti); 5 conservadas.</td></tr>
+  <tr><td><code>enriquecimiento_flota</code></td><td>Agrega modelo y área a cada orden desde la planilla de flota por el código de equipo (lo que en Excel sería BUSCARV) y resume por área.</td><td>3 completadas; 1 equipo inexistente, 1 repetido en la flota y 1 vacío, cada uno en su propia tabla, con su incidencia.</td></tr>
+</table>
+</div>
+<p>Para usar una con tus archivos: copia la receta, cambia la ruta de la entrada (o pásala con
+<code>--entrada nombre=archivo</code>) y ajusta reglas, nombres de columnas y claves. Cada ejecución deja
+<code>manifiesto.json</code>:</p>
+<div class="tablewrap">
+<table>
+  <tr><th>Estado</th><th>Significa</th><th>Código</th></tr>
+  <tr><td class="warn"><code>en_curso</code></td><td>Está corriendo, o se cortó de golpe. No usar sus archivos.</td><td>—</td></tr>
+  <tr><td class="ok"><code>completada</code></td><td>Todos los pasos, sin incidencias ni advertencias.</td><td>0</td></tr>
+  <tr><td class="warn"><code>completada_con_incidencias</code></td><td>Todos los pasos, pero hubo filas apartadas o advertencias permitidas: revisar.</td><td>1</td></tr>
+  <tr><td class="bad"><code>fallida</code></td><td>Se detuvo por política, por un error o por interrupción; hay <code>FAILED.json</code> y un <code>motivo</code>.</td><td>2</td></tr>
+</table>
+</div>
+
+<h2 id="leer">Cómo leer lo que responde</h2>
+<p>La respuesta en la terminal es corta a propósito. Por ejemplo, al validar:</p>
+<pre><code>incidencias | filas=10 | incidencias=7 | advertencias=0
+Resultados: /mnt/DATA/KIT TABAJO/results/20261113T…-validar-…
+incidencias_por_codigo: valor_no_unico=2, campo_vacio=2, tipo_o_fecha_invalido=1, ...
+conteos: validas=3, invalidas=7, filas_no_tabulares=0</code></pre>
+<div class="tablewrap">
+<table>
+  <tr><th>Código de salida</th><th>Significa</th><th>Qué hacer</th></tr>
+  <tr><td class="ok">0</td><td>Todo bien, sin problemas</td><td>Usar el resultado</td></tr>
+  <tr><td class="warn">1</td><td>Funcionó, pero encontró problemas o avisos</td><td>Revisar <code>incidencias.csv</code> o <code>./kit resultados</code> antes de usar el resultado</td></tr>
+  <tr><td class="bad">2</td><td>Error: no pudo completar</td><td>Leer el mensaje (con <code>--json</code> trae código, campo y sugerencia); no usar lo que haya quedado en la carpeta</td></tr>
+</table>
+</div>
+<p>Tres cosas que conviene no confundir:</p>
+<ul>
+  <li><b>Validar</b> solo señala: compara con reglas y separa aceptadas de rechazadas sin tocar un valor. Solo las aceptadas de un paso validar están marcadas <code>validada: true</code>.</li>
+  <li><b>Transformar</b> calcula una tabla nueva (filtrar, agrupar, renombrar, normalizar, reemplazar). Un resumen es un cálculo, no un dato validado. Cada fila quitada y cada celda cambiada queda registrada.</li>
+  <li><b>Completar</b> corrige desde una fuente: copia columnas de otra planilla por una clave exacta. No inventa valores, no elige entre dos coincidencias y no pisa un dato existente salvo que se lo pidas.</li>
+</ul>
+<p>Dos avisos frecuentes: <code>posible_delimitador_incorrecto</code> (el archivo quedó en una sola columna; la terminal sugiere
+<code>--delimiter ';'</code>) y un error que menciona <code>--encoding</code> (el archivo viene de Excel en Windows: agrega
+<code>--encoding cp1252</code>).</p>
+
+<h2 id="traza">Trazabilidad: saber qué pasó con cada fila</h2>
+<p>En una receta, cada fila recuerda su archivo y su fila original sin agregar columnas a la tabla. Cada paso deja
+archivos para responder las preguntas típicas del supervisor:</p>
+<div class="tablewrap">
+<table>
+  <tr><th>Pregunta</th><th>Dónde mirar</th></tr>
+  <tr><td>¿De qué archivo y fila viene esta fila?</td><td><code>NN-paso/&lt;tabla&gt;_procedencia.csv</code></td></tr>
+  <tr><td>¿Por qué se rechazó?</td><td><code>rechazadas_procedencia.csv</code> (columna <code>motivos</code>) e <code>incidencias.csv</code></td></tr>
+  <tr><td>¿Por qué desapareció del resumen?</td><td><code>excluidas.csv</code>: por ejemplo <code>no cumple estado eq abierta</code>, archivo y fila</td></tr>
+  <tr><td>¿Qué celda cambió y por qué?</td><td><code>cambios_celdas.csv</code>: valor anterior, nuevo y operación</td></tr>
+  <tr><td>¿Qué pasó con las órdenes repetidas?</td><td><code>conflictos.csv</code> y <code>excluidas.csv</code> del paso <code>duplicados</code></td></tr>
+  <tr><td>¿Qué equipos no estaban en la flota?</td><td><code>sin_coincidencia.csv</code>, <code>ambiguas.csv</code>, <code>clave_vacia.csv</code> del paso <code>completar</code></td></tr>
+  <tr><td>¿Qué filas suman este total?</td><td><code>participantes.csv</code> (con <code>"traza": "detallada"</code>) o la regla del manifiesto</td></tr>
+</table>
+</div>
+<p>Antes de publicar las tablas de un paso, el kit comprueba que entrada = salidas + apartadas (misma cantidad y mismas filas de
+origen). Si no cuadra, el paso queda <code>fallido</code> y no deja tablas. Los archivos de traza contienen valores de celdas:
+se cuidan igual que la planilla original.</p>
+
+<h2 id="agentes">Cómo se usa con un agente de IA</h2>
+<p>Puedes usarlo solo o pedirle a un agente (Claude Code, Codex u otro) que lo use por ti. El kit está pensado para que el agente
+gaste poco y no vea datos que no debe:</p>
+<ul>
+  <li><b>No lee tu tabla.</b> Corre el comando y lee un resumen de pocas líneas con conteos y nombres de columnas; con <code>--ocultar-valores</code> ninguna celda llega a la terminal ni a los JSON de resumen (hay una prueba con valores centinela que lo comprueba).</li>
+  <li><b>No reinventa.</b> <code>catalogo</code> le dice exactamente qué existe; <code>comprobar</code> le dice qué escribió mal antes de ejecutar; los errores traen código, campo y sugerencia.</li>
+  <li><b>Arranque barato.</b> Lee <code>docs/AGENT_GUIDE.md</code>, <code>docs/TOOLS_INDEX.md</code> y <code>docs/PROJECT_STATUS.md</code>, y solo el manual del comando que necesita. La guía le prohíbe recorrer las carpetas pesadas.</li>
+  <li><b>No decide por ti.</b> La guía le indica no elegir equivalencias, no pisar datos y no resolver conflictos sin que tú lo hayas decidido.</li>
+</ul>
+<p>Para empezar con cualquier agente basta con pegarle esto:</p>
+<pre><code>Trabaja en la carpeta KIT TABAJO. Lee primero docs/AGENT_GUIDE.md,
+docs/TOOLS_INDEX.md y docs/PROJECT_STATUS.md. Reutiliza los comandos existentes.</code></pre>
+
+<h2 id="limites">Límites: números, memoria, privacidad</h2>
+<h3>Números</h3>
+<ul>
+  <li>Las sumas de <code>transformar</code> son exactas al dígito (decimales exactos). Las de <code>consultar</code> usan números de punto flotante de SQLite (REAL): unas 15–17 cifras; para sumas exactas al dígito usa <code>transformar</code>. El kit avisa cuando un número no cabe exacto.</li>
+  <li>En SQL hay que declarar los tipos (<code>--tipo t.horas=number</code>). Hay un detector que avisa del caso típico (texto con decimales sumado como texto), pero es heurístico: no avisa por columnas solo de enteros, puede dar falsos positivos y se apaga solo por encima de 200 000 filas (y lo dice).</li>
+  <li>No se adivinan fechas ambiguas, no se admiten separadores de miles ni notación científica en reglas, y un entero escrito <code>1.0</code> en una configuración se rechaza.</li>
+</ul>
+<h3>Memoria y tamaño</h3>
+<ul>
+  <li>Carga la tabla entera en memoria: unos 2,5 KiB por fila. Con 100 000 filas usó entre 77 y 181 MiB; con 300 000 filas (medición de 1.2.0) unos 750 MiB. No sirve para millones de filas y no se agregó procesamiento distribuido porque ningún caso de este alcance lo necesita.</li>
+  <li>Escribir Excel es lo lento. Una receta escribe además cada tabla intermedia y su traza: unas 8 veces el tamaño de la entrada. <code>limpiar --apply</code> recupera el espacio.</li>
+  <li>No lee Excel antiguo (<code>.xls</code>), ODS ni libros cifrados; no conserva fórmulas, macros ni colores.</li>
+</ul>
+<h3>Privacidad</h3>
+<ul>
+  <li>La terminal, <code>--json</code>, <code>report.json</code>, <code>manifiesto.json</code>, <code>resultados</code>, <code>comprobar</code> y <code>catalogo</code> no muestran valores de celdas, con dos excepciones controlables: las filas que muestra <code>consultar</code> y la muestra de <code>inspeccionar</code>; <code>--ocultar-valores</code> las apaga.</li>
+  <li>Las tablas de resultado, <code>excluidas.csv</code>, <code>cambios_celdas.csv</code> y los exportes sí contienen datos, por naturaleza: no se comparten. <code>data/</code>, <code>results/</code> y <code>logs/</code> no se suben a GitHub.</li>
+  <li>El kit no se conecta a nada: ni a bases de datos, ni a sistemas de la empresa, ni a servicios de IA.</li>
+</ul>
+<h3>Estado de verificación</h3>
+<ul>
+  <li>Comprobado en Linux con Python 3.14: 122 pruebas automáticas, revisión de estilo y tipos (<code>scripts/check.py</code>), una demostración completa con aserciones (<code>scripts/demo.py</code>) y 98 mutaciones (se rompe el código a propósito de 98 maneras y se comprueba que alguna prueba lo detecte).</li>
+  <li><b>Windows no está probado para esta versión.</b> La integración continua (GitHub Actions, Linux y Windows, Python 3.11 y 3.14) está configurada y al día con el código, pero corrió por última vez sobre la 1.4.0: hasta el próximo <code>git push</code> no hay resultado real en Windows.</li>
+  <li>Está probado con datos inventados. Las reglas reales las tendrías que escribir cuando conozcas los archivos de la empresa.</li>
+</ul>
+
+<h2 id="mediciones">Mediciones</h2>
+<p>Medido el 13 de noviembre de 2026 con <code>scripts/medir.py</code>: 100 000 filas × 5 columnas (3,7 MiB), 3 repeticiones, en un
+portátil con Ryzen 7 4800H y 15 GiB de RAM, con el proyecto en un disco duro mecánico (no en el SSD). Son cifras de ese equipo y ese
+tamaño; no una garantía. El detalle está en <code>docs/MEDICIONES.md</code>.</p>
+<div class="tablewrap">
+<table>
+  <tr><th>Comando</th><th>Segundos (mediana)</th><th>Memoria máx.</th><th>Salida</th></tr>
+  <tr><td>inspeccionar</td><td>2,95</td><td>92 MiB</td><td>4 KiB</td></tr>
+  <tr><td>validar con reglas</td><td>5,06</td><td>100 MiB</td><td>13,6 MiB</td></tr>
+  <tr><td>comparar por clave</td><td>2,37</td><td>154 MiB</td><td>281 KiB</td></tr>
+  <tr><td>consolidar 4 archivos</td><td>4,72</td><td>105 MiB</td><td>30 MiB</td></tr>
+  <tr><td>transformar (filtro + grupo)</td><td>1,56</td><td>99 MiB</td><td>8 KiB</td></tr>
+  <tr><td>consultar (GROUP BY)</td><td>2,28</td><td>95 MiB</td><td>7 KiB</td></tr>
+  <tr><td>exportar CSV</td><td>1,50</td><td>77 MiB</td><td>3,8 MiB</td></tr>
+  <tr><td>exportar XLSX</td><td>12,85</td><td>82 MiB</td><td>2,4 MiB</td></tr>
+  <tr><td>receta <code>revision_ordenes</code> (4 pasos, con XLSX y trazas)</td><td>30,03</td><td>181 MiB</td><td>30 MiB</td></tr>
+</table>
+</div>
+
+<h2 id="carpetas">Qué hay en cada carpeta</h2>
+<div class="tablewrap">
+<table>
+  <tr><th>Carpeta o archivo</th><th>Para qué sirve</th></tr>
+  <tr><td><code>kit</code>, <code>kit.cmd</code></td><td>Lanzadores para Linux y Windows</td></tr>
+  <tr><td><code>data/</code></td><td>Donde pondrías tus archivos reales. No se sube a GitHub</td></tr>
+  <tr><td><code>examples/</code></td><td>Datos, reglas y planes ficticios; los mineros en <code>examples/minera/</code>; los de las recetas en <code>examples/recetas/</code></td></tr>
+  <tr><td><code>recetas/</code></td><td>Las tres recetas de ejemplo</td></tr>
+  <tr><td><code>schemas/</code></td><td>Esquemas JSON de reglas, planes y recetas, generados desde el código</td></tr>
+  <tr><td><code>results/</code></td><td>Una carpeta por cada ejecución</td></tr>
+  <tr><td><code>logs/</code></td><td>Copia de la auditoría de cada ejecución y registros de las pruebas</td></tr>
+  <tr><td><code>docs/</code></td><td>Manuales cortos (uno por comando en <code>docs/tools/</code>), guía para agentes, estado, códigos, mediciones, <code>APRENDER.md</code> y este reporte</td></tr>
+  <tr><td><code>src/kitlib/</code></td><td>El código del programa (unas 4 000 líneas de Python)</td></tr>
+  <tr><td><code>tests/</code></td><td>122 pruebas automáticas</td></tr>
+  <tr><td><code>scripts/</code></td><td>Instalar el entorno, correr las pruebas, la demostración, las mutaciones y las mediciones</td></tr>
+  <tr><td><code>.venv/</code>, <code>vendor/</code></td><td>El Python propio del kit y sus dependencias guardadas para instalar sin internet</td></tr>
+</table>
+</div>
+<p>El código está respaldado en GitHub como repositorio privado: <code>github.com/vansss01/kit-tabajo</code>. Los cambios de la 1.5.0
+están commiteados en local y todavía no subidos.</p>
+
+<h2 id="plan">Plan de práctica</h2>
+<div class="tablewrap">
+<table>
+  <tr><th>Semana</th><th>Qué hacer</th></tr>
+  <tr><td>1</td><td>Correr los 13 comandos con los ejemplos. Cambiar una regla de <code>examples/reglas.json</code> y ver qué pasa. Poder explicar cada comando con tus palabras. Leer el índice «¿qué comando uso para…?» de <code>docs/APRENDER.md</code>.</td></tr>
+  <tr><td>2</td><td>Ejercicios 1 a 7 de <code>docs/EJERCICIOS.md</code>. Ejecutar las tres recetas con <code>--vista-previa</code> y luego de verdad; abrir <code>manifiesto.json</code> y encontrar por qué una fila quedó en <code>rechazadas</code> o en <code>conflictos</code>.</td></tr>
+  <tr><td>3</td><td>Ejercicios 8 a 12 (SQL: SELECT, WHERE, GROUP BY, JOIN) declarando tipos. Copiar una receta y adaptarla a una planilla inventada por ti; escribir a mano el resultado esperado antes de correrla.</td></tr>
+  <tr><td>4</td><td>Usar la bitácora cada día. Hacer <code>git push</code> y mirar el resultado de la CI en Windows. Preparar las preguntas para el primer día: qué puedo instalar, qué datos puedo sacar, si se permite usar IA y con qué datos, qué herramientas usa el equipo.</td></tr>
+</table>
+</div>
+
+<h2 id="glosario">Glosario</h2>
+<div class="tablewrap">
+<table>
+  <tr><th>Término</th><th>Significado</th></tr>
+  <tr><td>Terminal</td><td>La ventana donde se escriben comandos en vez de usar el ratón</td></tr>
+  <tr><td>CSV</td><td>Tabla guardada como texto, con las columnas separadas por coma o punto y coma</td></tr>
+  <tr><td>JSON</td><td>Formato de texto para datos y configuraciones; aquí se usa para reglas, planes, recetas e informes</td></tr>
+  <tr><td>Delimitador</td><td>El carácter que separa las columnas en un CSV</td></tr>
+  <tr><td>Codificación</td><td>Cómo guarda el archivo letras como ñ o á. Las más comunes son UTF-8 y cp1252</td></tr>
+  <tr><td>Clave</td><td>La columna (o columnas) que identifica cada fila sin repetirse, como el número de orden</td></tr>
+  <tr><td>Incidencia</td><td>Un problema encontrado en los datos, con fila, columna y código</td></tr>
+  <tr><td>Receta</td><td>Archivo JSON con los pasos de un flujo y la política de cada uno; se repite con <code>ejecutar</code></td></tr>
+  <tr><td>Manifiesto</td><td><code>manifiesto.json</code>: el estado de una ejecución de receta y de cada paso</td></tr>
+  <tr><td>Política</td><td>Qué hace un paso ante una incidencia: detenerse (por defecto) o separar las filas afectadas</td></tr>
+  <tr><td>Procedencia</td><td>Archivo y fila original de cada dato; en recetas se guarda en <code>*_procedencia.csv</code></td></tr>
+  <tr><td>Invariante</td><td>Una cuenta que siempre debe cuadrar (entrada = salidas + apartadas); si no cuadra, el paso falla</td></tr>
+  <tr><td>Huella digital (SHA-256)</td><td>Código calculado a partir del archivo; si el archivo cambia, el código cambia. Prueba que el original no se tocó</td></tr>
+  <tr><td>Entorno virtual</td><td>Una copia aislada de Python solo para este proyecto</td></tr>
+  <tr><td>Repositorio</td><td>La carpeta del proyecto con su historial de cambios, respaldada en GitHub</td></tr>
+  <tr><td>Pruebas automáticas</td><td>Código que comprueba que el programa sigue respondiendo bien después de cada cambio</td></tr>
+  <tr><td>Mutación</td><td>Romper el código a propósito para comprobar que alguna prueba lo nota; si ninguna lo nota, falta una prueba</td></tr>
+  <tr><td>Agente</td><td>Un asistente de IA que puede ejecutar comandos y editar archivos por ti</td></tr>
+  <tr><td>SQL</td><td>El lenguaje para hacer preguntas a una base de datos: qué filas, agrupadas cómo, cruzadas con qué otra tabla</td></tr>
+  <tr><td>JOIN</td><td>Cruzar dos tablas por una columna en común, como el código de equipo</td></tr>
+  <tr><td>Token</td><td>La unidad en que se mide y se cobra lo que lee y escribe una IA; más o menos tres cuartos de palabra</td></tr>
+</table>
+</div>
+
+<footer>Reporte generado el 13 de noviembre de 2026 para la versión 1.5.0 del kit, dentro del proyecto (<code>docs/REPORTE_KIT.html</code>). Los datos de los ejemplos son ficticios.</footer>
+</main>
+</body>
+</html>

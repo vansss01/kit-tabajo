@@ -1,13 +1,40 @@
 # Estado del proyecto
 
-Actualizado: 2026-11-13. Versión 1.5.0-etapa4 (commits locales, sin push). Repositorio: `github.com/vansss01/kit-tabajo` (privado).
-1.4.1 a 1.5.0-etapa4 están comprobadas **solo en local, Linux, Python 3.14.9**: 114 pruebas, Ruff y
-mypy con `scripts/check.py`, flujo `scripts/demo.py` y 86/86 mutaciones (`scripts/mutaciones.py`). No están publicadas: la CI (Linux y Windows,
-Python 3.11 y 3.14, instalación sin red y lanzadores) corrió por última vez sobre 1.4.0; Windows
-queda pendiente hasta el próximo push. Sin dependencia de proveedores de IA.
+Actualizado: 2026-11-13. Versión 1.5.0 (cierre de la etapa 5; commits locales, sin push). Repositorio:
+`github.com/vansss01/kit-tabajo` (privado).
+1.4.1 a 1.5.0 están comprobadas **solo en local, Linux, Python 3.14.9**: 122 pruebas, Ruff y mypy con
+`scripts/check.py`, flujo `scripts/demo.py` y 98/98 mutaciones (`scripts/mutaciones.py`). No están
+publicadas: la CI (`.github/workflows/check.yml`: Linux y Windows, Python 3.11 y 3.14, `check.py`,
+`demo.py`, instalación sin red y lanzadores) está al día con el código pero corrió por última vez sobre
+1.4.0; **Windows queda sin probar hasta el próximo push**. Sin dependencia de proveedores de IA.
 
 Comandos: inspeccionar, comparar, consolidar, validar, transformar, exportar, consultar,
-ejecutar, bitacora, limpiar, catalogo, comprobar, resultados.
+ejecutar, bitacora, limpiar, catalogo, comprobar, resultados. Recetas de ejemplo: `recetas/`
+(revisión de órdenes, consolidación de turnos, enriquecimiento con flota).
+
+## Cambios de 1.5.0-etapa5 (auditoría, recetas de ejemplo, mediciones y cierre)
+
+- Auditoría de la etapa 4 contra lo pedido: todo estaba implementado y probado; lo único que faltaba
+  era documentar en `tools/validar.md` que una clave JSON repetida también es error con `--rules`
+  suelto (ya lo era en el código y en una prueba). La CI no necesitó cambios.
+- Tres recetas completas con entradas ficticias (`examples/recetas/`) y **resultados esperados escritos
+  a mano** (`examples/recetas/esperados/`): `revision_ordenes` (3 aceptadas, 7 rechazadas, 7
+  incidencias), `consolidacion_turnos` (`rename` + `consolidar` + `duplicados`: 5 conservadas, 1 idéntica,
+  2 en conflicto) y `enriquecimiento_flota` (`completar`: 3 completadas, 1 sin coincidencia, 1 ambigua,
+  1 clave vacía). Cada una se repite sobre un segundo archivo cambiando solo la ruta
+  (`tests/test_recetas_ejemplo.py`, dirigido por los esperados).
+- Pruebas pendientes (`tests/test_compatibilidad.py`): un comando suelto y el mismo paso de receta
+  producen las mismas filas e incidencias (validar, transformar, consolidar); el resumen `--json` de
+  `ejecutar` no arrastra detalles y `resultados` respeta sus topes (30 pasos, 40 archivos, 15 códigos,
+  100 incidencias, 200 caracteres) sobre una ejecución fabricada mayor; con `--ocultar-valores` ninguna
+  celda de las recetas de ejemplo llega a la terminal ni a los JSON. 12 mutaciones nuevas.
+- `scripts/medir.py`: conjunto generado con semilla (no se commitea), tiempos, memoria y tamaños;
+  resultados y condiciones en `MEDICIONES.md`. No se añade procesamiento distribuido: 100 000 filas
+  usan como máximo 181 MiB.
+- Documentación: `AGENT_GUIDE.md` con tabla «Dónde está cada respuesta» y la distinción validar /
+  transformar / completar; `tools/ejecutar.md` con las recetas de ejemplo; `APRENDER.md` con la etapa 5 y
+  el índice «¿qué comando uso para…?»; `docs/REPORTE_KIT.html` (página autocontenida, 1.5.0).
+- Versión `1.5.0` en `kitlib.__version__` (antes `1.5.0-etapa4`); sin cambios de comportamiento.
 
 ## Cambios de 1.5.0-etapa4 (contrato para agentes y SQL)
 
@@ -113,7 +140,9 @@ ejecutar, bitacora, limpiar, catalogo, comprobar, resultados.
 
 ## Límites vigentes
 
-- Tablas completas en memoria (≈ 2,5 KB por fila en la medición): no apto para millones de filas.
+- Tablas completas en memoria (≈ 2,5 KB por fila en la medición de 300 000 filas; 77–181 MiB y 1,5–30 s
+  por comando con 100 000 filas × 5 columnas, `MEDICIONES.md`): no apto para millones de filas. Lo
+  lento es escribir XLSX; una receta escribe además cada tabla intermedia y su traza (≈ 8× la entrada).
 - No lee XLS/XLSB/ODS ni libros cifrados; no conserva macros, fórmulas ni estilos.
 - Sin transacción atómica por carpeta: `FAILED.json` o falta de `report.json` = no usar.
   En recetas, el estado de `manifiesto.json` es atómico; los archivos de cada paso no.

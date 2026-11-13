@@ -117,7 +117,8 @@ de los `*_procedencia.csv`. En recetas `inspeccionar` no incluye muestras salvo 
 ocultar no cambia nada. Sin la opción el comportamiento es el de siempre. Una prueba con valores
 centinela únicos comprueba que, con la opción, ninguno llega a la terminal ni a esos resúmenes.
 
-Las operaciones completas y exportaciones mantienen datos en RAM. JSON se carga completo
+Las operaciones completas y exportaciones mantienen datos en RAM (medido: 77–181 MiB con 100 000
+filas × 5 columnas; ≈ 2,5 KiB por fila en la medición de 300 000 filas; ver `MEDICIONES.md`). JSON se carga completo
 incluso con `--limit`. CSV/XLSX limitan filas cargadas al inspeccionar con límite, pero no
 hay límite de bytes por celda ni defensa completa ante archivos hostiles o bombas ZIP.
 defusedxml protege el parseo XML soportado por openpyxl; esto no es un sandbox de archivos.

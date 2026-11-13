@@ -16,7 +16,7 @@ códigos estables en `CODIGOS.md` y en `./kit catalogo`. La salida de texto no c
 | transformar: plan declarativo (también rename, normalize, replace) | operations.py:transform | --plan JSON | [transformación](tools/transformar.md) |
 | exportar: CSV/JSON/Excel | tableio.py; cli.py:execute | --rules opcional, --format, --safe-csv | [exportación](tools/exportar.md) |
 | consultar: SQL solo lectura | operations.py:query | --sql, --tabla N=ARCHIVO, --tipo T.COL=number o string, --numeric, --show, --detector-texto-numerico, --detector-max-filas | [consulta](tools/consultar.md) |
-| ejecutar: receta de pasos con trazabilidad; pasos completar y duplicados; títulos y pies | recetas.py (ejecución), receta_modelo/validacion/vista/cli.py, traza.py | --receta JSON, --entrada N=ARCHIVO, --vista-previa | [recetas](tools/ejecutar.md) |
+| ejecutar: receta de pasos con trazabilidad; pasos completar y duplicados; títulos y pies; 3 recetas de ejemplo en `recetas/` | recetas.py (ejecución), receta_modelo/validacion/vista/cli.py, traza.py | --receta JSON, --entrada N=ARCHIVO, --vista-previa | [recetas](tools/ejecutar.md) |
 | bitacora: diario e informe | bitacora.py | texto, --horas, --etiqueta, --ver, --informe | [bitácora](tools/bitacora.md) |
 | limpiar: ejecuciones antiguas | cli.py:clean | --keep N, --apply (sin él no borra) | [limpieza](tools/limpiar.md) |
 | catalogo: capacidades en JSON | contrato.py, codigos.py, esquemas.py | (sin opciones) | [catálogo y comprobar](tools/comprobar.md) |
@@ -45,5 +45,9 @@ Datos mineros ficticios y ejercicios con respuesta: `examples/minera/`, `docs/EJ
 celdas en la terminal: con datos sensibles usar `--show 0` (los archivos siguen conteniéndolos).
 Para calcular con SQL declarar `--numeric`; sin él puede avisar `resultado_depende_de_texto_sin_numeric`.
 Sumas exactas al dígito: `transformar`. Límites numéricos: manual de consulta.
+Recetas de ejemplo listas para copiar (revisión de órdenes, consolidación de turnos, enriquecimiento
+con flota): `recetas/*.json`, entradas en `examples/recetas/`, esperados a mano en
+`examples/recetas/esperados/`; tabla en `tools/ejecutar.md` («Recetas de ejemplo»).
 Flujo comprobado con aserciones: `python -B scripts/demo.py`.
 Verificación completa: `python -B scripts/check.py`. Mutaciones (comprueban que las pruebas detectan errores reales; lento): `python -B scripts/mutaciones.py [nombre]`.
+Tiempos, memoria y tamaño de salidas con datos generados (no se commitean): `python -B scripts/medir.py`; cifras en `MEDICIONES.md`.

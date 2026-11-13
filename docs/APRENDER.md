@@ -117,3 +117,60 @@ una receta, qué significa un código de error o dónde están las incidencias d
   encabezados; solo `validar`/`ejecutar` miran las filas.
 - *Declarar en vez de adivinar.* El detector de SQL avisa de un caso típico, pero no entiende la
   consulta: con tipos declarados no hace falta. Y para sumas exactas al dígito, `transformar`.
+
+## Etapa 5: recetas de ejemplo, mediciones y cierre
+
+**Problema.** Saber qué hace cada operación no es lo mismo que saber armar un flujo completo: por
+dónde empezar, qué política poner, qué esperar al final. Y un número («tarda poco», «usa poca
+memoria») sin decir con qué datos ni en qué equipo no sirve para decidir.
+
+**Solución.** Tres recetas terminadas, con sus datos ficticios y el resultado escrito a mano **antes**
+de ejecutarlas, para copiar y adaptar (`recetas/`, `examples/recetas/`, tabla en `tools/ejecutar.md`):
+
+| Receta | Qué resuelve | Qué se ve en el resultado |
+|---|---|---|
+| `revision_ordenes` | La planilla semanal de órdenes con errores | 10 órdenes → 3 aceptadas, 7 rechazadas y 7 incidencias con fila y columna; el resumen suma solo las aceptadas |
+| `consolidacion_turnos` | Dos turnos, uno exportado con otros nombres de columna y órdenes repetidas | `rename` iguala columnas, `consolidar` une 8 filas, `duplicados` aparta 1 copia idéntica y manda 2 contradictorias a `conflictos`; el resumen usa las 5 conservadas |
+| `enriquecimiento_flota` | Agregar modelo y área a cada orden desde la planilla de flota | 3 completadas; 1 equipo inexistente, 1 repetido en la flota (no se elige) y 1 vacío quedan aparte, cada uno en su tabla |
+
+Y una medición reproducible (`scripts/medir.py`, `MEDICIONES.md`): con 100 000 filas un comando suelto
+tarda 1,5–5 s y usa menos de 160 MiB; escribir Excel es lo lento (≈ 13 s) y una receta con trazas
+produce unas 8 veces el tamaño de su entrada. Son cifras de un equipo concreto, no una promesa.
+
+**Ideas clave**
+
+- *El esperado se escribe antes.* Si el resultado se copia de lo que salió, la prueba solo comprueba que
+  nada cambió; si se calcula a mano a partir de las filas, comprueba que el kit hace lo correcto.
+- *Una receta sirve para el archivo de la semana que viene.* Cambia la ruta; la configuración queda.
+- *Medir no es garantizar.* La tabla dice equipo, disco, tamaño y repeticiones; fuera de eso, hay que
+  volver a medir.
+
+## ¿Qué comando uso para…? (sin saber Excel)
+
+| Quiero… | Comando o paso | Manual |
+|---|---|---|
+| Saber qué trae un archivo: columnas, cuántas filas, vacíos, repetidos | `inspeccionar` | `tools/inspeccionar.md` |
+| Saber si los datos cumplen reglas (fecha válida, horas entre 0 y 24, código no repetido) sin corregir nada | `validar --rules` | `tools/validar.md` |
+| Ver qué cambió entre la planilla de ayer y la de hoy | `comparar --key orden` | `tools/comparar.md` |
+| Juntar varios archivos con las mismas columnas | `consolidar carpeta` | `tools/consolidar.md` |
+| Juntar archivos con **distintos** nombres de columna | receta `consolidacion_turnos` (`rename` + `consolidar`) | `tools/ejecutar.md` |
+| Quedarme solo con algunas filas o columnas | `transformar` con `filter` / `select` | `tools/transformar.md` |
+| Sumar o contar por equipo (lo que en Excel sería una tabla dinámica) | `transformar` con `group`, o `consultar` con `GROUP BY` | `tools/transformar.md`, `tools/consultar.md` |
+| Ordenar por una columna | `transformar` con `sort` | `tools/transformar.md` |
+| Cambiar el nombre de una columna | `transformar` con `rename` | `tools/transformar.md` |
+| Unificar `" OT1 "`, `"OT1"` y `"ot1"` | `transformar` con `normalize` | `tools/transformar.md` |
+| Corregir estados mal escritos (`Abierta`, `en curso` → `abierta`) con una lista explícita | `transformar` con `replace` | `tools/transformar.md` |
+| Quitar filas repetidas distinguiendo copias idénticas de contradictorias | paso `duplicados` en una receta | `tools/ejecutar.md` |
+| Traer el área o el modelo del equipo desde otra planilla (lo que en Excel sería BUSCARV) | paso `completar` en una receta | `tools/ejecutar.md` |
+| Leer un reporte con título arriba y fila `TOTAL` abajo | `fila_encabezado` y `excluir_filas` en la entrada de una receta | `tools/ejecutar.md` |
+| Entregar un Excel con hojas separadas | `exportar`, o paso `exportar` con `formatos` | `tools/exportar.md` |
+| Repetir todos los pasos cada semana sin olvidar ninguno | `ejecutar --receta` | `tools/ejecutar.md` |
+| Saber si mi receta o mis reglas están bien escritas antes de correrlas | `comprobar`, y `ejecutar --vista-previa` | `tools/comprobar.md` |
+| Saber si la ejecución terminó bien | `resultados` (estado `completada` o `completada_con_incidencias`) | `tools/resultados.md` |
+| Saber por qué falta una fila o por qué cambió una celda | `resultados NOMBRE --paso P`; `excluidas.csv`, `cambios_celdas.csv`, `*_procedencia.csv` | `tools/ejecutar.md` |
+| Ver las primeras incidencias de un tipo sin abrir archivos | `resultados NOMBRE --incidencias CODIGO --n 5` | `tools/resultados.md` |
+| Pegar un resultado en un chat sin mostrar datos reales | cualquier comando con `--ocultar-valores` | `DATA_POLICY.md` |
+| Hacer una pregunta en SQL a una o varias tablas | `consultar --sql` (con `--tipo t.col=number` para calcular) | `tools/consultar.md` |
+| Saber qué puede hacer el kit o qué significa un código | `catalogo`, `CODIGOS.md` | `tools/comprobar.md` |
+| Anotar lo que hice hoy y armar el borrador del informe | `bitacora` | `tools/bitacora.md` |
+| Borrar resultados viejos | `limpiar` (lista) y `limpiar --apply` (borra) | `tools/limpiar.md` |

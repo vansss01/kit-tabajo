@@ -10,6 +10,30 @@ Una receta es un JSON (sin código) con pasos que usan los comandos existentes, 
 El archivo de la línea de comandos es la entrada `principal`; `--entrada NOMBRE=ARCHIVO`
 reemplaza otra. La misma receta sirve para otro archivo compatible cambiando solo la ruta.
 
+## Recetas de ejemplo
+
+Tres recetas completas en `recetas/`, con entradas ficticias en `examples/recetas/` y el resultado
+esperado **escrito a mano** en `examples/recetas/esperados/<receta>.json` (estado, filas por paso,
+incidencias por código, filas clave). `tests/test_recetas_ejemplo.py` las ejecuta por la CLI y compara
+contra ese esperado, y repite cada una sobre un segundo archivo cambiando solo la ruta.
+
+| Receta | Pasos | Entrada principal → resultado esperado | Segundo archivo |
+|---|---|---|---|
+| `revision_ordenes.json`: inspeccionar, validar (separar), resumir y entregar | perfil, revision, resumen, entrega (CSV + XLSX) | `ordenes_semana_1.csv` (10 órdenes): 3 aceptadas, 7 rechazadas, 7 incidencias (orden repetida ×2, fecha `03/11/2026` ambigua, equipo vacío, horas 25 y −1,0, horas vacía); resumen `0007 → 2 órdenes, 3.0 h` | `ordenes_semana_2.csv`: 5 aceptadas, 0 rechazadas, `completada` |
+| `consolidacion_turnos.json`: adaptar nombres de columnas, consolidar, apartar repetidas y resumir solo las conservadas | adaptar (`rename`), union (`consolidar`), repetidas (`duplicados`, separar), resumen, entrega | `turno_a.csv` + `turno_b_exportado.csv` (columnas `OT/Equipo/Fecha/Hrs/Estado`): 8 filas unidas; OT302 idéntica → `excluidas`; OT303 con horas 1,0 y 3,0 → `conflictos` (2 incidencias); 5 conservadas; resumen por equipo 2.5 / 3.5 / 4.5 | `turno_a_semana_2.csv` con `--entrada turno_b=…semana_2_exportado.csv`: 3 conservadas, 1 idéntica excluida, `completada` |
+| `enriquecimiento_flota.json`: completar modelo y área desde la flota, apartar claves inexistentes, ambiguas o vacías, resumir por área | enriquecer (`completar`, separar), resumen, entrega | `ordenes_flota.csv` + `flota.csv` (0042 repetido): 3 completadas, 1 `sin_coincidencia` (0099), 1 `ambiguas` (0042), 1 `clave_vacia`; 5 incidencias (2 por la clave repetida en la referencia); resumen Agua 3.0 / Taller 1.5 | `ordenes_flota_semana_2.csv`: 2 completadas; la referencia sigue aportando sus 2 incidencias |
+
+```bash
+./kit ejecutar examples/recetas/ordenes_semana_1.csv --receta recetas/revision_ordenes.json
+./kit ejecutar examples/recetas/turno_a.csv --receta recetas/consolidacion_turnos.json \
+    --entrada turno_b=examples/recetas/turno_b_exportado.csv
+./kit ejecutar examples/recetas/ordenes_flota.csv --receta recetas/enriquecimiento_flota.json
+```
+
+Para usarlas con tus archivos: copia la receta, cambia `ruta` de las entradas secundarias (o pásalas
+con `--entrada`) y ajusta reglas, mapeo de `rename`, clave y columnas. Lo que no se decide por ti sigue
+igual: sin `conservar` los conflictos van a `conflictos`; sin `existentes` no se pisa ningún dato.
+
 ```json
 {"version": 1, "nombre": "revision_ordenes",
  "entradas": {"ordenes": {"principal": true, "delimiter": ";", "decimal": ","},
@@ -217,6 +241,12 @@ En el manifiesto, cada paso trae `filas` (`entrada`, `salidas`, `rechazadas`, `e
   excluidas o en un grupo; no se compara la cantidad de filas;
 - claves (comparar): antes = eliminadas + comunes y después = nuevas + comunes;
 - ninguna (consultar, inspeccionar): SQL puede combinar o repetir filas.
+
+**Validar, transformar o completar.** `validar` solo señala y separa (`aceptadas` es lo único
+`validada: true`); `transformar` calcula una tabla nueva (filtrar, convertir, agrupar, renombrar,
+normalizar, reemplazar) y registra cada fila quitada y cada celda cambiada; `completar` corrige desde
+una fuente: copia columnas de una referencia por clave exacta, sin elegir entre coincidencias ni pisar
+datos presentes salvo `existentes`. Ninguna toca el archivo original.
 
 **Revisar un cambio:** abre `manifiesto.json`, busca el paso, y en sus `trazas` el archivo.
 Ejemplo: ¿por qué falta la orden OT2? → `03-limpieza/excluidas.csv` dice

@@ -86,8 +86,11 @@ terminal es siempre UTF-8. En Windows se usan los mismos CSV/JSON/XLSX.
 | `comprobar` | Revisa una receta, plan o reglas sin ejecutar nada |
 | `resultados` | Resumen, paso o incidencias de una ejecución, sin valores de celdas |
 
-Para aprender: [ejercicios con datos mineros ficticios](docs/EJERCICIOS.md) y
-[qué resuelve cada función nueva](docs/APRENDER.md).
+Para aprender: [ejercicios con datos mineros ficticios](docs/EJERCICIOS.md),
+[qué resuelve cada función nueva y qué comando usar para cada cosa](docs/APRENDER.md) y las tres
+[recetas de ejemplo](docs/tools/ejecutar.md) (`recetas/`, con entradas y esperados en
+`examples/recetas/`). Resumen general en una página: `docs/REPORTE_KIT.html` (abrir con el
+navegador). Tiempos y memoria medidos: [mediciones](docs/MEDICIONES.md).
 
 Lee [el índice compacto](docs/TOOLS_INDEX.md) y solo el manual de la herramienta
 necesaria. `python -B kit.py SUBCOMANDO --help` describe sus opciones.
