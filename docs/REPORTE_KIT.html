@@ -301,21 +301,24 @@ docs/TOOLS_INDEX.md y docs/PROJECT_STATUS.md. Reutiliza los comandos existentes.
 </ul>
 
 <h2 id="mediciones">Mediciones</h2>
-<p>Medido el 13 de noviembre de 2026 con <code>scripts/medir.py</code>: 100 000 filas × 5 columnas (3,7 MiB), 3 repeticiones, en un
-portátil con Ryzen 7 4800H y 15 GiB de RAM, con el proyecto en un disco duro mecánico (no en el SSD). Son cifras de ese equipo y ese
-tamaño; no una garantía. El detalle está en <code>docs/MEDICIONES.md</code>.</p>
+<p>Medido el 13 de noviembre de 2026 (versión 1.5.1) con <code>scripts/medir.py</code>: 100 000 filas × 5 columnas (3,7 MiB), 3
+repeticiones, en un portátil con Ryzen 7 4800H y 15 GiB de RAM, con el proyecto en un disco duro mecánico (no en el SSD) y sin otra
+carga. Son cifras de ese equipo y ese tamaño; no una garantía. La medición de la 1.5.0 daba tiempos del doble porque el equipo tenía
+otro proceso en paralelo, y su cifra de comparar no valía: el conjunto generado tenía 0 filas modificadas en vez del 1 % anunciado
+(hallazgo 4 de la auditoría; el generador se corrigió y ahora comprueba las proporciones). El detalle está en
+<code>docs/MEDICIONES.md</code>.</p>
 <div class="tablewrap">
 <table>
   <tr><th>Comando</th><th>Segundos (mediana)</th><th>Memoria máx.</th><th>Salida</th></tr>
-  <tr><td>inspeccionar</td><td>2,95</td><td>92 MiB</td><td>4 KiB</td></tr>
-  <tr><td>validar con reglas</td><td>5,06</td><td>100 MiB</td><td>13,6 MiB</td></tr>
-  <tr><td>comparar por clave</td><td>2,37</td><td>154 MiB</td><td>281 KiB</td></tr>
-  <tr><td>consolidar 4 archivos</td><td>4,72</td><td>105 MiB</td><td>30 MiB</td></tr>
-  <tr><td>transformar (filtro + grupo)</td><td>1,56</td><td>99 MiB</td><td>8 KiB</td></tr>
-  <tr><td>consultar (GROUP BY)</td><td>2,28</td><td>95 MiB</td><td>7 KiB</td></tr>
-  <tr><td>exportar CSV</td><td>1,50</td><td>77 MiB</td><td>3,8 MiB</td></tr>
-  <tr><td>exportar XLSX</td><td>12,85</td><td>82 MiB</td><td>2,4 MiB</td></tr>
-  <tr><td>receta <code>revision_ordenes</code> (4 pasos, con XLSX y trazas)</td><td>30,03</td><td>181 MiB</td><td>30 MiB</td></tr>
+  <tr><td>inspeccionar</td><td>1,27</td><td>93 MiB</td><td>4 KiB</td></tr>
+  <tr><td>validar con reglas</td><td>1,36</td><td>101 MiB</td><td>13,6 MiB</td></tr>
+  <tr><td>comparar por clave (2 000 nuevas, 1 000 modificadas)</td><td>1,24</td><td>154 MiB</td><td>416 KiB</td></tr>
+  <tr><td>consolidar 4 archivos</td><td>1,32</td><td>106 MiB</td><td>31 MiB</td></tr>
+  <tr><td>transformar (filtro + grupo)</td><td>0,68</td><td>99 MiB</td><td>8 KiB</td></tr>
+  <tr><td>consultar (GROUP BY)</td><td>0,86</td><td>95 MiB</td><td>7 KiB</td></tr>
+  <tr><td>exportar CSV</td><td>0,54</td><td>76 MiB</td><td>3,8 MiB</td></tr>
+  <tr><td>exportar XLSX</td><td>7,39</td><td>82 MiB</td><td>2,4 MiB</td></tr>
+  <tr><td>receta <code>revision_ordenes</code> (4 pasos, con XLSX y trazas)</td><td>12,93</td><td>181 MiB</td><td>31 MiB</td></tr>
 </table>
 </div>
 

@@ -275,6 +275,10 @@ MUTATIONS = [
     ("exportar omite el xlsx pedido", "src/kitlib/recetas.py", '    if "xlsx" in formats:', "    if False:", EJEMPLOS),
     ("rename deja los nombres antiguos en las filas", "src/kitlib/operations.py",
      "{mapping.get(k, k): v for k, v in r.items()}", "{k: v for k, v in r.items()}", EJEMPLOS),
+    # 1.5.1 (hallazgo 4): el generador de mediciones modificaba filas que ya había excluido
+    ("medir modifica filas ya excluidas", "scripts/medir.py",
+     'antes.writerow([*row[:3], cambio, row[4]] if n % 100 == 25 else row)',
+     'antes.writerow([*row[:3], cambio, row[4]] if n % 100 == 0 else row)', ["tests.test_medir"]),
     # Etapa 5: compatibilidad entre comandos sueltos y pasos de receta
     ("receta validar intercambia aceptadas y rechazadas", "src/kitlib/recetas.py",
      '{"aceptadas": tables["validos"], "rechazadas": tables["invalidos"]}',
@@ -313,7 +317,7 @@ def run(selected):
     for name, path, old, new, tests in selected:
         with tempfile.TemporaryDirectory(prefix="mutante-", dir=ROOT / "tmp") as folder:
             copy = Path(folder)
-            for item in ("src", "tests", "recetas", "examples", "schemas", "docs", "kit.py", "pyproject.toml"):
+            for item in ("src", "tests", "recetas", "examples", "schemas", "docs", "scripts", "kit.py", "pyproject.toml"):
                 source = ROOT / item
                 if source.is_dir():
                     shutil.copytree(source, copy / item)

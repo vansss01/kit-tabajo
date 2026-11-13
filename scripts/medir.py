@@ -64,12 +64,40 @@ def generar(folder, rows, seed):
             row[3] = "25,0"
         todo.writerow(row)
         writers[n % 4][1].writerow(row)
-        if n % 50 != 0:  # anterior: faltan 2 % de las filas y 1 % cambia de horas
-            antes.writerow(row if n % 100 else [*row[:3], "1,0", row[4]])
+        # anterior: falta el 2 % de las filas (n múltiplo de 50) y el 1 % cambia de horas (n ≡ 25 mod 100).
+        # Los dos residuos son disjuntos a propósito: hasta 1.5.0 la modificación se aplicaba a los múltiplos
+        # de 100, ya excluidos por ser múltiplos de 50, y el conjunto salía con 0 modificadas.
+        if n % 50 != 0:
+            # La fila modificada recibe horas distintas de las actuales (si ya eran 1,0 pasan a 2,0): así la cuenta
+            # de modificadas es exacta y no depende del azar.
+            cambio = "2,0" if row[3] == "1,0" else "1,0"
+            antes.writerow([*row[:3], cambio, row[4]] if n % 100 == 25 else row)
     for stream, _ in writers:
         stream.close()
     completo.close()
     anterior.close()
+
+
+def proporciones(folder):
+    """Cuenta nuevas, eliminadas y modificadas entre anterior.csv y ordenes.csv, y las horas fuera de rango."""
+    def leer(name):
+        with (folder / name).open(encoding="utf-8", newline="") as stream:
+            return {row["orden"]: row for row in csv.DictReader(stream, delimiter=";")}
+    antes, despues = leer("anterior.csv"), leer("ordenes.csv")
+    comunes = set(antes) & set(despues)
+    return {"filas": len(despues), "nuevas": len(set(despues) - set(antes)), "eliminadas": len(set(antes) - set(despues)),
+            "modificadas": sum(1 for k in comunes if antes[k] != despues[k]),
+            "fuera_de_rango": sum(1 for r in despues.values() if r["horas"] == "25,0")}
+
+
+def comprobar_proporciones(folder, rows):
+    """Falla si el conjunto generado no tiene lo anunciado: 2 % nuevas, 0 eliminadas, 1 % modificadas, 0,1 % fuera de rango."""
+    esperado = {"filas": rows, "nuevas": rows // 50, "eliminadas": 0, "modificadas": (rows + 75) // 100,
+                "fuera_de_rango": rows // 1000}
+    real = proporciones(folder)
+    if real != esperado:
+        raise SystemExit(f"El conjunto generado no tiene las proporciones anunciadas: {real}; se esperaba {esperado}")
+    return real
 
 
 def tamano(folder):
@@ -115,6 +143,7 @@ def main():
         raise SystemExit(f"La carpeta {base} ya existe; use otra --salida (nunca se sobrescribe)")
     datos, out = base / "datos", base / "resultados"
     generar(datos, a.filas, a.semilla)
+    conjunto = comprobar_proporciones(datos, a.filas)  # comparar debe medir el escenario anunciado
     out.mkdir()
     sep = ["--delimiter", ";", "--decimal", ","]
     ordenes, anterior, turnos = str(datos / "ordenes.csv"), str(datos / "anterior.csv"), str(datos / "turnos")
@@ -135,7 +164,7 @@ def main():
     resultados = [medir(nombre, args, out, a.repeticiones, code) for nombre, args, code in casos]
     entorno = {"fecha_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"), "version_kit": __version__,
                "python": platform.python_version(), "sistema": platform.platform(), "maquina": platform.machine(),
-               "filas": a.filas, "columnas": 5, "archivos_turno": 4, "semilla": a.semilla,
+               "filas": a.filas, "columnas": 5, "archivos_turno": 4, "semilla": a.semilla, "conjunto": conjunto,
                "tamano_entrada_kib": round((datos / "ordenes.csv").stat().st_size / 1024), "repeticiones": a.repeticiones,
                "nota": "Cifras de este equipo y tamaño; no son una garantía general."}
     (base / "medicion.json").write_text(json.dumps({"entorno": entorno, "mediciones": resultados}, ensure_ascii=False,
