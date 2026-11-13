@@ -10,7 +10,15 @@ from typing import Any
 
 from kitlib.tableio import ORIGEN, Table, convert, empty, infer, issue, literal, number, public_row, real_text
 
+# Definiciones compartidas por la validación de reglas y planes y por los esquemas (esquemas.py).
 TYPES = {"string", "integer", "number", "date", "boolean"}
+DECIMALS = (".", ",")
+RULE_KEYS = ("required", "nonempty", "unique", "type", "min", "max", "date_format", "decimal", "allowed")
+RANGE_TYPES = ("number", "integer", "date")
+FILTER_OPERATORS = ("eq", "ne", "gt", "ge", "lt", "le", "contains")
+AGGREGATES = ("count", "sum", "mean", "min", "max")
+CASES = ("keep", "upper", "lower")
+UNKNOWN_VALUES = ("keep", "exclude", "error")
 
 
 def require_columns(table, columns):
@@ -95,9 +103,8 @@ def compare(before, after, keys):
 def validate_config(config, defaults):
     if set(config) - {"columns", "unique_keys"} or not isinstance(config.get("columns"), dict):
         raise ValueError("Reglas: columns (objeto) y unique_keys (lista opcional)")
-    allowed = {"required", "nonempty", "unique", "type", "min", "max", "date_format", "decimal", "allowed"}
     for col, spec in config["columns"].items():
-        if not isinstance(spec, dict) or set(spec) - allowed:
+        if not isinstance(spec, dict) or set(spec) - set(RULE_KEYS):
             raise ValueError(f"Regla inválida en {col}")
         if spec.get("type", "string") not in TYPES:
             raise ValueError(f"Tipo desconocido en {col}")
@@ -107,11 +114,11 @@ def validate_config(config, defaults):
         if "allowed" in spec and (not isinstance(spec["allowed"], list) or not spec["allowed"]
                                   or not all(isinstance(v, str) for v in spec["allowed"])):
             raise ValueError("allowed debe ser una lista no vacía de textos")
-        if spec.get("decimal", ".") not in (".", ","):
+        if spec.get("decimal", ".") not in DECIMALS:
             raise ValueError("decimal debe ser . o ,")
         if "date_format" in spec and not isinstance(spec["date_format"], str):
             raise ValueError("date_format debe ser texto")
-        if ("min" in spec or "max" in spec) and spec.get("type") not in {"number", "integer", "date"}:
+        if ("min" in spec or "max" in spec) and spec.get("type") not in RANGE_TYPES:
             raise ValueError("Rangos requieren tipo number, integer o date")
         bounds = {}
         for bound in ("min", "max"):
@@ -252,8 +259,12 @@ def check_step(step, opts):
         raise ValueError(f"Parámetros inválidos para {op}")
     local = replace(opts, decimal=step.get("decimal", opts.decimal),
                     date_format=step.get("date_format", opts.date_format))
-    if local.decimal not in (".", ",") or step.get("type", "string") not in TYPES:
+    if local.decimal not in DECIMALS or step.get("type", "string") not in TYPES:
         raise ValueError("Tipo o separador decimal inválido")
+    if not isinstance(step.get("date_format", ""), str):
+        raise ValueError("date_format debe ser texto")
+    if op == "convert" and not isinstance(step["column"], str):
+        raise ValueError("column debe ser texto")
     if op in ("select", "sort"):
         column_list(step["columns"])
     if op == "deduplicate":
@@ -261,7 +272,9 @@ def check_step(step, opts):
     if op == "filter":
         if not isinstance(step["column"], str):
             raise ValueError("column debe ser texto")
-        if step["operator"] not in {"eq", "ne", "gt", "ge", "lt", "le", "contains"}:
+        if isinstance(step["value"], (list, dict)):
+            raise ValueError("value debe ser un valor simple (texto, número, booleano o null)")
+        if step["operator"] not in FILTER_OPERATORS:
             raise ValueError("Operador de filtro no admitido")
         if step["operator"] == "contains" and step.get("type", "string") != "string":
             raise ValueError("contains requiere string")
@@ -271,12 +284,12 @@ def check_step(step, opts):
         if not isinstance(step["map"], dict) or not step["map"] or not all(
                 isinstance(k, str) and isinstance(v, str) for k, v in step["map"].items()):
             raise ValueError("replace: map es un objeto no vacío {\"valor\": \"equivalente\"} de textos")
-        if step["unknown"] not in ("keep", "exclude", "error"):
+        if step["unknown"] not in UNKNOWN_VALUES:
             raise ValueError("replace: unknown debe ser keep (conservar con advertencia), exclude (apartar la "
                              "fila) o error (detener)")
     if op == "normalize":
         column_list(step["columns"])
-        if step.get("case", "keep") not in ("keep", "upper", "lower"):
+        if step.get("case", "keep") not in CASES:
             raise ValueError("normalize: case admite \"upper\" o \"lower\" (o se omite)")
     if op == "rename":
         mapping = step["columns"]
@@ -301,8 +314,10 @@ def check_step(step, opts):
         for spec in aggregates:
             if not isinstance(spec, dict) or set(spec) - {"op", "column", "as"} or not {"op", "as"} <= set(spec):
                 raise ValueError("Agregado: op, column y as")
-            if spec["op"] not in {"count", "sum", "mean", "min", "max"}:
+            if spec["op"] not in AGGREGATES:
                 raise ValueError("Agregado desconocido")
+            if "column" in spec and not isinstance(spec["column"], str):
+                raise ValueError("column de un agregado debe ser texto")
             if spec["op"] != "count" and not isinstance(spec.get("column"), str):
                 raise ValueError("sum, mean, min y max requieren column")
             if not isinstance(spec["as"], str) or not spec["as"].strip() or spec["as"] in names:

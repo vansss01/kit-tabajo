@@ -25,7 +25,7 @@ from kitlib.operations import (compare, inspect_table, merge_tables, query, quer
 from kitlib.runtime import ROOT, inside, public_message
 from kitlib.tableio import (ORIGEN, Table, atomic_json, csv_write, excel_write, fingerprint, json_write,
                             read_table, table_json)
-from kitlib.receta_modelo import (OUTPUTS, SEPARABLE, SEPARATED, _flat)
+from kitlib.receta_modelo import OUTPUTS, SEPARABLE, SEPARATED, _flat
 
 
 # --------------------------------------------------------------------------- ejecución

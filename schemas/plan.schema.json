@@ -1,0 +1,342 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kit-tabajo/plan.schema.json",
+  "title": "Plan de transformar",
+  "x-version-esquema": 1,
+  "$comment": "Generado desde el código (src/kitlib/esquemas.py); no editar a mano. Reglas que el esquema no expresa: REGLAS_SEMANTICAS en esquemas.py y docs/ESQUEMAS.md. Claves JSON repetidas son error.",
+  "type": "object",
+  "required": [
+    "steps"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "steps": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "columns",
+              "op"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "columns": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "op": {
+                "const": "select"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "column",
+              "op",
+              "operator",
+              "value"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "column": {
+                "type": "string"
+              },
+              "date_format": {
+                "type": "string"
+              },
+              "decimal": {
+                "enum": [
+                  ".",
+                  ","
+                ]
+              },
+              "op": {
+                "const": "filter"
+              },
+              "operator": {
+                "enum": [
+                  "eq",
+                  "ne",
+                  "gt",
+                  "ge",
+                  "lt",
+                  "le",
+                  "contains"
+                ]
+              },
+              "type": {
+                "enum": [
+                  "boolean",
+                  "date",
+                  "integer",
+                  "number",
+                  "string"
+                ]
+              },
+              "value": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "columns",
+              "op"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "columns": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "date_format": {
+                "type": "string"
+              },
+              "decimal": {
+                "enum": [
+                  ".",
+                  ","
+                ]
+              },
+              "descending": {
+                "type": "boolean"
+              },
+              "op": {
+                "const": "sort"
+              },
+              "type": {
+                "enum": [
+                  "boolean",
+                  "date",
+                  "integer",
+                  "number",
+                  "string"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "column",
+              "op",
+              "type"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "column": {
+                "type": "string"
+              },
+              "date_format": {
+                "type": "string"
+              },
+              "decimal": {
+                "enum": [
+                  ".",
+                  ","
+                ]
+              },
+              "op": {
+                "const": "convert"
+              },
+              "type": {
+                "enum": [
+                  "boolean",
+                  "date",
+                  "integer",
+                  "number",
+                  "string"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "keys",
+              "op"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "keys": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "op": {
+                "const": "deduplicate"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "aggregates",
+              "by",
+              "op"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "aggregates": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "op",
+                    "as"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "op": {
+                      "enum": [
+                        "count",
+                        "sum",
+                        "mean",
+                        "min",
+                        "max"
+                      ]
+                    },
+                    "column": {
+                      "type": "string"
+                    },
+                    "as": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    }
+                  }
+                }
+              },
+              "by": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "decimal": {
+                "enum": [
+                  ".",
+                  ","
+                ]
+              },
+              "op": {
+                "const": "group"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "columns",
+              "op"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "columns": {
+                "type": "object",
+                "minProperties": 1,
+                "propertyNames": {
+                  "minLength": 1
+                },
+                "additionalProperties": {
+                  "type": "string",
+                  "pattern": "\\S"
+                }
+              },
+              "op": {
+                "const": "rename"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "columns",
+              "op"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "case": {
+                "enum": [
+                  "keep",
+                  "upper",
+                  "lower"
+                ]
+              },
+              "columns": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "op": {
+                "const": "normalize"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "column",
+              "map",
+              "op",
+              "unknown"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "column": {
+                "type": "string",
+                "minLength": 1
+              },
+              "map": {
+                "type": "object",
+                "minProperties": 1,
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "op": {
+                "const": "replace"
+              },
+              "unknown": {
+                "enum": [
+                  "keep",
+                  "exclude",
+                  "error"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

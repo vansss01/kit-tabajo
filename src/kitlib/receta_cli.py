@@ -8,7 +8,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from kitlib.runtime import ROOT, inside
-from kitlib.receta_modelo import (RecipeError)
+from kitlib.receta_modelo import RecipeError
 from kitlib.receta_validacion import cargar_receta
 from kitlib.receta_vista import comprobar_columnas, vista_previa
 from kitlib.recetas import _summary, ejecutar_receta

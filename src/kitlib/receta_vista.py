@@ -1,8 +1,8 @@
 """Vista previa de una receta: encabezados y columnas comprobados sin leer filas de datos."""
 
 from kitlib.runtime import public_message
-from kitlib.tableio import (Table, read_table)
-from kitlib.receta_modelo import (OUTPUTS, error, _flat)
+from kitlib.receta_modelo import OUTPUTS, _flat, error
+from kitlib.tableio import Table, read_table
 from kitlib.recetas import ISSUE_COLUMNS, RUNNERS
 
 

@@ -23,6 +23,8 @@ REEMPLAZAR = ["tests.test_transformaciones.ReemplazarTests"]
 COMPLETAR = ["tests.test_transformaciones.CompletarTests"]
 DUPLICADOS = ["tests.test_transformaciones.DuplicadosTests"]
 ENCABEZADOS = ["tests.test_transformaciones.EncabezadosTests"]
+ESQUEMAS = ["tests.test_esquemas.EquivalenciaTests.test_examples_and_valid_cases_pass_both",
+            "tests.test_esquemas.EquivalenciaTests.test_invalid_cases_are_rejected_by_both_or_are_listed_semantic_rules"]
 MUTATIONS = [
     # Etapa 2: trazabilidad
     ("incidencias con fila intermedia", "src/kitlib/traza.py",
@@ -155,6 +157,31 @@ MUTATIONS = [
     ("igual ignora mayúsculas", "src/kitlib/tableio.py",
      'if "igual" in cond and text == cond["igual"]:', 'if "igual" in cond and text.lower() == cond["igual"].lower():',
      ENCABEZADOS),
+    # Etapa 4: esquemas (rompen el esquema o el validador; deben divergir y detectarse)
+    ("esquema de plan admite parámetros extra", "src/kitlib/esquemas.py",
+     'steps.append({"type": "object", "required": sorted(required | {"op"}), "additionalProperties": False,',
+     'steps.append({"type": "object", "required": sorted(required | {"op"}), "additionalProperties": True,',
+     ESQUEMAS),
+    ("esquema permite separar en cualquier paso", "src/kitlib/esquemas.py",
+     '"incidencias": {"enum": list(INCIDENCIAS) if separable else ["detener"]},',
+     '"incidencias": {"enum": list(INCIDENCIAS)},', ESQUEMAS),
+    ("esquema con otro máximo de sample", "src/kitlib/esquemas.py",
+     '"maximum": SAMPLE_MAX}', '"maximum": SAMPLE_MAX + 10}', ESQUEMAS),
+    ("esquema admite renombrar a espacios", "src/kitlib/esquemas.py",
+     '"propertyNames": {"minLength": 1}, "additionalProperties": TEXT}',
+     '"propertyNames": {"minLength": 1}, "additionalProperties": {"type": "string"}}', ESQUEMAS),
+    ("esquema admite fila_encabezado 0", "src/kitlib/esquemas.py",
+     '"fila_encabezado": {"type": "integer", "minimum": 1}', '"fila_encabezado": {"type": "integer", "minimum": 0}',
+     ESQUEMAS),
+    ("esquema admite cualquier versión", "src/kitlib/esquemas.py",
+     'top = {"version": {"const": VERSION},', 'top = {"version": {"type": "integer"},', ESQUEMAS),
+    ("validador sin comprobar column de convert", "src/kitlib/operations.py",
+     '    if op == "convert" and not isinstance(step["column"], str):', "    if False:", ESQUEMAS),
+    ("validador admite value lista", "src/kitlib/operations.py",
+     '        if isinstance(step["value"], (list, dict)):', "        if False:", ESQUEMAS),
+    ("validador admite versión true", "src/kitlib/receta_validacion.py",
+     'elif raw["version"] != VERSION or isinstance(raw["version"], bool):', 'elif raw["version"] != VERSION:',
+     ESQUEMAS),
 ]
 
 
@@ -164,7 +191,7 @@ def run(selected):
     for name, path, old, new, tests in selected:
         with tempfile.TemporaryDirectory(prefix="mutante-", dir=ROOT / "tmp") as folder:
             copy = Path(folder)
-            for item in ("src", "tests", "recetas", "examples", "kit.py", "pyproject.toml"):
+            for item in ("src", "tests", "recetas", "examples", "schemas", "kit.py", "pyproject.toml"):
                 source = ROOT / item
                 if source.is_dir():
                     shutil.copytree(source, copy / item)

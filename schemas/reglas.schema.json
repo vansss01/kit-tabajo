@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kit-tabajo/reglas.schema.json",
+  "title": "Reglas de validar",
+  "x-version-esquema": 1,
+  "$comment": "Generado desde el código (src/kitlib/esquemas.py); no editar a mano. Reglas que el esquema no expresa: REGLAS_SEMANTICAS en esquemas.py y docs/ESQUEMAS.md. Claves JSON repetidas son error.",
+  "type": "object",
+  "required": [
+    "columns"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "columns": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "required": {
+            "type": "boolean"
+          },
+          "nonempty": {
+            "type": "boolean"
+          },
+          "unique": {
+            "type": "boolean"
+          },
+          "type": {
+            "enum": [
+              "boolean",
+              "date",
+              "integer",
+              "number",
+              "string"
+            ]
+          },
+          "min": {
+            "type": [
+              "string",
+              "number"
+            ],
+            "pattern": "\\S"
+          },
+          "max": {
+            "type": [
+              "string",
+              "number"
+            ],
+            "pattern": "\\S"
+          },
+          "date_format": {
+            "type": "string"
+          },
+          "decimal": {
+            "enum": [
+              ".",
+              ","
+            ]
+          },
+          "allowed": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "unique_keys": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

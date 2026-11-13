@@ -1,0 +1,1315 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kit-tabajo/receta.schema.json",
+  "title": "Receta de ejecutar",
+  "x-version-esquema": 1,
+  "$comment": "Generado desde el código (src/kitlib/esquemas.py); no editar a mano. Reglas que el esquema no expresa: REGLAS_SEMANTICAS en esquemas.py y docs/ESQUEMAS.md. Claves JSON repetidas son error.",
+  "type": "object",
+  "required": [
+    "version",
+    "entradas",
+    "pasos"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "nombre": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "descripcion": {},
+    "entradas": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]{0,39}$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ruta": {
+            "type": "string",
+            "minLength": 1
+          },
+          "principal": {
+            "type": "boolean"
+          },
+          "politica": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "incidencias": {
+                "enum": [
+                  "detener",
+                  "separar"
+                ]
+              },
+              "advertencias_permitidas": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{0,79}$"
+                }
+              }
+            }
+          },
+          "descripcion": {},
+          "delimiter": {
+            "type": "string",
+            "pattern": "^(TAB|[^\r\n\"])$"
+          },
+          "decimal": {
+            "enum": [
+              ".",
+              ","
+            ]
+          },
+          "encoding": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "date_format": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sheet": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fila_encabezado": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "excluir_filas": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "columna",
+                    "igual"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "columna": {
+                      "type": "string"
+                    },
+                    "igual": {
+                      "type": "string"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "columna",
+                    "empieza_con"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "columna": {
+                      "type": "string"
+                    },
+                    "empieza_con": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "columna",
+                    "vacia"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "columna": {
+                      "type": "string"
+                    },
+                    "vacia": {
+                      "const": true
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "pasos": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "entrada",
+              "nombre",
+              "op"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "nombre": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,39}$"
+              },
+              "op": {
+                "const": "inspeccionar"
+              },
+              "descripcion": {},
+              "opciones": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "decimal": {
+                    "enum": [
+                      ".",
+                      ","
+                    ]
+                  },
+                  "date_format": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "politica": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "incidencias": {
+                    "enum": [
+                      "detener"
+                    ]
+                  },
+                  "advertencias_permitidas": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{0,79}$"
+                    }
+                  }
+                }
+              },
+              "entrada": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sample": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 20
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "entrada",
+              "nombre",
+              "op",
+              "reglas"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "nombre": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,39}$"
+              },
+              "op": {
+                "const": "validar"
+              },
+              "descripcion": {},
+              "opciones": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "decimal": {
+                    "enum": [
+                      ".",
+                      ","
+                    ]
+                  },
+                  "date_format": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "politica": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "incidencias": {
+                    "enum": [
+                      "detener",
+                      "separar"
+                    ]
+                  },
+                  "advertencias_permitidas": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{0,79}$"
+                    }
+                  }
+                }
+              },
+              "entrada": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reglas": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/reglas"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "entrada",
+              "nombre",
+              "op",
+              "plan"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "nombre": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,39}$"
+              },
+              "op": {
+                "const": "transformar"
+              },
+              "descripcion": {},
+              "opciones": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "decimal": {
+                    "enum": [
+                      ".",
+                      ","
+                    ]
+                  },
+                  "date_format": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "politica": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "incidencias": {
+                    "enum": [
+                      "detener"
+                    ]
+                  },
+                  "advertencias_permitidas": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{0,79}$"
+                    }
+                  }
+                }
+              },
+              "entrada": {
+                "type": "string",
+                "minLength": 1
+              },
+              "plan": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/plan"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ]
+              },
+              "traza": {
+                "enum": [
+                  "resumida",
+                  "detallada"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "nombre",
+              "op",
+              "sql",
+              "tablas"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "nombre": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,39}$"
+              },
+              "op": {
+                "const": "consultar"
+              },
+              "descripcion": {},
+              "opciones": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "decimal": {
+                    "enum": [
+                      ".",
+                      ","
+                    ]
+                  },
+                  "date_format": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "politica": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "incidencias": {
+                    "enum": [
+                      "detener"
+                    ]
+                  },
+                  "advertencias_permitidas": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{0,79}$"
+                    }
+                  }
+                }
+              },
+              "numeric": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "sql": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "tablas": {
+                "type": "object",
+                "minProperties": 1,
+                "additionalProperties": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "propertyNames": {
+                  "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,40}$"
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "entradas",
+              "nombre",
+              "op"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "nombre": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,39}$"
+              },
+              "op": {
+                "const": "consolidar"
+              },
+              "descripcion": {},
+              "opciones": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "decimal": {
+                    "enum": [
+                      ".",
+                      ","
+                    ]
+                  },
+                  "date_format": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "politica": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "incidencias": {
+                    "enum": [
+                      "detener",
+                      "separar"
+                    ]
+                  },
+                  "advertencias_permitidas": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{0,79}$"
+                    }
+                  }
+                }
+              },
+              "entradas": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "antes",
+              "clave",
+              "despues",
+              "nombre",
+              "op"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "nombre": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,39}$"
+              },
+              "op": {
+                "const": "comparar"
+              },
+              "descripcion": {},
+              "opciones": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "decimal": {
+                    "enum": [
+                      ".",
+                      ","
+                    ]
+                  },
+                  "date_format": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "politica": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "incidencias": {
+                    "enum": [
+                      "detener"
+                    ]
+                  },
+                  "advertencias_permitidas": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{0,79}$"
+                    }
+                  }
+                }
+              },
+              "antes": {
+                "type": "string",
+                "minLength": 1
+              },
+              "clave": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "despues": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "nombre",
+              "op",
+              "tablas"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "nombre": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,39}$"
+              },
+              "op": {
+                "const": "exportar"
+              },
+              "descripcion": {},
+              "opciones": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "decimal": {
+                    "enum": [
+                      ".",
+                      ","
+                    ]
+                  },
+                  "date_format": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "politica": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "incidencias": {
+                    "enum": [
+                      "detener"
+                    ]
+                  },
+                  "advertencias_permitidas": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{0,79}$"
+                    }
+                  }
+                }
+              },
+              "archivo": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,39}$",
+                "not": {
+                  "enum": [
+                    "audit",
+                    "failed",
+                    "manifiesto",
+                    "report"
+                  ]
+                }
+              },
+              "formatos": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "csv",
+                    "json",
+                    "xlsx"
+                  ]
+                }
+              },
+              "safe_csv": {
+                "type": "boolean"
+              },
+              "tablas": {
+                "type": "object",
+                "minProperties": 1,
+                "additionalProperties": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "propertyNames": {
+                  "pattern": "^[a-z][a-z0-9_]{0,39}$",
+                  "not": {
+                    "enum": [
+                      "audit",
+                      "failed",
+                      "manifiesto",
+                      "report"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "clave",
+              "columnas",
+              "entrada",
+              "nombre",
+              "op",
+              "referencia"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "nombre": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,39}$"
+              },
+              "op": {
+                "const": "completar"
+              },
+              "descripcion": {},
+              "opciones": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "decimal": {
+                    "enum": [
+                      ".",
+                      ","
+                    ]
+                  },
+                  "date_format": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "politica": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "incidencias": {
+                    "enum": [
+                      "detener",
+                      "separar"
+                    ]
+                  },
+                  "advertencias_permitidas": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{0,79}$"
+                    }
+                  }
+                }
+              },
+              "clave": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "clave_referencia": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "columnas": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "entrada": {
+                "type": "string",
+                "minLength": 1
+              },
+              "existentes": {
+                "enum": [
+                  "error",
+                  "completar_vacios",
+                  "reemplazar"
+                ]
+              },
+              "referencia": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "clave",
+              "entrada",
+              "nombre",
+              "op"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "nombre": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,39}$"
+              },
+              "op": {
+                "const": "duplicados"
+              },
+              "descripcion": {},
+              "opciones": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "decimal": {
+                    "enum": [
+                      ".",
+                      ","
+                    ]
+                  },
+                  "date_format": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "politica": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "incidencias": {
+                    "enum": [
+                      "detener",
+                      "separar"
+                    ]
+                  },
+                  "advertencias_permitidas": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{0,79}$"
+                    }
+                  }
+                }
+              },
+              "clave": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "comparar": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "conservar": {
+                "enum": [
+                  "ninguno",
+                  "primero",
+                  "ultimo",
+                  "mas_reciente"
+                ]
+              },
+              "empate": {
+                "enum": [
+                  "conflicto",
+                  "primero",
+                  "ultimo"
+                ]
+              },
+              "entrada": {
+                "type": "string",
+                "minLength": 1
+              },
+              "fecha": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        ]
+      }
+    },
+    "salida": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "delimiter": {
+          "type": "string",
+          "pattern": "^(TAB|[^\r\n\"])$"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "reglas": {
+      "type": "object",
+      "required": [
+        "columns"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "required": {
+                "type": "boolean"
+              },
+              "nonempty": {
+                "type": "boolean"
+              },
+              "unique": {
+                "type": "boolean"
+              },
+              "type": {
+                "enum": [
+                  "boolean",
+                  "date",
+                  "integer",
+                  "number",
+                  "string"
+                ]
+              },
+              "min": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "pattern": "\\S"
+              },
+              "max": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "pattern": "\\S"
+              },
+              "date_format": {
+                "type": "string"
+              },
+              "decimal": {
+                "enum": [
+                  ".",
+                  ","
+                ]
+              },
+              "allowed": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "unique_keys": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "plan": {
+      "type": "object",
+      "required": [
+        "steps"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "steps": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "columns",
+                  "op"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "columns": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "op": {
+                    "const": "select"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "column",
+                  "op",
+                  "operator",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "column": {
+                    "type": "string"
+                  },
+                  "date_format": {
+                    "type": "string"
+                  },
+                  "decimal": {
+                    "enum": [
+                      ".",
+                      ","
+                    ]
+                  },
+                  "op": {
+                    "const": "filter"
+                  },
+                  "operator": {
+                    "enum": [
+                      "eq",
+                      "ne",
+                      "gt",
+                      "ge",
+                      "lt",
+                      "le",
+                      "contains"
+                    ]
+                  },
+                  "type": {
+                    "enum": [
+                      "boolean",
+                      "date",
+                      "integer",
+                      "number",
+                      "string"
+                    ]
+                  },
+                  "value": {
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "columns",
+                  "op"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "columns": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "date_format": {
+                    "type": "string"
+                  },
+                  "decimal": {
+                    "enum": [
+                      ".",
+                      ","
+                    ]
+                  },
+                  "descending": {
+                    "type": "boolean"
+                  },
+                  "op": {
+                    "const": "sort"
+                  },
+                  "type": {
+                    "enum": [
+                      "boolean",
+                      "date",
+                      "integer",
+                      "number",
+                      "string"
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "column",
+                  "op",
+                  "type"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "column": {
+                    "type": "string"
+                  },
+                  "date_format": {
+                    "type": "string"
+                  },
+                  "decimal": {
+                    "enum": [
+                      ".",
+                      ","
+                    ]
+                  },
+                  "op": {
+                    "const": "convert"
+                  },
+                  "type": {
+                    "enum": [
+                      "boolean",
+                      "date",
+                      "integer",
+                      "number",
+                      "string"
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "keys",
+                  "op"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "keys": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "op": {
+                    "const": "deduplicate"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "aggregates",
+                  "by",
+                  "op"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "aggregates": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "op",
+                        "as"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "op": {
+                          "enum": [
+                            "count",
+                            "sum",
+                            "mean",
+                            "min",
+                            "max"
+                          ]
+                        },
+                        "column": {
+                          "type": "string"
+                        },
+                        "as": {
+                          "type": "string",
+                          "pattern": "\\S"
+                        }
+                      }
+                    }
+                  },
+                  "by": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "decimal": {
+                    "enum": [
+                      ".",
+                      ","
+                    ]
+                  },
+                  "op": {
+                    "const": "group"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "columns",
+                  "op"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "columns": {
+                    "type": "object",
+                    "minProperties": 1,
+                    "propertyNames": {
+                      "minLength": 1
+                    },
+                    "additionalProperties": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    }
+                  },
+                  "op": {
+                    "const": "rename"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "columns",
+                  "op"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "case": {
+                    "enum": [
+                      "keep",
+                      "upper",
+                      "lower"
+                    ]
+                  },
+                  "columns": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "op": {
+                    "const": "normalize"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "column",
+                  "map",
+                  "op",
+                  "unknown"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "column": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "map": {
+                    "type": "object",
+                    "minProperties": 1,
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "op": {
+                    "const": "replace"
+                  },
+                  "unknown": {
+                    "enum": [
+                      "keep",
+                      "exclude",
+                      "error"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

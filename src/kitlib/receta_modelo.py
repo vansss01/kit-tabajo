@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from kitlib.tableio import (Options)
+from kitlib.tableio import Options
 
 VERSION = 1
 NAME = re.compile(r"[a-z][a-z0-9_]{0,39}")
@@ -41,6 +41,13 @@ READ_OPTIONS = {"delimiter", "encoding", "decimal", "date_format", "sheet"}
 ENTRY_KEYS = READ_OPTIONS | {"ruta", "principal", "politica", "descripcion", "fila_encabezado", "excluir_filas"}
 TOP_KEYS = {"version", "nombre", "descripcion", "entradas", "pasos", "salida"}
 FORMATS = {"csv", "json", "xlsx"}
+INCIDENCIAS = ("detener", "separar")
+TRAZA = ("resumida", "detallada")
+EXISTENTES = ("error", "completar_vacios", "reemplazar")
+CONSERVAR = ("ninguno", "primero", "ultimo", "mas_reciente")
+EMPATE = ("conflicto", "primero", "ultimo")
+SAMPLE_MAX = 20
+EXCLUSION_TESTS = ("igual", "empieza_con", "vacia")
 RESERVED = {"report", "audit", "manifiesto", "failed"}
 
 

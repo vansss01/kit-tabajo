@@ -5,9 +5,12 @@ import json
 from dataclasses import replace
 from pathlib import Path
 
-from kitlib.operations import (check_plan, validate_config)
-from kitlib.tableio import (Options, load_config, unique_keys)
-from kitlib.receta_modelo import (VERSION, NAME, SQL_NAME, CODE, OUTPUTS, PARAMS, COMMON, SEPARABLE, READ_OPTIONS, ENTRY_KEYS, TOP_KEYS, FORMATS, RESERVED, RecipeError, error, Step, Entry, Recipe, _flat)
+from kitlib.operations import DECIMALS, check_plan, validate_config
+from kitlib.receta_modelo import (CODE, COMMON, CONSERVAR, EMPATE, ENTRY_KEYS, EXCLUSION_TESTS, EXISTENTES,
+                                  FORMATS, INCIDENCIAS, NAME, OUTPUTS, PARAMS, READ_OPTIONS, RESERVED,
+                                  SAMPLE_MAX, SEPARABLE, SQL_NAME, TOP_KEYS, TRAZA, VERSION, Entry, Recipe,
+                                  RecipeError, Step, _flat, error)
+from kitlib.tableio import Options, load_config, unique_keys
 
 
 # --------------------------------------------------------------------------- validación
@@ -25,7 +28,7 @@ def _options(spec, where, errors, step=None):
                 errors.append(error("opcion_invalida", "delimiter requiere un carácter", step, f"{where}.delimiter",
                                     "Use por ejemplo \";\" o \"TAB\""))
                 continue
-        if key == "decimal" and value not in (".", ","):
+        if key == "decimal" and value not in DECIMALS:
             errors.append(error("opcion_invalida", "decimal debe ser \".\" o \",\"", step, f"{where}.decimal"))
             continue
         if key == "encoding" and not value:
@@ -41,7 +44,7 @@ def _policy(spec, where, errors, step=None, separable=True):
                             f"{where}.politica"))
         return "detener", set()
     mode = policy.get("incidencias", "detener")
-    if mode not in ("detener", "separar"):
+    if mode not in INCIDENCIAS:
         errors.append(error("politica_invalida", "incidencias debe ser \"detener\" o \"separar\"", step,
                             f"{where}.politica.incidencias"))
         mode = "detener"
@@ -257,14 +260,14 @@ def cargar_receta(path, principal=None, overrides=None):
                     and isinstance(spec["clave_referencia"], list) and len(spec["clave"]) != len(spec["clave_referencia"])):
                 errors.append(error("parametro_invalido", "clave y clave_referencia deben tener el mismo largo", name,
                                     "clave_referencia"))
-            if spec.get("existentes", "error") not in ("error", "completar_vacios", "reemplazar"):
+            if spec.get("existentes", "error") not in EXISTENTES:
                 errors.append(error("parametro_invalido", "existentes: error, completar_vacios o reemplazar", name,
                                     "existentes", "Por defecto (error) nunca se pisan datos presentes"))
         if op == "duplicados":
             for key in ("clave", "comparar"):
                 _names(spec, key, name, errors)
             keep = spec.get("conservar", "ninguno")
-            if keep not in ("ninguno", "primero", "ultimo", "mas_reciente"):
+            if keep not in CONSERVAR:
                 errors.append(error("parametro_invalido", "conservar: ninguno, primero, ultimo o mas_reciente", name,
                                     "conservar", "Sin conservar (ninguno) los registros contradictorios van a conflictos"))
             if keep == "mas_reciente" and not (isinstance(spec.get("fecha"), str) and spec["fecha"]):
@@ -272,7 +275,7 @@ def cargar_receta(path, principal=None, overrides=None):
                                     "El formato se toma de date_format de la entrada u opciones"))
             if "fecha" in spec and keep != "mas_reciente":
                 errors.append(error("parametro_invalido", "fecha solo se usa con conservar mas_reciente", name, "fecha"))
-            if "empate" in spec and (keep != "mas_reciente" or spec["empate"] not in ("conflicto", "primero", "ultimo")):
+            if "empate" in spec and (keep != "mas_reciente" or spec["empate"] not in EMPATE):
                 errors.append(error("parametro_invalido", "empate (conflicto, primero o ultimo) solo con mas_reciente",
                                     name, "empate", "Por defecto un empate de fechas es un conflicto"))
         if op == "consolidar" and "entradas" in spec:
@@ -299,11 +302,11 @@ def cargar_receta(path, principal=None, overrides=None):
             numeric = spec.get("numeric", [])
             if not isinstance(numeric, list) or not all(isinstance(c, str) and c for c in numeric):
                 errors.append(error("parametro_invalido", "numeric: lista de columnas", name, "numeric"))
-        if op == "transformar" and spec.get("traza", "resumida") not in ("resumida", "detallada"):
+        if op == "transformar" and spec.get("traza", "resumida") not in TRAZA:
             errors.append(error("parametro_invalido", "traza: \"resumida\" o \"detallada\"", name, "traza"))
         if op == "inspeccionar":
             sample = spec.get("sample", 0)
-            if not isinstance(sample, int) or isinstance(sample, bool) or not 0 <= sample <= 20:
+            if not isinstance(sample, int) or isinstance(sample, bool) or not 0 <= sample <= SAMPLE_MAX:
                 errors.append(error("parametro_invalido", "sample: entero entre 0 y 20", name, "sample"))
         if op == "exportar":
             formats = spec.get("formatos", ["csv", "json", "xlsx"])
@@ -363,7 +366,7 @@ def _layout(spec, where, errors, opts):
     for cond in conditions if isinstance(conditions, list) else []:
         tests = set(cond) - {"columna"} if isinstance(cond, dict) else set()
         if not (isinstance(cond, dict) and isinstance(cond.get("columna"), str) and len(tests) == 1
-                and tests <= {"igual", "empieza_con", "vacia"}
+                and tests <= set(EXCLUSION_TESTS)
                 and (cond.get("vacia") is True or isinstance(cond.get("igual"), str)
                      or (isinstance(cond.get("empieza_con"), str) and cond["empieza_con"]))):
             valid = False
