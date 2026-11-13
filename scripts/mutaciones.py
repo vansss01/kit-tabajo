@@ -29,6 +29,9 @@ RESULTADOS = ["tests.test_contrato.ResultadosTests", "tests.test_contrato.Privac
 SQL = ["tests.test_sql", "tests.test_esquemas"]
 ESQUEMAS = ["tests.test_esquemas.EquivalenciaTests.test_examples_and_valid_cases_pass_both",
             "tests.test_esquemas.EquivalenciaTests.test_invalid_cases_are_rejected_by_both_or_are_listed_semantic_rules"]
+EJEMPLOS = ["tests.test_recetas_ejemplo"]
+COMPATIBILIDAD = ["tests.test_compatibilidad.CompatibilidadTests"]
+COMPACTO = ["tests.test_compatibilidad.CompactoTests"]
 MUTATIONS = [
     # Etapa 2: trazabilidad
     ("incidencias con fila intermedia", "src/kitlib/traza.py",
@@ -257,6 +260,36 @@ MUTATIONS = [
     ("receta admite tipos de tablas ausentes", "src/kitlib/receta_validacion.py",
      'elif isinstance(spec.get("tablas"), dict) and set(tipos) - set(spec["tablas"]):', "elif False:", SQL),
     ("número y texto a la vez", "src/kitlib/operations.py", "    if declared & as_text:", "    if False:", SQL),
+    # Etapa 5: recetas de ejemplo con esperados a mano (rompen un paso que esas recetas usan)
+    ("completar copia solo la primera columna", "src/kitlib/operations.py",
+     "        for col in columns:\n            value = match[col]", "        for col in columns[:1]:\n            value = match[col]",
+     EJEMPLOS),
+    ("duplicados idénticas van a conflictos", "src/kitlib/operations.py",
+     "            twin = next((d for d in distinct if values(d) == values(p)), None)", "            twin = None", EJEMPLOS),
+    ("exportar omite el xlsx pedido", "src/kitlib/recetas.py", '    if "xlsx" in formats:', "    if False:", EJEMPLOS),
+    ("rename deja los nombres antiguos en las filas", "src/kitlib/operations.py",
+     "{mapping.get(k, k): v for k, v in r.items()}", "{k: v for k, v in r.items()}", EJEMPLOS),
+    # Etapa 5: compatibilidad entre comandos sueltos y pasos de receta
+    ("receta validar intercambia aceptadas y rechazadas", "src/kitlib/recetas.py",
+     '{"aceptadas": tables["validos"], "rechazadas": tables["invalidos"]}',
+     '{"aceptadas": tables["invalidos"], "rechazadas": tables["validos"]}', COMPATIBILIDAD),
+    ("receta consolidar invierte las entradas", "src/kitlib/recetas.py",
+     'merge_tables([(ref, get(ref), None) for ref in step.refs["entradas"]])',
+     'merge_tables([(ref, get(ref), None) for ref in reversed(step.refs["entradas"])])', COMPATIBILIDAD),
+    ("receta transformar ignora las opciones de lectura", "src/kitlib/recetas.py",
+     'tables, issues, details = transform(get(step.refs["entrada"]), step.config, step.opts, trace)',
+     'tables, issues, details = transform(get(step.refs["entrada"]), step.config, step.opts.__class__(), trace)',
+     COMPATIBILIDAD + EJEMPLOS),
+    # Etapa 5: salidas compactas
+    ("resultados sin tope de pasos", "src/kitlib/contrato.py", 'for p in manifest["pasos"][:30]])',
+     'for p in manifest["pasos"]])', COMPACTO),
+    ("resultados sin tope de archivos", "src/kitlib/contrato.py",
+     'if not p.name.startswith("."))[:40]', 'if not p.name.startswith("."))', COMPACTO),
+    ("resultados sin tope de códigos", "src/kitlib/contrato.py", "key=lambda kv: -kv[1])[:15])", "key=lambda kv: -kv[1]))",
+     COMPACTO),
+    ("resultados sin recorte del detalle", "src/kitlib/contrato.py",
+     "{k: (str(v)[:200] if isinstance(v, str) else v) for k, v in item.items()}", "{k: v for k, v in item.items()}",
+     COMPACTO),
 ]
 
 
