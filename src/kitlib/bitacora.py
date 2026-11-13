@@ -7,7 +7,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from uuid import uuid4
 
-from kitlib.runtime import ROOT, inside
+from kitlib.runtime import ROOT, KitError, inside
 
 COLUMNS = ["fecha", "registrado", "horas", "etiqueta", "texto"]
 DAYS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
@@ -53,15 +53,15 @@ def add(path, text, hours, tag, day):
         raise ValueError("El texto debe tener entre 1 y 1000 caracteres")
     tag = " ".join(str(tag).lower().split()) or "general"
     if len(tag) > 30 or ";" in tag:
-        raise ValueError("--etiqueta admite hasta 30 caracteres, sin punto y coma")
+        raise KitError("--etiqueta admite hasta 30 caracteres, sin punto y coma", "--etiqueta")
     amount = ""
     if hours is not None:
         try:
             value = Decimal(str(hours).strip().replace(",", "."))
         except InvalidOperation as exc:
-            raise ValueError("--horas debe ser un número, p. ej. 2,5") from exc
+            raise KitError("--horas debe ser un número, p. ej. 2,5", "--horas") from exc
         if not value.is_finite() or not 0 < value <= 24:
-            raise ValueError("--horas debe estar entre 0 y 24")
+            raise KitError("--horas debe estar entre 0 y 24", "--horas")
         amount = format(value.normalize(), "f")
     load(path)  # valida el archivo existente antes de escribir
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -132,7 +132,7 @@ def run(args):
         human = f"Anotado el {result['fecha']}. Total: {result['anotaciones']} anotaciones."
     elif args.ver is not None:
         if not 1 <= args.ver <= 100:
-            raise ValueError("--ver admite de 1 a 100")
+            raise KitError("--ver admite de 1 a 100", "--ver")
         rows = load(path)[-args.ver:]
         result = {"estado": "ok", "codigo_salida": 0, "comando": "bitacora", "accion": "ver", "anotaciones": rows}
         human = "\n".join(f"{r['fecha']} [{r['etiqueta']}] {r['texto']}" + (f" ({r['horas']} h)" if r["horas"] else "")

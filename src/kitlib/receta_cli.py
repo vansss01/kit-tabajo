@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from kitlib.runtime import ROOT, inside
+from kitlib.runtime import ROOT, KitError, inside
 from kitlib.receta_modelo import RecipeError
 from kitlib.receta_validacion import cargar_receta
 from kitlib.receta_vista import comprobar_columnas, vista_previa
@@ -80,9 +80,12 @@ def run(args):
     for item in args.entrada:
         name, sep, location = item.partition("=")
         if not sep or not name or not location or name in overrides:
-            raise ValueError("--entrada requiere NOMBRE=ARCHIVO, sin repetir nombres")
+            raise KitError("--entrada requiere NOMBRE=ARCHIVO, sin repetir nombres", "--entrada")
         overrides[name] = location
     try:
+        if not args.receta.is_file():
+            raise KitError("No existe la receta", "--receta", "Revise la ruta y las comillas",
+                           codigo="archivo_no_encontrado")
         recipe = cargar_receta(args.receta, args.input, overrides)
     except RecipeError as exc:
         summary = {"estado": "error", "codigo_salida": 2, "comando": "ejecutar", "ruta_resultados": None,
@@ -104,7 +107,7 @@ def run(args):
     run_name = args.run_name or (datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-ejecutar-"
                                  + uuid4().hex[:10])
     if not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", run_name) or re.fullmatch(r"(?i)con|prn|aux|nul|com\d|lpt\d", run_name):
-        raise ValueError("--run-name admite letras ASCII, dígitos, guion y guion bajo (1–100), sin nombres reservados")
+        raise KitError("--run-name admite letras ASCII, dígitos, guion y guion bajo (1–100), sin nombres reservados", "--run-name")
     output.mkdir(parents=True, exist_ok=True)
     folder = inside(output / run_name)
     folder.mkdir(exist_ok=False)

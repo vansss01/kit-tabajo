@@ -144,5 +144,71 @@ class ComprobarTests(unittest.TestCase):
         self.assertEqual(self.check(self.write("roto.json", "{"), expected=2)["errores"][0]["codigo"], "json_invalido")
 
 
+class ErroresTests(unittest.TestCase):
+    SHAPE = {"codigo", "paso", "campo", "mensaje", "sugerencia"}
+
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory(prefix="errores-", dir=ROOT / "tmp")
+        self.addCleanup(temp.cleanup)
+        self.folder = Path(temp.name)
+        self.data = self.folder / "datos.csv"
+        self.data.write_text("orden;horas\nOT1;1\n", encoding="utf-8")
+
+    def run_kit(self, *args, json_output=True):
+        out = kit(*args, "--output", self.folder / "out", *(["--json"] if json_output else []), expected=2)
+        return json.loads(out) if json_output else out
+
+    def first_error(self, *args):
+        result = self.run_kit(*args)
+        self.assertEqual(set(result["errores"][0]), self.SHAPE)
+        self.assertIn(result["errores"][0]["codigo"], codigos.ERRORES)
+        self.assertEqual(result["error"], result["errores"][0]["mensaje"])  # el campo de siempre sigue igual
+        return result["errores"][0]
+
+    def test_default_text_output_is_unchanged(self):
+        text = self.run_kit("validar", self.data, "--rules", self.folder / "no.json", json_output=False).splitlines()
+        self.assertEqual(text[0], "error | filas=0 | incidencias=0 | advertencias=0")
+        self.assertEqual(text[2], "No existe un archivo de entrada, reglas o plan. Revise las rutas y las comillas.")
+        self.assertEqual(len(text), 3)
+
+    def test_command_errors_have_stable_code_field_and_hint(self):
+        cases = [
+            (("validar", self.data, "--rules", self.folder / "no.json"), ("archivo_no_encontrado", None)),
+            (("consultar", self.data, "--sql", "SELECT 1", "--show", "200"), ("argumento_invalido", "--show")),
+            (("consultar", self.data, "--sql", "SELECT 1", "--delimiter", ";;"), ("argumento_invalido", "--delimiter")),
+            (("inspeccionar", self.data, "--sample", "50"), ("argumento_invalido", "--sample")),
+        ]
+        for args, expected in cases:
+            error = self.first_error(*args)
+            self.assertEqual((error["codigo"], error["campo"]), expected, args)
+            if expected[1] == "--show":  # el mensaje explica qué falla, no un texto genérico
+                self.assertEqual(error["mensaje"], "--show debe estar entre 0 y 100")
+        rules = self.folder / "rep.json"
+        rules.write_text('{"columns": {"a": {}, "a": {}}}', encoding="utf-8")
+        self.assertEqual(self.first_error("validar", self.data, "--rules", rules)["codigo"], "clave_json_repetida")
+        plan = self.folder / "plan.json"
+        plan.write_text("{", encoding="utf-8")
+        self.assertEqual(self.first_error("transformar", self.data, "--plan", plan)["codigo"], "json_invalido")
+        windows = self.folder / "windows.csv"
+        windows.write_bytes("orden;área\nOT1;Mina\n".encode("cp1252"))
+        encoding = self.first_error("inspeccionar", windows, "--encoding", "utf-8")
+        self.assertEqual((encoding["codigo"], encoding["campo"]), ("codificacion_incorrecta", "--encoding"))
+        kit("inspeccionar", self.data, "--delimiter", ";", "--output", self.folder / "out", "--run-name", "ya", "--json")
+        exists = self.first_error("inspeccionar", self.data, "--run-name", "ya")
+        self.assertEqual((exists["codigo"], exists["campo"]), ("salida_existente", "--run-name"))
+        self.assertTrue(exists["sugerencia"])
+
+    def test_recipe_command_errors(self):
+        missing = self.first_error("ejecutar", self.data, "--receta", self.folder / "no.json")
+        self.assertEqual((missing["codigo"], missing["campo"]), ("archivo_no_encontrado", "--receta"))
+        recipe = ROOT / "recetas" / "revision_ordenes.json"
+        bad = self.first_error("ejecutar", self.data, "--receta", recipe, "--entrada", "x")
+        self.assertEqual((bad["codigo"], bad["campo"]), ("argumento_invalido", "--entrada"))
+
+    def test_codes_doc_is_generated_from_registry(self):
+        self.assertEqual((ROOT / "docs" / "CODIGOS.md").read_text(encoding="utf-8"), codigos.codigos_md(),
+                         "Ejecute python -B scripts/esquemas.py")
+
+
 if __name__ == "__main__":
     unittest.main()

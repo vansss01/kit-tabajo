@@ -4,6 +4,8 @@ Desde la raíz: `./kit COMANDO` (Linux) o `kit COMANDO` (Windows); equivale a
 `python -B kit.py COMANDO` con el entorno activado. Ayuda: `./kit COMANDO --help`.
 Opciones comunes: `--delimiter`, `--encoding`, `--decimal`, `--date-format`, `--sheet`,
 `--output`, `--run-name`, `--json`, `--verbose`. Códigos 0/1/2: éxito/incidencias/error.
+Con `--json`, un error trae además `errores`: `[{codigo, paso, campo, mensaje, sugerencia}]`;
+códigos estables en `CODIGOS.md` y en `./kit catalogo`. La salida de texto no cambia.
 
 | Comando / propósito | Implementación | Opciones principales | Manual |
 |---|---|---|---|

@@ -12,7 +12,8 @@ from uuid import uuid4
 
 from kitlib import __version__, bitacora, contrato, receta_cli
 from kitlib.operations import compare, inspect_table, merge_tables, query, query_warnings, transform, validate
-from kitlib.runtime import ROOT, inside, public_message
+from kitlib.receta_modelo import error
+from kitlib.runtime import ROOT, KitError, error_info, inside, public_message
 from kitlib.tableio import (Options, Table, csv_write, excel_write, fingerprint,
                          json_write, load_config, read_table, sheet_names, table_json)
 
@@ -84,7 +85,7 @@ def parser():
 def clean(keep, apply, results, logs):
     """Solo carpetas marcadas con .kit-output y registros de ejecución; nunca datos ni originales."""
     if keep < 0:
-        raise ValueError("--keep no puede ser negativo")
+        raise KitError("--keep no puede ser negativo", "--keep")
 
     def recent(paths):
         return sorted(paths, key=lambda p: (p.stat().st_mtime, p.name), reverse=True)
@@ -201,24 +202,24 @@ def execute(args):
     args.output = inside(args.output)
     args.delimiter = "\t" if args.delimiter == "TAB" else args.delimiter
     if len(args.delimiter) != 1 or args.delimiter in '\r\n"':
-        raise ValueError("--delimiter requiere un carácter válido")
+        raise KitError("--delimiter requiere un carácter válido", "--delimiter")
     opts = Options(args.delimiter, args.encoding, args.decimal, args.date_format, args.sheet)
     extra_tables: list[tuple[str, Path]] = []
     if args.command == "consultar":
         if not 0 <= args.show <= 100:
-            raise ValueError("--show debe estar entre 0 y 100")
+            raise KitError("--show debe estar entre 0 y 100", "--show")
         for item in args.tabla:
             name, separator, location = item.partition("=")
             if not separator or not name or not location or name == args.name or name in dict(extra_tables):
-                raise ValueError("--tabla requiere NOMBRE=ARCHIVO con nombres distintos")
+                raise KitError("--tabla requiere NOMBRE=ARCHIVO con nombres distintos", "--tabla")
             extra_tables.append((name, Path(location)))
     if args.command == "inspeccionar" and (not 0 <= args.sample <= 20 or (args.limit is not None and args.limit < 1)):
-        raise ValueError("--sample debe estar entre 0 y 20; --limit debe ser positivo")
+        raise KitError("--sample debe estar entre 0 y 20; --limit debe ser positivo", "--sample")
     run_name = args.run_name or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + args.command + "-" + uuid4().hex[:10]
     if not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", run_name):
-        raise ValueError("--run-name admite letras ASCII, dígitos, guion y guion bajo (1–100)")
+        raise KitError("--run-name admite letras ASCII, dígitos, guion y guion bajo (1–100)", "--run-name")
     if re.fullmatch(r"(?i)con|prn|aux|nul|com\d|lpt\d", run_name):
-        raise ValueError("--run-name no puede ser un nombre reservado de Windows")
+        raise KitError("--run-name no puede ser un nombre reservado de Windows", "--run-name")
     args.output.mkdir(parents=True, exist_ok=True)
     run = inside(args.output / run_name)
     run.mkdir(exist_ok=False)
@@ -373,7 +374,9 @@ def main(argv=None):
         if args.command in ("limpiar", "bitacora") and not args.json:
             print(message)
             return 2
+        code, field, hint = error_info(exc)
         emit({"estado": "error", "codigo_salida": 2, "filas_procesadas": 0,
               "incidencias": 0, "advertencias": 0, "error": message,
+              "errores": [error(code, message, None, field, hint)],  # solo visible con --json
               "ruta_resultados": str(args.failed_results) if hasattr(args, "failed_results") else None}, args)
         return 2

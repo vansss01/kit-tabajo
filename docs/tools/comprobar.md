@@ -11,7 +11,7 @@
 del kit, de las recetas y de los esquemas (`schemas/`), comandos y sus argumentos, operaciones de
 receta (parámetros, obligatorios, salidas, si pueden separar), operaciones de plan, valores
 admitidos, políticas, códigos de salida, estados de ejecución y de paso, reglas semánticas y todos
-los códigos de error, incidencia y advertencia con su significado.
+los códigos de error, incidencia y advertencia con su significado (también en `docs/CODIGOS.md`).
 
 **`comprobar ARCHIVO`** revisa **solo la configuración**: estructura, parámetros, referencias entre
 pasos, reglas y planes (los mismos controles que `ejecutar` antes de leer datos). El tipo se deduce

@@ -24,6 +24,7 @@ COMPLETAR = ["tests.test_transformaciones.CompletarTests"]
 DUPLICADOS = ["tests.test_transformaciones.DuplicadosTests"]
 ENCABEZADOS = ["tests.test_transformaciones.EncabezadosTests"]
 CONTRATO = ["tests.test_contrato"]
+ERRORES = ["tests.test_contrato.ErroresTests"]
 ESQUEMAS = ["tests.test_esquemas.EquivalenciaTests.test_examples_and_valid_cases_pass_both",
             "tests.test_esquemas.EquivalenciaTests.test_invalid_cases_are_rejected_by_both_or_are_listed_semantic_rules"]
 MUTATIONS = [
@@ -200,6 +201,23 @@ MUTATIONS = [
     ("catálogo pierde una operación", "src/kitlib/contrato.py",
      "for op, (allowed, required) in PARAMS.items()},", "for op, (allowed, required) in PARAMS.items() if op != 'completar'},",
      CONTRATO),
+    # Etapa 4: errores estructurados
+    ("error de argumento sin campo", "src/kitlib/runtime.py",
+     "        return exc.codigo, exc.campo, exc.sugerencia", "        return exc.codigo, None, exc.sugerencia", ERRORES),
+    ("archivo inexistente como error genérico", "src/kitlib/runtime.py",
+     '        return "archivo_no_encontrado", None, "Revise las rutas y las comillas"',
+     '        return "error_de_ejecucion", None, "Revise las rutas y las comillas"', ERRORES),
+    ("codificación sin código propio", "src/kitlib/runtime.py",
+     "    if isinstance(exc, UnicodeError):\n        return \"codificacion_incorrecta\"",
+     "    if False:\n        return \"codificacion_incorrecta\"", ERRORES),
+    ("errores también en la salida de texto", "src/kitlib/cli.py",
+     '        print(f"{summary[\'estado\']} | filas={summary[\'filas_procesadas\']} | "',
+     '        print(summary.get("errores", ""))\n        print(f"{summary[\'estado\']} | filas={summary[\'filas_procesadas\']} | "',
+     ERRORES),
+    ("receta inexistente sin campo", "src/kitlib/receta_cli.py",
+     'raise KitError("No existe la receta", "--receta",', 'raise KitError("No existe la receta", None,', ERRORES),
+    ("mensaje de KitError oculto", "src/kitlib/runtime.py",
+     "    if type(exc) in (ValueError, KitError):", "    if type(exc) is ValueError:", ERRORES),
 ]
 
 
@@ -209,7 +227,7 @@ def run(selected):
     for name, path, old, new, tests in selected:
         with tempfile.TemporaryDirectory(prefix="mutante-", dir=ROOT / "tmp") as folder:
             copy = Path(folder)
-            for item in ("src", "tests", "recetas", "examples", "schemas", "kit.py", "pyproject.toml"):
+            for item in ("src", "tests", "recetas", "examples", "schemas", "docs", "kit.py", "pyproject.toml"):
                 source = ROOT / item
                 if source.is_dir():
                     shutil.copytree(source, copy / item)

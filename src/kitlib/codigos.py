@@ -14,8 +14,10 @@ CODIGOS_SALIDA = {
 # Errores de configuración y de ejecución (recetas, comprobar, resultados y comandos sueltos con --json).
 ERRORES = {
     "archivo_no_encontrado": "No existe un archivo de entrada, reglas, plan o receta",
+    "argumento_invalido": "Un argumento de la línea de comandos no es válido (campo: la opción)",
     "campo_desconocido": "Campo no admitido en la receta (posible errata)",
     "clave_json_repetida": "Una clave aparece dos veces en un mismo objeto JSON",
+    "codificacion_incorrecta": "El archivo no corresponde a la codificación indicada (--encoding)",
     "columnas_incompatibles": "Una columna usada por un paso no existe en el encabezado",
     "configuracion_invalida": "Reglas o plan con estructura o valores no admitidos",
     "encabezado_ilegible": "No se pudo leer el encabezado de una entrada",
@@ -45,6 +47,7 @@ ERRORES = {
     "referencia_adelantada": "Un paso usa un paso posterior o a sí mismo",
     "referencia_inexistente": "Un paso usa una entrada o paso que no existe",
     "referencia_invalida": "Referencia vacía o que no es texto",
+    "salida_existente": "La carpeta de resultados ya existe; nunca se sobrescribe",
     "salida_inexistente": "Un paso usa una salida que el paso referido no produce",
     "tipo_desconocido": "No se pudo saber si el archivo es receta, plan o reglas (use --tipo)",
     "version_ausente": "La receta no declara version",
@@ -107,3 +110,21 @@ ESTADOS_PASO = {
     "fallido": "Error o invariante incumplida: no deja tablas",
     "interrumpido": "Ctrl+C durante el paso",
 }
+
+
+def codigos_md():
+    """docs/CODIGOS.md, generado desde este registro (scripts/esquemas.py)."""
+    lines = ["# Códigos estables del kit", "",
+             "Generado desde `src/kitlib/codigos.py` con `python -B scripts/esquemas.py`; no editar a mano.",
+             "También en `./kit catalogo` (clave `codigos`). Forma común de un error en JSON:",
+             "`{\"codigo\", \"paso\", \"campo\", \"mensaje\", \"sugerencia\"}`.", ""]
+    sections = [("Códigos de salida", {str(k): v for k, v in CODIGOS_SALIDA.items()}),
+                ("Errores (configuración, argumentos y ejecución)", ERRORES),
+                ("Incidencias (datos)", INCIDENCIAS), ("Advertencias", ADVERTENCIAS),
+                ("Estados de una ejecución (manifiesto.json)", ESTADOS_EJECUCION),
+                ("Estados de un paso", ESTADOS_PASO)]
+    for title, table in sections:
+        lines += [f"## {title}", "", "| Código | Significado |", "|---|---|"]
+        lines += [f"| `{code}` | {text} |" for code, text in sorted(table.items())] + [""]
+    lines += ["Motivos de `fallida`: " + ", ".join(f"`{m}`" for m in MOTIVOS_FALLO) + "."]
+    return "\n".join(lines) + "\n"
