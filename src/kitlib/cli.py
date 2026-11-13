@@ -43,6 +43,7 @@ def parser():
         cmd.add_argument("--run-name", help="Nombre exclusivo de ejecución; falla si ya existe")
         cmd.add_argument("--json", action="store_true", help="Resumen compacto JSON en stdout")
         cmd.add_argument("--verbose", action="store_true", help="Añadir detalle acotado (hasta 10 incidencias)")
+        cmd.add_argument("--ocultar-valores", action="store_true", help="No mostrar valores de celdas en terminal ni en report.json (consultar: sin filas; inspeccionar: sin muestra). Los archivos de datos no cambian")
         if name == "inspeccionar":
             cmd.add_argument("--sample", type=int, default=3, help="Filas de muestra en informe (0–20)")
             cmd.add_argument("--limit", type=int, help="Analizar solo las primeras N filas; sin estimar total")
@@ -79,6 +80,7 @@ def parser():
     bitacora.add_parser(sub)
     receta_cli.add_parser(sub)
     contrato.add_parsers(sub)
+    contrato.add_results_parser(sub)
     return p
 
 
@@ -200,6 +202,11 @@ def emit(summary, args, detail=None):
 
 def execute(args):
     args.output = inside(args.output)
+    # --ocultar-valores: las únicas salidas de terminal/report.json con valores de celdas son estas dos.
+    if args.ocultar_valores and args.command == "consultar":
+        args.show = 0
+    if args.ocultar_valores and args.command == "inspeccionar":
+        args.sample = 0
     args.delimiter = "\t" if args.delimiter == "TAB" else args.delimiter
     if len(args.delimiter) != 1 or args.delimiter in '\r\n"':
         raise KitError("--delimiter requiere un carácter válido", "--delimiter")
@@ -365,7 +372,7 @@ def main(argv=None):
             return bitacora.run(args)
         if args.command == "ejecutar":
             return receta_cli.run(args)
-        if args.command in ("catalogo", "comprobar"):
+        if args.command in ("catalogo", "comprobar", "resultados"):
             return contrato.run(args, parser)
         return execute(args)
     except Exception as exc:

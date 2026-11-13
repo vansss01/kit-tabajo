@@ -21,6 +21,7 @@ códigos estables en `CODIGOS.md` y en `./kit catalogo`. La salida de texto no c
 | limpiar: ejecuciones antiguas | cli.py:clean | --keep N, --apply (sin él no borra) | [limpieza](tools/limpiar.md) |
 | catalogo: capacidades en JSON | contrato.py, codigos.py, esquemas.py | (sin opciones) | [catálogo y comprobar](tools/comprobar.md) |
 | comprobar: receta/plan/reglas sin ejecutar | contrato.py | --tipo, --principal, --json | [catálogo y comprobar](tools/comprobar.md) |
+| resultados: resumen, paso o incidencias de una ejecución | contrato.py | EJECUCION, --paso, --incidencias CODIGO, --n (máx. 100) | [resultados](tools/resultados.md) |
 
 El resumen `--json` ya trae `incidencias_por_codigo`, `advertencias_por_codigo`, `conteos` y,
 al inspeccionar, `tablas` (columnas por hoja). Abrir `report.json` solo si falta la fila exacta.

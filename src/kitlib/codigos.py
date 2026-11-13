@@ -26,6 +26,7 @@ ERRORES = {
     "entrada_sin_ruta": "Una entrada de la receta no tiene archivo",
     "entrada_sin_uso": "Ningún paso usa una entrada declarada",
     "entradas_ausentes": "La receta no declara entradas",
+    "ejecucion_no_encontrada": "No se encontró la carpeta de ejecución pedida (resultados)",
     "error_de_ejecucion": "Un paso falló al ejecutarse (columna inexistente, conversión imposible, invariante)",
     "advertencias_no_admitidas": "Un paso o entrada tuvo advertencias que su política no permite: flujo detenido",
     "incidencias_no_admitidas": "Un paso o entrada tuvo incidencias y su política es detener: flujo detenido",

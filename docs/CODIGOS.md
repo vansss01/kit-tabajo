@@ -24,6 +24,7 @@ También en `./kit catalogo` (clave `codigos`). Forma común de un error en JSON
 | `codificacion_incorrecta` | El archivo no corresponde a la codificación indicada (--encoding) |
 | `columnas_incompatibles` | Una columna usada por un paso no existe en el encabezado |
 | `configuracion_invalida` | Reglas o plan con estructura o valores no admitidos |
+| `ejecucion_no_encontrada` | No se encontró la carpeta de ejecución pedida (resultados) |
 | `encabezado_ilegible` | No se pudo leer el encabezado de una entrada |
 | `encabezado_invalido` | Encabezado vacío o con nombres repetidos (aviso de vista previa) |
 | `entrada_desconocida` | --entrada nombra una entrada que la receta no tiene |

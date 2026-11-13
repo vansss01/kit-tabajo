@@ -210,5 +210,144 @@ class ErroresTests(unittest.TestCase):
                          "Ejecute python -B scripts/esquemas.py")
 
 
+ORDENES = ("orden;equipo;fecha;horas;estado\nOT001;0007;2026-10-01;2,5;abierta\nOT002;0012;03/04/2026;-1;abierta\n"
+           "OT002;;2026-10-02;25;cerrada\n")
+
+
+class ResultadosTests(unittest.TestCase):
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory(prefix="resultados-", dir=ROOT / "tmp")
+        self.addCleanup(temp.cleanup)
+        self.folder = Path(temp.name)
+        self.out = self.folder / "salidas"
+        self.data = self.folder / "ordenes.csv"
+        self.data.write_text(ORDENES, encoding="utf-8")
+        recipe = {"version": 1, "entradas": {"ordenes": {"principal": True, "delimiter": ";", "decimal": ","}},
+                  "pasos": [{"nombre": "revision", "op": "validar", "entrada": "ordenes",
+                             "reglas": str(ROOT / "examples" / "reglas.json"), "politica": {"incidencias": "separar"}},
+                            {"nombre": "entrega", "op": "exportar", "formatos": ["json"],
+                             "tablas": {"incidencias": "revision.incidencias"}}]}
+        self.recipe = self.folder / "receta.json"
+        self.recipe.write_text(json.dumps(recipe), encoding="utf-8")
+
+    def results(self, *args, expected=0):
+        return json.loads(kit("resultados", *args, "--output", self.out, "--json", expected=expected))
+
+    def test_summary_step_and_issues_of_a_recipe_run(self):
+        kit("ejecutar", self.data, "--receta", self.recipe, "--output", self.out, "--run-name", "receta", "--json",
+            expected=1)
+        summary = self.results("receta")
+        self.assertEqual((summary["estado"], summary["tipo"], summary["codigo_salida"], summary["completa"]),
+                         ("completada_con_incidencias", "receta", 1, True))
+        self.assertEqual(summary["incidencias_por_codigo"], {"valor_no_unico": 2, "campo_vacio": 1,
+                         "tipo_o_fecha_invalido": 1, "fuera_de_rango_min": 1, "fuera_de_rango_max": 1})
+        self.assertEqual([p["estado"] for p in summary["pasos"]], ["completado_con_incidencias", "completado"])
+        step = self.results("receta", "--paso", "revision")["paso"]
+        self.assertEqual((step["estado"], step["filas"]["salidas"]), ("completado_con_incidencias",
+                                                                      {"aceptadas": 1, "rechazadas": 2}))
+        self.assertTrue(step["invariantes"][0]["cumple"])
+        # El paso exportar publicó otra copia de incidencias.json: no se cuenta dos veces.
+        issues = self.results("receta", "--incidencias", "valor_no_unico", "--n", "1")
+        self.assertEqual((issues["total"], issues["mostradas"], issues["elementos"][0]["fila"]), (2, 1, 3))
+        self.assertEqual(issues["elementos"][0]["paso"], "01-revision")
+        self.assertEqual(self.results("receta", "--incidencias", "valor_no_unico", "--n", "5000")["limite"], 100)
+        wrong = json.loads(kit("resultados", "receta", "--output", self.out, "--paso", "nada", "--json", expected=2))
+        self.assertEqual((wrong["errores"][0]["campo"], wrong["errores"][0]["sugerencia"]), ("--paso", "Pasos: revision, entrega"))
+        unknown = json.loads(kit("resultados", "receta", "--output", self.out, "--incidencias", "valor_unico", "--json",
+                                 expected=2))
+        self.assertIn("valor_no_unico", unknown["errores"][0]["sugerencia"])
+        text = kit("resultados", "receta", "--output", self.out)
+        self.assertTrue(text.startswith("receta: completada_con_incidencias | receta | código 1"))
+
+    def test_latest_run_command_runs_and_incomplete_runs(self):
+        kit("ejecutar", self.data, "--receta", self.recipe, "--output", self.out, "--run-name", "primera", "--json",
+            expected=1)
+        kit("validar", self.data, "--delimiter", ";", "--rules", ROOT / "examples" / "reglas.json", "--output", self.out,
+            "--run-name", "segunda", "--json", expected=1)
+        latest = self.results()
+        self.assertEqual((latest["ejecucion"], latest["tipo"], latest["comando"]), ("segunda", "comando", "validar"))
+        no_steps = json.loads(kit("resultados", "segunda", "--output", self.out, "--paso", "x", "--json", expected=2))
+        self.assertEqual(no_steps["errores"][0]["codigo"], "argumento_invalido")
+        bad_plan = self.folder / "plan.json"
+        bad_plan.write_text('{"steps": [{"op": "convert", "column": "estado", "type": "number"}]}', encoding="utf-8")
+        kit("transformar", self.data, "--delimiter", ";", "--plan", bad_plan, "--output", self.out, "--run-name",
+            "rota", "--json", expected=2)
+        broken = self.results("rota")
+        self.assertEqual((broken["estado"], broken["completa"], broken["fallida"]), ("fallida", False, True))
+        self.assertIn("no usar", broken["aviso"])
+        missing = json.loads(kit("resultados", "nada", "--output", self.out, "--json", expected=2))
+        self.assertEqual(missing["errores"][0]["codigo"], "ejecucion_no_encontrada")
+
+
+class PrivacidadTests(unittest.TestCase):
+    """Con --ocultar-valores ningún valor de celda llega a la terminal ni a las salidas para agentes."""
+    SENTINELS = [f"QZX{n:03d}" for n in range(1, 13)]
+
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory(prefix="privacidad-", dir=ROOT / "tmp")
+        self.addCleanup(temp.cleanup)
+        self.folder = Path(temp.name)
+        self.out = self.folder / "salidas"
+        s = self.SENTINELS
+        self.data = self.folder / "datos.csv"
+        self.data.write_text(f"orden;equipo;estado;horas\n{s[0]};{s[1]};{s[2]};{s[3]}\n{s[4]};{s[5]};{s[6]};{s[7]}\n"
+                             f"{s[8]};{s[9]};{s[10]};{s[11]}\n", encoding="utf-8")
+        self.other = self.folder / "otros.csv"
+        self.other.write_text(f"orden;equipo;estado;horas\n{s[0]};{s[1]};{s[2]};{s[7]}\n", encoding="utf-8")
+        self.rules = self.folder / "reglas.json"
+        self.rules.write_text('{"columns": {"horas": {"type": "number"}, "orden": {"unique": true}}}', encoding="utf-8")
+        self.plan = self.folder / "plan.json"
+        self.plan.write_text('{"steps": [{"op": "filter", "column": "estado", "operator": "ne", "value": "x"},'
+                             '{"op": "select", "columns": ["orden"]}]}', encoding="utf-8")
+        recipe = {"version": 1, "entradas": {"d": {"principal": True, "delimiter": ";"}}, "pasos": [
+            {"nombre": "perfil", "op": "inspeccionar", "entrada": "d", "sample": 5},
+            {"nombre": "revision", "op": "validar", "entrada": "d", "reglas": "reglas.json",
+             "politica": {"incidencias": "separar"}},
+            {"nombre": "sql", "op": "consultar", "tablas": {"t": "d"}, "sql": "SELECT * FROM t"}]}
+        self.recipe = self.folder / "receta.json"
+        self.recipe.write_text(json.dumps(recipe), encoding="utf-8")
+
+    def output(self, *args):
+        result = subprocess.run([sys.executable, "-B", str(ROOT / "kit.py"), *map(str, args)], cwd=ROOT,
+                                capture_output=True, text=True, encoding="utf-8")
+        return result.stdout + result.stderr
+
+    def leaks(self, text):
+        return [s for s in self.SENTINELS if s in text]
+
+    def summary_files(self):
+        return "\n".join(p.read_text(encoding="utf-8") for p in self.out.rglob("*.json")
+                         if p.name in ("report.json", "manifiesto.json", "audit.json"))
+
+    def test_sentinels_never_reach_agent_outputs_when_hidden(self):
+        common = ("--delimiter", ";", "--output", self.out, "--json", "--verbose", "--ocultar-valores")
+        printed = [
+            self.output("inspeccionar", self.data, *common),
+            self.output("validar", self.data, "--rules", self.rules, *common),
+            self.output("consultar", self.data, "--sql", "SELECT * FROM t", *common),
+            self.output("comparar", self.data, self.other, "--key", "orden", *common),
+            self.output("transformar", self.data, "--plan", self.plan, *common),
+            self.output("exportar", self.data, "--rules", self.rules, "--format", "csv", *common),
+            self.output("ejecutar", self.data, "--receta", self.recipe, "--output", self.out, "--run-name", "receta",
+                        "--json", "--verbose", "--ocultar-valores"),
+            self.output("resultados", "receta", "--output", self.out, "--json"),
+            self.output("resultados", "receta", "--output", self.out, "--paso", "perfil", "--json"),
+            self.output("resultados", "receta", "--output", self.out, "--incidencias", "tipo_o_fecha_invalido", "--json"),
+            self.output("comprobar", self.recipe, "--json"), self.output("catalogo")]
+        self.assertTrue(all('"estado"' in text or '"version_kit"' in text or '"comando"' in text for text in printed))
+        for text in printed:
+            self.assertEqual(self.leaks(text), [], text[:300])
+        self.assertEqual(self.leaks(self.summary_files()), [])
+
+    def test_control_without_the_option_values_do_appear(self):
+        # Comprobación de que la prueba de arriba puede detectar fugas: sin la opción, consultar e
+        # inspeccionar sí muestran valores (comportamiento compatible de siempre).
+        shown = self.output("consultar", self.data, "--delimiter", ";", "--sql", "SELECT * FROM t", "--output", self.out,
+                            "--json")
+        self.assertNotEqual(self.leaks(shown), [])
+        self.output("inspeccionar", self.data, "--delimiter", ";", "--output", self.out, "--json")
+        self.assertNotEqual(self.leaks(self.summary_files()), [])
+
+
 if __name__ == "__main__":
     unittest.main()

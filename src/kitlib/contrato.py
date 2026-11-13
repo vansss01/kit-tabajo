@@ -1,5 +1,6 @@
 """Contrato para agentes: `catalogo` (capacidades del kit en JSON, generado desde el código) y
 `comprobar` (revisa una receta, plan o reglas sin ejecutar nada ni leer datos)."""
+import difflib
 import json
 from pathlib import Path
 
@@ -10,7 +11,7 @@ from kitlib.operations import (AGGREGATES, CASES, FILTER_OPERATORS, SCHEMAS, TYP
 from kitlib.receta_modelo import (CONSERVAR, EMPATE, EXISTENTES, INCIDENCIAS, OUTPUTS, PARAMS, SEPARABLE, TRAZA,
                                   VERSION, RecipeError, error)
 from kitlib.receta_validacion import cargar_receta
-from kitlib.runtime import public_message
+from kitlib.runtime import ROOT, KitError, inside, public_message
 from kitlib.tableio import Options, unique_keys
 
 TIPOS = ("receta", "plan", "reglas")
@@ -29,6 +30,149 @@ def add_parsers(sub):
     cmd.add_argument("--principal", type=Path, help="Receta: archivo de la entrada principal (opcional)")
     cmd.add_argument("--json", action="store_true", help="Resultado estructurado en JSON")
     cmd.set_defaults(verbose=False)
+
+
+MAX_N = 100  # tope de incidencias por consulta, aunque se pida más
+
+
+def add_results_parser(sub):
+    cmd = sub.add_parser("resultados", help="Leer el resumen, un paso o incidencias de una ejecución",
+                         description="Lee los archivos de una ejecución sin abrir carpetas; nunca muestra valores de celdas.")
+    cmd.add_argument("ejecucion", nargs="?", help="Nombre o ruta de la ejecución; por defecto la más reciente")
+    cmd.add_argument("--paso", help="Detalle de un paso (solo ejecuciones de recetas)")
+    cmd.add_argument("--incidencias", metavar="CODIGO", help="Primeras N incidencias o advertencias con ese código")
+    cmd.add_argument("--n", type=int, default=10, help=f"Cuántas mostrar con --incidencias (10; máximo {MAX_N})")
+    cmd.add_argument("--output", type=Path, default=ROOT / "results", help="Carpeta donde están las ejecuciones")
+    cmd.add_argument("--json", action="store_true", help="Resultado estructurado en JSON")
+    cmd.set_defaults(verbose=False)
+
+
+def _run_folder(args):
+    base = inside(args.output)
+    if args.ejecucion:
+        candidate = Path(args.ejecucion)
+        folder = candidate if candidate.is_dir() else base / args.ejecucion
+    else:
+        runs = [p for p in base.iterdir() if (p / ".kit-output").is_file()] if base.is_dir() else []
+        folder = max(runs, key=lambda p: (p.stat().st_mtime, p.name)) if runs else base / "(ninguna)"
+    folder = inside(folder)
+    if not (folder / ".kit-output").is_file():
+        raise KitError("No se encontró esa ejecución", "ejecucion", "Use el nombre que mostró el comando o "
+                       "./kit resultados sin argumentos para la más reciente", codigo="ejecucion_no_encontrada")
+    return folder
+
+
+def _load(path):
+    return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
+
+
+def _summary(folder):
+    report, manifest = _load(folder / "report.json"), _load(folder / "manifiesto.json")
+    base = manifest or report or {}
+    result = {"ejecucion": folder.name, "ruta": str(folder), "tipo": "receta" if manifest else "comando",
+              "estado": base.get("estado", "fallida" if (folder / "FAILED.json").exists() else "desconocido"),
+              "codigo_salida": base.get("codigo_salida"), "completa": report is not None,
+              "fallida": (folder / "FAILED.json").exists()}
+    if report:
+        result.update({k: report.get(k) for k in ("comando", "filas_procesadas", "incidencias", "advertencias")})
+        for key in ("incidencias_detalle", "advertencias_detalle"):
+            counts: dict = {}
+            for item in report.get(key) or []:
+                counts[item["codigo"]] = counts.get(item["codigo"], 0) + 1
+            result[key.replace("_detalle", "_por_codigo")] = dict(sorted(counts.items(), key=lambda kv: -kv[1])[:15])
+    if manifest:
+        result.update(motivo=manifest.get("motivo"), error=manifest.get("error"), pasos=[
+            {"nombre": p["nombre"], "op": p["op"], "estado": p["estado"], "incidencias": p.get("incidencias", 0),
+             "advertencias": p.get("advertencias", 0), "filas": p.get("filas", {}).get("salidas", {})}
+            for p in manifest["pasos"][:30]])
+    if result["estado"] == "en_curso" or not result["completa"]:
+        result["aviso"] = "Ejecución incompleta o en curso: no usar sus resultados"
+    result["archivos"] = sorted(p.name for p in folder.iterdir() if not p.name.startswith("."))[:40]
+    return result
+
+
+def _step(folder, name):
+    manifest = _load(folder / "manifiesto.json")
+    if not manifest:
+        raise KitError("Solo las ejecuciones de recetas tienen pasos", "--paso")
+    steps = {p["nombre"]: p for p in manifest["pasos"]}
+    if name not in steps:
+        raise KitError(f"No hay un paso {name[:40]}", "--paso", "Pasos: " + ", ".join(list(steps)[:20]))
+    step = steps[name]
+    keys = ("numero", "nombre", "op", "estado", "carpeta", "usa", "politica", "filas", "conteos", "invariantes",
+            "trazas", "participacion", "salidas", "incidencias", "advertencias", "incidencias_por_codigo",
+            "advertencias_por_codigo", "detalles", "inicio_utc", "fin_utc")
+    detail = {k: step[k] for k in keys if k in step}
+    if manifest.get("error") and manifest["error"].get("paso") == name:
+        detail["error"] = manifest["error"]
+    return detail
+
+
+def _issues(folder, code):
+    """Incidencias y advertencias con ese código, de la ejecución o de cada paso de una receta (sin las
+    copias que un paso exportar pueda haber publicado con el nombre incidencias)."""
+    manifest = _load(folder / "manifiesto.json") or {"pasos": []}
+    exported = {p["carpeta"] for p in manifest["pasos"] if p["op"] == "exportar"}
+    sources = [("", folder)] + [(p.name, p) for p in sorted(folder.iterdir()) if p.is_dir() and p.name not in exported]
+    found = []
+    for step, place in sources:
+        table = _load(place / "incidencias.json")
+        for row in (table or {}).get("rows", []):
+            if row.get("codigo") == code:
+                found.append({"tipo": "incidencia", "paso": step or None, **row})
+        report = _load(place / "report.json") or {}
+        for item in report.get("advertencias_detalle") or []:
+            if item.get("codigo") == code:
+                found.append({"tipo": "advertencia", "paso": step or None, **item})
+    return found
+
+
+def results(args):
+    if args.n < 1:
+        raise KitError("--n debe ser 1 o más", "--n")
+    folder = _run_folder(args)
+    if args.paso:
+        return {"comando": "resultados", "ejecucion": folder.name, "paso": _step(folder, args.paso)}
+    if args.incidencias:
+        if args.incidencias not in codigos.INCIDENCIAS | codigos.ADVERTENCIAS:
+            known = sorted(codigos.INCIDENCIAS | codigos.ADVERTENCIAS)
+            near = difflib.get_close_matches(args.incidencias, known, n=3, cutoff=0.6)
+            raise KitError("Código de incidencia o advertencia desconocido", "--incidencias",
+                           "Códigos: docs/CODIGOS.md" + (". ¿Quiso decir " + ", ".join(near) + "?" if near else ""))
+        found = _issues(folder, args.incidencias)
+        limit = min(args.n, MAX_N)
+        return {"comando": "resultados", "ejecucion": folder.name, "codigo": args.incidencias, "total": len(found),
+                "mostradas": min(limit, len(found)), "limite": limit, "maximo": MAX_N,
+                "elementos": [{k: (str(v)[:200] if isinstance(v, str) else v) for k, v in item.items()}
+                              for item in found[:limit]]}
+    return {"comando": "resultados", **_summary(folder)}
+
+
+def _print_results(result):
+    if "paso" in result:
+        step = result["paso"]
+        print(f"{step['nombre']} ({step['op']}): {step['estado']} | filas={json.dumps(step.get('filas', {}))}")
+        for check in step.get("invariantes", []):
+            print(f"  invariante {check['tipo']}: {'cumple' if check['cumple'] else 'NO CUMPLE'} — {check['regla']}")
+        for name, where in step.get("trazas", {}).items():
+            print(f"  traza {name}: {where}")
+        if step.get("error"):
+            print(f"  [{step['error']['codigo']}] {step['error']['mensaje']}")
+        return
+    if "codigo" in result:
+        print(f"{result['codigo']}: {result['mostradas']} de {result['total']} (límite {result['limite']})")
+        for item in result["elementos"]:
+            print("  " + " | ".join(f"{k}={item[k]}" for k in ("tipo", "paso", "fila", "columna", "detalle")
+                                    if item.get(k) is not None))
+        return
+    print(f"{result['ejecucion']}: {result['estado']} | {result['tipo']} | código {result['codigo_salida']}")
+    if result.get("aviso"):
+        print("AVISO: " + result["aviso"])
+    for key in ("incidencias_por_codigo", "advertencias_por_codigo"):
+        if result.get(key):
+            print(key + ": " + ", ".join(f"{k}={v}" for k, v in result[key].items()))
+    for step in result.get("pasos", []):
+        print(f"  {step['nombre']} ({step['op']}): {step['estado']}")
 
 
 def _arguments(subparser):
@@ -134,6 +278,13 @@ def comprobar(path, tipo=None, principal=None):
 
 
 def run(args, build_parser):
+    if args.command == "resultados":
+        result = results(args)
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False))
+        else:
+            _print_results(result)
+        return 0
     if args.command == "catalogo":
         print(json.dumps(catalogo(build_parser), ensure_ascii=False, indent=1))
         return 0

@@ -100,9 +100,22 @@ Para reproducir, conserva las entradas y configuraciones originales y verifica s
 Versiona código y reglas de ejemplo, no datos reales. Los detalles/muestras/diferencias
 sí contienen datos y requieren el cuidado habitual del usuario; en recetas también
 `excluidas.csv` y `cambios_celdas.csv` (valores anteriores y nuevos) y las rutas de archivo
-de los `*_procedencia.csv`. En recetas `inspeccionar` no incluye muestras salvo `sample`. El resumen de terminal no
-muestra valores de celdas, salvo `consultar`, que imprime filas del resultado (`--show 0` las
-oculta de la terminal, no de los archivos); `--verbose` añade detalle acotado.
+de los `*_procedencia.csv`. En recetas `inspeccionar` no incluye muestras salvo `sample`.
+
+### Qué salidas pueden contener valores de celdas
+
+| Salida | ¿Valores? | Cómo ocultarlos |
+|---|---|---|
+| Terminal y `--json` de `consultar` (`resultado`, hasta `--show` filas, 20 por defecto) | Sí | `--ocultar-valores` o `--show 0` |
+| `report.json` de `inspeccionar` (`muestra`, `--sample` 3 por defecto) y su `--verbose` | Sí | `--ocultar-valores` o `--sample 0` |
+| `report.json` de un paso `inspeccionar` de receta con `sample` > 0 | Sí | `ejecutar --ocultar-valores` (fuerza 0) |
+| `bitacora --ver` | Tus propias notas | No usar `--ver` |
+| Resto de terminal, `--json`, `report.json`, `audit.json`, `manifiesto.json`, `resultados`, `comprobar`, `catalogo` | No: códigos, conteos, filas, columnas, rutas | — |
+| Archivos de datos: `validos`, `invalidos`, tablas de pasos, `excluidas`, `cambios_celdas`, `cambios` de comparar, exportes | Sí, por naturaleza | No compartirlos; `--ocultar-valores` no los cambia |
+
+`--ocultar-valores` existe en todos los comandos de tablas y en `ejecutar`; donde no hay nada que
+ocultar no cambia nada. Sin la opción el comportamiento es el de siempre. Una prueba con valores
+centinela únicos comprueba que, con la opción, ninguno llega a la terminal ni a esos resúmenes.
 
 Las operaciones completas y exportaciones mantienen datos en RAM. JSON se carga completo
 incluso con `--limit`. CSV/XLSX limitan filas cargadas al inspeccionar con límite, pero no

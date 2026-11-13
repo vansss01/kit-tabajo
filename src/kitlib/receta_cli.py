@@ -28,6 +28,7 @@ def add_parser(sub):
     cmd.add_argument("--run-name", help="Nombre exclusivo de ejecución; falla si ya existe")
     cmd.add_argument("--json", action="store_true", help="Resumen compacto JSON en stdout")
     cmd.add_argument("--verbose", action="store_true", help="Añadir hasta 10 incidencias al resumen")
+    cmd.add_argument("--ocultar-valores", action="store_true", help="No mostrar valores de celdas en terminal ni en report.json (consultar: sin filas; inspeccionar: sin muestra). Los archivos de datos no cambian")
 
 
 # --------------------------------------------------------------------------- CLI
@@ -112,6 +113,10 @@ def run(args):
     folder = inside(output / run_name)
     folder.mkdir(exist_ok=False)
     (folder / ".kit-output").touch(exist_ok=False)
+    if args.ocultar_valores:  # inspeccionar es el único paso que puede poner muestras en un informe
+        for step in recipe.pasos:
+            if step.op == "inspeccionar":
+                step.spec = {**step.spec, "sample": 0}
     code = ejecutar_receta(recipe, folder, args)
     manifest = json.loads((folder / "manifiesto.json").read_text(encoding="utf-8"))
     summary = {"estado": manifest["estado"], "codigo_salida": code, "comando": "ejecutar",

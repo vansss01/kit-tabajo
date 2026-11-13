@@ -25,6 +25,7 @@ DUPLICADOS = ["tests.test_transformaciones.DuplicadosTests"]
 ENCABEZADOS = ["tests.test_transformaciones.EncabezadosTests"]
 CONTRATO = ["tests.test_contrato"]
 ERRORES = ["tests.test_contrato.ErroresTests"]
+RESULTADOS = ["tests.test_contrato.ResultadosTests", "tests.test_contrato.PrivacidadTests"]
 ESQUEMAS = ["tests.test_esquemas.EquivalenciaTests.test_examples_and_valid_cases_pass_both",
             "tests.test_esquemas.EquivalenciaTests.test_invalid_cases_are_rejected_by_both_or_are_listed_semantic_rules"]
 MUTATIONS = [
@@ -218,6 +219,24 @@ MUTATIONS = [
      'raise KitError("No existe la receta", "--receta",', 'raise KitError("No existe la receta", None,', ERRORES),
     ("mensaje de KitError oculto", "src/kitlib/runtime.py",
      "    if type(exc) in (ValueError, KitError):", "    if type(exc) is ValueError:", ERRORES),
+    # Etapa 4: resultados y privacidad
+    ("resultados sin tope", "src/kitlib/contrato.py", "        limit = min(args.n, MAX_N)", "        limit = args.n",
+     RESULTADOS),
+    ("resultados cuenta copias exportadas", "src/kitlib/contrato.py",
+     'if p.is_dir() and p.name not in exported]', "if p.is_dir()]", RESULTADOS),
+    ("resultados toma la ejecución más antigua", "src/kitlib/contrato.py",
+     "        folder = max(runs, key=lambda p: (p.stat().st_mtime, p.name))",
+     "        folder = min(runs, key=lambda p: (p.stat().st_mtime, p.name))", RESULTADOS),
+    ("resultados sin aviso de incompleta", "src/kitlib/contrato.py",
+     '        result["aviso"] = "Ejecución incompleta o en curso: no usar sus resultados"', "        pass", RESULTADOS),
+    ("consultar ignora ocultar valores", "src/kitlib/cli.py",
+     '    if args.ocultar_valores and args.command == "consultar":\n        args.show = 0',
+     '    if args.ocultar_valores and args.command == "consultar":\n        pass', RESULTADOS),
+    ("inspeccionar ignora ocultar valores", "src/kitlib/cli.py",
+     '    if args.ocultar_valores and args.command == "inspeccionar":\n        args.sample = 0',
+     '    if args.ocultar_valores and args.command == "inspeccionar":\n        pass', RESULTADOS),
+    ("receta ignora ocultar valores", "src/kitlib/receta_cli.py",
+     '                step.spec = {**step.spec, "sample": 0}', "                pass", RESULTADOS),
 ]
 
 
