@@ -1,0 +1,46 @@
+{
+  "_nota": "Esperados escritos a mano. flota.csv: 0007 Bomba 50 m3/h Agua; 0012 Motor 75 kW Taller; 0042 dos veces (Compresor 10 bar y 12 bar) → clave repetida en la referencia (una incidencia por fila repetida). ordenes_flota.csv: 2 OT500 0007 2,5 → completada; 3 OT501 0012 1,5 → completada; 4 OT502 0099 → sin coincidencia; 5 OT503 0042 → ambigua (no se elige ninguna); 6 OT504 equipo vacío → clave vacía; 7 OT505 0007 0,5 → completada. Resumen por área solo con completadas: Agua = OT500 2,5 + OT505 0,5 = 3,0 (2 órdenes); Taller = OT501 1,5.",
+  "receta": "recetas/enriquecimiento_flota.json",
+  "principal": "examples/recetas/ordenes_flota.csv",
+  "entradas": {},
+  "estado": "completada_con_incidencias",
+  "codigo_salida": 1,
+  "pasos": {
+    "enriquecer": {"estado": "completado_con_incidencias",
+                   "filas": {"completadas": 3, "sin_coincidencia": 1, "ambiguas": 1, "clave_vacia": 1, "incidencias": 5},
+                   "incidencias_por_codigo": {"clave_duplicada_en_referencia": 2, "clave_sin_coincidencia": 1,
+                                              "coincidencia_ambigua": 1, "clave_vacia": 1}},
+    "resumen": {"estado": "completado", "filas": {"resultado": 2}},
+    "entrega": {"estado": "completado"}
+  },
+  "columnas": {
+    "01-enriquecer/completadas.csv": {"orden": ["OT500", "OT501", "OT505"], "area": ["Agua", "Taller", "Agua"]},
+    "01-enriquecer/sin_coincidencia.csv": {"orden": ["OT502"]},
+    "01-enriquecer/ambiguas.csv": {"orden": ["OT503"]},
+    "01-enriquecer/clave_vacia.csv": {"orden": ["OT504"]}
+  },
+  "tablas": {
+    "01-enriquecer/completadas.csv": [["orden", "equipo", "fecha", "horas", "estado", "modelo", "area"],
+                                      ["OT500", "0007", "2026-11-02", "2,5", "abierta", "Bomba 50 m3/h", "Agua"],
+                                      ["OT501", "0012", "2026-11-02", "1,5", "cerrada", "Motor 75 kW", "Taller"],
+                                      ["OT505", "0007", "2026-11-04", "0,5", "abierta", "Bomba 50 m3/h", "Agua"]],
+    "02-resumen/resultado.csv": [["area", "ordenes", "horas_totales"], ["Agua", "2", "3.0"], ["Taller", "1", "1.5"]]
+  },
+  "exportados": ["03-entrega/enriquecimiento_flota.xlsx"],
+  "otra_entrada": {
+    "_nota": "Semana 2: ordenes_flota_semana_2.csv (OT600 0007 1,0; OT601 0012 2,0), ambas con equipo en la flota. La flota sigue teniendo 0042 repetido, así que la referencia aporta sus 2 incidencias y el estado queda con incidencias aunque ninguna orden se aparte.",
+    "principal": "examples/recetas/ordenes_flota_semana_2.csv",
+    "entradas": {},
+    "estado": "completada_con_incidencias",
+    "codigo_salida": 1,
+    "pasos": {
+      "enriquecer": {"estado": "completado_con_incidencias",
+                     "filas": {"completadas": 2, "sin_coincidencia": 0, "ambiguas": 0, "clave_vacia": 0, "incidencias": 2},
+                     "incidencias_por_codigo": {"clave_duplicada_en_referencia": 2}},
+      "resumen": {"estado": "completado", "filas": {"resultado": 2}}
+    },
+    "tablas": {
+      "02-resumen/resultado.csv": [["area", "ordenes", "horas_totales"], ["Agua", "1", "1.0"], ["Taller", "1", "2.0"]]
+    }
+  }
+}

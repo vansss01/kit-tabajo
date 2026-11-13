@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "nombre": "enriquecimiento_flota",
+  "descripcion": "Agrega modelo y área a cada orden desde la tabla de flota por el código de equipo; aparta las órdenes cuyo equipo no existe, está repetido en la flota o viene vacío, y resume horas por área solo con las completadas.",
+  "entradas": {
+    "ordenes": {"principal": true, "delimiter": ";", "decimal": ","},
+    "flota": {"ruta": "../examples/recetas/flota.csv", "delimiter": ";"}
+  },
+  "pasos": [
+    {"nombre": "enriquecer", "op": "completar", "entrada": "ordenes", "referencia": "flota", "clave": ["equipo"],
+     "columnas": ["modelo", "area"], "politica": {"incidencias": "separar"}},
+    {"nombre": "resumen", "op": "transformar", "entrada": "enriquecer.completadas", "opciones": {"decimal": ","},
+     "plan": {"steps": [
+       {"op": "group", "by": ["area"], "aggregates": [{"op": "count", "as": "ordenes"},
+                                                      {"op": "sum", "column": "horas", "as": "horas_totales"}]},
+       {"op": "sort", "columns": ["area"]}]}},
+    {"nombre": "entrega", "op": "exportar", "archivo": "enriquecimiento_flota", "formatos": ["csv", "xlsx"],
+     "tablas": {"completadas": "enriquecer.completadas", "sin_coincidencia": "enriquecer.sin_coincidencia",
+                "ambiguas": "enriquecer.ambiguas", "clave_vacia": "enriquecer.clave_vacia",
+                "resumen": "resumen.resultado"}}
+  ]
+}
