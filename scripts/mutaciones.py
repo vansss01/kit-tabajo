@@ -280,6 +280,14 @@ MUTATIONS = [
      'tables, issues, details = transform(get(step.refs["entrada"]), step.config, step.opts, trace)',
      'tables, issues, details = transform(get(step.refs["entrada"]), step.config, step.opts.__class__(), trace)',
      COMPATIBILIDAD + EJEMPLOS),
+    # 1.5.1 (auditoría de 1.5.0, hallazgo 1): errores de argparse estructurados con --json
+    ("errores de argumentos sin estructurar con --json", "src/kitlib/cli.py",
+     "        if self.estructurado:\n            raise ErrorDeArgumentos(message, self.prog)",
+     "        if False:\n            raise ErrorDeArgumentos(message, self.prog)", ERRORES),
+    ("comando desconocido sin código propio", "src/kitlib/cli.py",
+     '    found = re.fullmatch(r"argument command: invalid choice: \'?(.*?)\'? \\(choose from (.*)\\)", message)\n    if found:',
+     '    found = re.fullmatch(r"argument command: invalid choice: \'?(.*?)\'? \\(choose from (.*)\\)", message)\n    if False:',
+     ERRORES),
     # Etapa 5: salidas compactas
     ("resultados sin tope de pasos", "src/kitlib/contrato.py", 'for p in manifest["pasos"][:30]])',
      'for p in manifest["pasos"]])', COMPACTO),

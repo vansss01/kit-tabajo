@@ -14,11 +14,14 @@ CODIGOS_SALIDA = {
 # Errores de configuración y de ejecución (recetas, comprobar, resultados y comandos sueltos con --json).
 ERRORES = {
     "archivo_no_encontrado": "No existe un archivo de entrada, reglas, plan o receta",
+    "argumento_ausente": "Falta una opción o un argumento obligatorio de la línea de comandos (campo: cuál)",
+    "argumento_desconocido": "La línea de comandos trae una opción o un argumento que el comando no admite",
     "argumento_invalido": "Un argumento de la línea de comandos no es válido (campo: la opción)",
     "campo_desconocido": "Campo no admitido en la receta (posible errata)",
     "clave_json_repetida": "Una clave aparece dos veces en un mismo objeto JSON",
     "codificacion_incorrecta": "El archivo no corresponde a la codificación indicada (--encoding)",
     "columnas_incompatibles": "Una columna usada por un paso no existe en el encabezado",
+    "comando_desconocido": "El comando no existe (./kit catalogo lista los comandos)",
     "configuracion_invalida": "Reglas o plan con estructura o valores no admitidos",
     "encabezado_ilegible": "No se pudo leer el encabezado de una entrada",
     "encabezado_invalido": "Encabezado vacío o con nombres repetidos (aviso de vista previa)",

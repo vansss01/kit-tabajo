@@ -205,6 +205,51 @@ class ErroresTests(unittest.TestCase):
         bad = self.first_error("ejecutar", self.data, "--receta", recipe, "--entrada", "x")
         self.assertEqual((bad["codigo"], bad["campo"]), ("argumento_invalido", "--entrada"))
 
+    def test_parser_errors_are_structured_with_json_and_unchanged_without_it(self):
+        """Hallazgo 1 de la auditoría 1.5.0: con --json, un error de argparse (opción obligatoria ausente, valor
+        inválido, comando desconocido, opción inexistente) sale como el mismo objeto de errores que el resto del
+        kit, por stdout y con código 2. Sin --json, argparse sigue imprimiendo su uso por stderr con stdout vacío."""
+        cases = [  # (argumentos, código esperado, campo esperado)
+            (("validar", self.data), "argumento_ausente", "--rules"),
+            (("ejecutar", self.data), "argumento_ausente", "--receta"),
+            (("comparar", self.data), "argumento_ausente", "after"),
+            (("comprobar",), "argumento_ausente", "archivo"),
+            (("consultar", self.data, "--sql", "SELECT 1", "--show", "abc"), "argumento_invalido", "--show"),
+            (("inspeccionar", self.data, "--sample", "x"), "argumento_invalido", "--sample"),
+            (("validar", self.data, "--rules", self.data, "--decimal", ";"), "argumento_invalido", "--decimal"),
+            (("inspeccionar", self.data, "--muestra", "2"), "argumento_desconocido", "--muestra"),
+            (("inexistente", self.data), "comando_desconocido", "comando"),
+        ]
+        for args, code, field in cases:
+            with self.subTest(args=args):
+                result = subprocess.run([sys.executable, "-B", str(ROOT / "kit.py"), *map(str, args), "--json"], cwd=ROOT,
+                                        capture_output=True, text=True, encoding="utf-8")
+                self.assertEqual((result.returncode, result.stderr), (2, ""), result.stdout)
+                summary = json.loads(result.stdout)
+                self.assertEqual((summary["estado"], summary["codigo_salida"], summary["filas_procesadas"]), ("error", 2, 0))
+                err = summary["errores"][0]
+                self.assertEqual(set(err), self.SHAPE)
+                self.assertEqual((err["codigo"], err["campo"]), (code, field))
+                self.assertIn(code, codigos.ERRORES)
+                self.assertEqual(summary["error"], err["mensaje"])
+                self.assertTrue(err["sugerencia"])
+                # Sin --json: igual que antes (uso por stderr, stdout vacío, código 2).
+                plain = subprocess.run([sys.executable, "-B", str(ROOT / "kit.py"), *map(str, args)], cwd=ROOT,
+                                       capture_output=True, text=True, encoding="utf-8")
+                self.assertEqual((plain.returncode, plain.stdout), (2, ""))
+                self.assertIn("usage:", plain.stderr)
+                self.assertIn("error:", plain.stderr)
+        # El mensaje dice qué falta o qué valor es inválido, no un texto genérico.
+        missing = json.loads(kit("validar", self.data, "--json", expected=2))["errores"][0]
+        self.assertEqual(missing["mensaje"], "Falta el argumento obligatorio --rules")
+        bad = json.loads(kit("consultar", self.data, "--sql", "SELECT 1", "--show", "abc", "--json", expected=2))["errores"][0]
+        self.assertEqual(bad["mensaje"], "Valor no válido para --show: se esperaba un entero, no 'abc'")
+        unknown = json.loads(kit("inexistente", "--json", expected=2))["errores"][0]
+        self.assertEqual(unknown["mensaje"], "Comando desconocido: inexistente")
+        self.assertIn("validar", unknown["sugerencia"])
+        # --help y --version no cambian: código 0 y texto por stdout, también con --json en la línea.
+        self.assertIn("usage:", kit("validar", "--help", "--json"))
+
     def test_codes_doc_is_generated_from_registry(self):
         self.assertEqual((ROOT / "docs" / "CODIGOS.md").read_text(encoding="utf-8"), codigos.codigos_md(),
                          "Ejecute python -B scripts/esquemas.py")

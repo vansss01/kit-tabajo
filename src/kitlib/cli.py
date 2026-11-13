@@ -1,5 +1,6 @@
 import argparse
 import fnmatch
+import functools
 import json
 import re
 import shutil
@@ -20,8 +21,75 @@ from kitlib.tableio import (Options, Table, csv_write, excel_write, fingerprint,
 ISSUE_COLUMNS = ["codigo", "fila", "columna", "origen", "detalle"]
 
 
-def parser():
-    p = argparse.ArgumentParser(description="Kit local de tablas. Sin IA ni servicios externos.")
+class ErrorDeArgumentos(Exception):
+    """Error de la línea de comandos (argparse) cuando hay --json: se convierte en el objeto de errores del kit."""
+
+    def __init__(self, message, prog):
+        super().__init__(message)
+        self.prog = prog
+
+
+class KitParser(argparse.ArgumentParser):
+    """ArgumentParser que, con `estructurado`, lanza ErrorDeArgumentos en vez de imprimir el uso y salir.
+    Sin `estructurado` se comporta exactamente como argparse (uso por stderr, código 2)."""
+
+    def __init__(self, *args, estructurado=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.estructurado = estructurado
+
+    def add_subparsers(self, **kwargs):
+        kwargs.setdefault("parser_class", functools.partial(KitParser, estructurado=self.estructurado))
+        return super().add_subparsers(**kwargs)
+
+    def error(self, message):
+        if self.estructurado:
+            raise ErrorDeArgumentos(message, self.prog)
+        super().error(message)
+
+
+_DETALLES = [  # mensajes de argparse → castellano; si no coincide ninguno se conserva el texto original
+    (re.compile(r"invalid int value: '(.*)'"), "se esperaba un entero, no '{0}'"),
+    (re.compile(r"invalid float value: '(.*)'"), "se esperaba un número, no '{0}'"),
+    (re.compile(r"invalid choice: '?(.*?)'? \(choose from (.*)\)"), "'{0}' no está entre: {1}"),
+    (re.compile(r"expected one argument"), "falta su valor"),
+    (re.compile(r"expected at least one argument"), "falta al menos un valor"),
+    (re.compile(r"not allowed with argument (.*)"), "no se puede combinar con {0}"),
+]
+
+
+def argument_error(exc):
+    """(código, campo, mensaje, sugerencia) para un error de argparse. Los códigos están en codigos.ERRORES."""
+    message, prog = str(exc), exc.prog
+    ayuda = f"Vea {prog} --help"
+    found = re.fullmatch(r"the following arguments are required: (.+)", message)
+    if found:
+        fields = found.group(1).split(", ")
+        return ("argumento_ausente", fields[0], "Falta el argumento obligatorio " + " y ".join(fields),
+                f"Añada {fields[0]}; {ayuda.lower()[0] + ayuda[1:]}")
+    found = re.fullmatch(r"argument command: invalid choice: '?(.*?)'? \(choose from (.*)\)", message)
+    if found:
+        commands = found.group(2).replace("'", "")
+        return ("comando_desconocido", "comando", f"Comando desconocido: {found.group(1)}",
+                f"Comandos: {commands}. ./kit catalogo los describe")
+    found = re.fullmatch(r"argument (\S+): (.+)", message, re.DOTALL)
+    if found:
+        field, detail = found.group(1).split("/")[0], found.group(2)
+        for pattern, text in _DETALLES:
+            match = pattern.fullmatch(detail)
+            if match:
+                detail = text.format(*match.groups())
+                break
+        return "argumento_invalido", field, f"Valor no válido para {field}: {detail}", ayuda
+    found = re.fullmatch(r"unrecognized arguments: (.+)", message)
+    if found:
+        field = found.group(1).split()[0]
+        return ("argumento_desconocido", field, f"Argumento no reconocido: {found.group(1)}",
+                f"{ayuda}; las opciones van después del comando y ./kit catalogo las lista")
+    return "argumento_invalido", None, message[:240], ayuda
+
+
+def parser(estructurado=False):
+    p = KitParser(description="Kit local de tablas. Sin IA ni servicios externos.", estructurado=estructurado)
     p.add_argument("--version", action="version", version=__version__)
     sub = p.add_subparsers(dest="command", required=True)
     for name, helptext in [
@@ -381,7 +449,17 @@ def execute(args):
 
 
 def main(argv=None):
-    args = parser().parse_args(argv)
+    argv = sys.argv[1:] if argv is None else list(argv)
+    try:
+        # Con --json en la línea, un error de argumentos sale como el mismo objeto de errores que el resto
+        # del kit (stdout, código 2). Sin --json, argparse imprime su uso por stderr, como siempre.
+        args = parser(estructurado="--json" in argv).parse_args(argv)
+    except ErrorDeArgumentos as exc:
+        code, field, message, hint = argument_error(exc)
+        print(json.dumps({"estado": "error", "codigo_salida": 2, "filas_procesadas": 0, "incidencias": 0,
+                          "advertencias": 0, "error": message, "errores": [error(code, message, None, field, hint)],
+                          "ruta_resultados": None}, ensure_ascii=False))
+        return 2
     try:
         if args.command == "limpiar":
             result = clean(args.keep, args.apply, ROOT / "results", ROOT / "logs")
