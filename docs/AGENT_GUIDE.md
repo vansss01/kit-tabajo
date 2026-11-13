@@ -9,7 +9,7 @@
    esquemas en `schemas/`, códigos en `CODIGOS.md`. Para leer una ejecución: `./kit resultados`.
    Con datos sensibles añade `--ocultar-valores` (ver la tabla de `DATA_POLICY.md`).
    Antes de escribir una receta nueva, parte de una de `recetas/` (tres de ejemplo, con entradas en
-   `examples/recetas/` y resultados esperados a mano en `examples/recetas/esperados/`).
+   `examples/recetas/` y resultados esperados en archivos aparte en `examples/recetas/esperados/`).
 3. Lanzador sin activar nada: `./kit COMANDO ...` en Linux, `kit COMANDO ...` en Windows
    (`kit.cmd`, usa `.venv-win`). Equivale a `python -B kit.py` con el Python local.
 4. Todas las escrituras controladas deben quedar dentro de KIT TABAJO en el disco

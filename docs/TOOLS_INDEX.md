@@ -46,7 +46,7 @@ celdas en la terminal: con datos sensibles usar `--show 0` (los archivos siguen 
 Para calcular con SQL declarar `--numeric`; sin él puede avisar `resultado_depende_de_texto_sin_numeric`.
 Sumas exactas al dígito: `transformar`. Límites numéricos: manual de consulta.
 Recetas de ejemplo listas para copiar (revisión de órdenes, consolidación de turnos, enriquecimiento
-con flota): `recetas/*.json`, entradas en `examples/recetas/`, esperados a mano en
+con flota): `recetas/*.json`, entradas en `examples/recetas/`, esperados en archivos aparte en
 `examples/recetas/esperados/`; tabla en `tools/ejecutar.md` («Recetas de ejemplo»).
 Flujo comprobado con aserciones: `python -B scripts/demo.py`.
 Verificación completa: `python -B scripts/check.py`. Mutaciones (comprueban que las pruebas detectan errores reales; lento): `python -B scripts/mutaciones.py [nombre]`.

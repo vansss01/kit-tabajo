@@ -124,8 +124,9 @@ una receta, qué significa un código de error o dónde están las incidencias d
 dónde empezar, qué política poner, qué esperar al final. Y un número («tarda poco», «usa poca
 memoria») sin decir con qué datos ni en qué equipo no sirve para decidir.
 
-**Solución.** Tres recetas terminadas, con sus datos ficticios y el resultado escrito a mano **antes**
-de ejecutarlas, para copiar y adaptar (`recetas/`, `examples/recetas/`, tabla en `tools/ejecutar.md`):
+**Solución.** Tres recetas terminadas, con sus datos ficticios y el resultado esperado en un archivo
+aparte (el historial de Git no acredita que se escribiera antes de ejecutar el kit; solo que una prueba
+compara ambos), para copiar y adaptar (`recetas/`, `examples/recetas/`, tabla en `tools/ejecutar.md`):
 
 | Receta | Qué resuelve | Qué se ve en el resultado |
 |---|---|---|

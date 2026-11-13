@@ -56,9 +56,10 @@
 
 <div class="card key">
   <b>En una frase:</b> es un programa que se usa escribiendo comandos en la terminal y que revisa,
-  compara, junta, limpia y resume tablas (Excel o CSV) sin tocar nunca el archivo original, dejando
-  constancia de cada fila que apartó y de cada celda que cambió. No es una app con ventanas. No necesita
-  internet ni inteligencia artificial para funcionar.
+  compara, junta, limpia y resume tablas (Excel o CSV) sin tocar nunca el archivo original. En las recetas
+  deja además constancia de cada fila que apartó y de cada celda que cambió; un comando suelto deja informe,
+  conteos e incidencias, no esa traza. No es una app con ventanas. No necesita internet ni inteligencia
+  artificial para funcionar.
 </div>
 
 <div class="card toc">
@@ -99,17 +100,20 @@ comando, siempre igual, y deja registro de lo que hizo y de lo que dejó fuera.<
 <table>
   <tr><th>Novedad</th><th>Qué permite</th></tr>
   <tr><td><b>Recetas</b> (<code>ejecutar</code>)</td><td>Escribir una vez los pasos (revisar, validar, resumir, entregar…) en un archivo JSON y repetirlos sobre el archivo de cada semana. Un <code>manifiesto.json</code> dice si terminó y cómo.</td></tr>
-  <tr><td><b>Trazabilidad</b></td><td>Cada fila recuerda su archivo y fila de origen. Las filas apartadas y las celdas cambiadas quedan en archivos propios; el kit comprueba que nada se pierda (entrada = salidas + apartadas).</td></tr>
+  <tr><td><b>Trazabilidad</b> (solo en recetas)</td><td>Cada fila recuerda su archivo y fila de origen mientras no se agrupe ni se consulte con SQL. Las filas apartadas y las celdas cambiadas quedan en archivos propios. En los pasos que separan filas el kit comprueba que nada se pierda (entrada = salidas + apartadas); al agrupar comprueba que cada fila participe en algún grupo o quede en excluidas; en SQL no hay procedencia fila a fila.</td></tr>
   <tr><td><b>Limpieza controlada</b></td><td>Renombrar columnas, normalizar espacios y mayúsculas, reemplazar valores con una lista explícita, completar datos desde otra planilla, separar duplicados idénticos de contradictorios, leer reportes con título arriba y total abajo.</td></tr>
   <tr><td><b>Contrato para agentes</b></td><td><code>catalogo</code> (qué admite el kit), <code>comprobar</code> (revisar una receta sin ejecutarla), <code>resultados</code> (leer una ejecución sin abrir carpetas), errores con código estable y <code>--ocultar-valores</code>.</td></tr>
   <tr><td><b>SQL más seguro</b></td><td>Tipos declarados por tabla y columna (<code>--tipo t.horas=number</code>); aviso cuando una suma depende de texto; números sin notación científica.</td></tr>
-  <tr><td><b>Tres recetas de ejemplo</b></td><td>Listas para copiar, con datos ficticios y el resultado esperado escrito a mano: revisión de órdenes, consolidación de turnos y enriquecimiento con la flota.</td></tr>
+  <tr><td><b>Tres recetas de ejemplo</b></td><td>Listas para copiar, con datos ficticios y el resultado esperado en un archivo aparte, que una prueba compara con la ejecución real: revisión de órdenes, consolidación de turnos y enriquecimiento con la flota.</td></tr>
   <tr><td><b>Mediciones</b></td><td>Tiempos, memoria y tamaño de salidas con 100 000 filas, reproducibles con <code>scripts/medir.py</code>.</td></tr>
 </table>
 </div>
 
 <h2 id="como">Cómo funciona por dentro</h2>
-<p>Todos los comandos siguen los mismos cinco pasos:</p>
+<p>Los ocho comandos que trabajan con tablas (inspeccionar, comparar, consolidar, validar, transformar, exportar, consultar
+y ejecutar) siguen los mismos cinco pasos. Los otros cinco no: <code>catalogo</code> y <code>comprobar</code> solo leen
+configuración y no crean carpetas, <code>resultados</code> lee una ejecución ya hecha, <code>bitacora</code> escribe en
+<code>data/</code> y <code>limpiar</code> borra ejecuciones antiguas.</p>
 <div class="flow">
   <div class="step"><b>1. Lee</b><span>Abre tu archivo en modo lectura. Todo se lee como texto: <code>0007</code> sigue siendo <code>0007</code>.</span></div>
   <div class="step"><b>2. Procesa</b><span>Hace lo que pediste (revisar, comparar, juntar…) en memoria.</span></div>
@@ -122,7 +126,7 @@ comando, siempre igual, y deja registro de lo que hizo y de lo que dejó fuera.<
   <li><b>Nunca modifica ni sobrescribe.</b> El original queda intacto y cada ejecución tiene su propia carpeta. Si te equivocas, no rompes nada.</li>
   <li><b>No adivina.</b> Si una fecha dice <code>03/04/2026</code>, no decide por ti si es marzo o abril: la marca y te obliga a decir el formato. Si dos filas se contradicen, no elige una: las aparta para que alguien decida.</li>
   <li><b>Las reglas se escriben en un archivo, no en código.</b> Describes qué esperas de cada columna en un JSON y el kit lo comprueba. No se ejecuta código de planillas ni de configuraciones.</li>
-  <li><b>Nada desaparece en silencio.</b> Lo que sale de una tabla queda en otra, con su fila de origen y su motivo.</li>
+  <li><b>Nada desaparece en silencio.</b> En una receta, lo que sale de una tabla queda en otra, con su fila de origen y su motivo. En un comando suelto queda la incidencia (código, fila, columna) y el conteo, no una copia de la fila; una fila con más o menos columnas que el encabezado tampoco se copia entera: queda su incidencia y su número de fila.</li>
 </ul>
 
 <h2 id="comandos">Los 13 comandos, con ejemplos</h2>
@@ -195,8 +199,10 @@ Los archivos de ejemplo usan punto y coma como separador, por eso llevan <code>-
 <p>Una receta es un archivo JSON que lista pasos con los comandos anteriores y una <b>política</b> por paso:
 sin política, el flujo se <b>detiene</b> ante cualquier incidencia; con <code>"incidencias": "separar"</code>
 las filas con problemas van a una tabla aparte y el flujo sigue. Las tres recetas de ejemplo están en
-<code>recetas/</code>, con sus datos en <code>examples/recetas/</code> y el resultado esperado escrito a mano
-en <code>examples/recetas/esperados/</code>; una prueba automática las ejecuta y compara.</p>
+<code>recetas/</code>, con sus datos en <code>examples/recetas/</code> y el resultado esperado en un archivo aparte
+en <code>examples/recetas/esperados/</code>; una prueba automática las ejecuta y compara. (Que esos esperados se
+escribieron antes de ejecutar el kit no se puede demostrar desde el historial de Git; solo que coinciden con lo
+que el kit produce. Lo dice <code>docs/PROJECT_STATUS.md</code>.)</p>
 <div class="tablewrap">
 <table>
   <tr><th>Receta</th><th>Qué hace</th><th>Con los datos de ejemplo</th></tr>
@@ -235,7 +241,7 @@ conteos: validas=3, invalidas=7, filas_no_tabulares=0</code></pre>
 <p>Tres cosas que conviene no confundir:</p>
 <ul>
   <li><b>Validar</b> solo señala: compara con reglas y separa aceptadas de rechazadas sin tocar un valor. Solo las aceptadas de un paso validar están marcadas <code>validada: true</code>.</li>
-  <li><b>Transformar</b> calcula una tabla nueva (filtrar, agrupar, renombrar, normalizar, reemplazar). Un resumen es un cálculo, no un dato validado. Cada fila quitada y cada celda cambiada queda registrada.</li>
+  <li><b>Transformar</b> calcula una tabla nueva (filtrar, agrupar, renombrar, normalizar, reemplazar). Un resumen es un cálculo, no un dato validado. En una receta, cada fila quitada y cada celda cambiada queda registrada; un total agrupado no tiene fila de origen.</li>
   <li><b>Completar</b> corrige desde una fuente: copia columnas de otra planilla por una clave exacta. No inventa valores, no elige entre dos coincidencias y no pisa un dato existente salvo que se lo pidas.</li>
 </ul>
 <p>Dos avisos frecuentes: <code>posible_delimitador_incorrecto</code> (el archivo quedó en una sola columna; la terminal sugiere
@@ -243,7 +249,9 @@ conteos: validas=3, invalidas=7, filas_no_tabulares=0</code></pre>
 <code>--encoding cp1252</code>).</p>
 
 <h2 id="traza">Trazabilidad: saber qué pasó con cada fila</h2>
-<p>En una receta, cada fila recuerda su archivo y su fila original sin agregar columnas a la tabla. Cada paso deja
+<p>En una receta, cada fila recuerda su archivo y su fila original sin agregar columnas a la tabla, mientras no pase
+por un agrupado o una consulta SQL: un total es una fila nueva y no tiene procedencia individual (el manifiesto lo marca
+como «sin procedencia individual (agregado)»). Los comandos sueltos no escriben estos archivos. Cada paso de una receta deja
 archivos para responder las preguntas típicas del supervisor:</p>
 <div class="tablewrap">
 <table>
@@ -257,9 +265,12 @@ archivos para responder las preguntas típicas del supervisor:</p>
   <tr><td>¿Qué filas suman este total?</td><td><code>participantes.csv</code> (con <code>"traza": "detallada"</code>) o la regla del manifiesto</td></tr>
 </table>
 </div>
-<p>Antes de publicar las tablas de un paso, el kit comprueba que entrada = salidas + apartadas (misma cantidad y mismas filas de
-origen). Si no cuadra, el paso queda <code>fallido</code> y no deja tablas. Los archivos de traza contienen valores de celdas:
-se cuidan igual que la planilla original.</p>
+<p>Antes de publicar las tablas de un paso, el kit comprueba una invariante que depende del paso: en los que separan filas
+(validar, consolidar, duplicados, completar, transformar sin agrupar), entrada = salidas + apartadas, con las mismas filas de
+origen; al agrupar, que cada fila de origen esté en el resultado, en excluidas o en un grupo (no se compara la cantidad);
+en comparar, que antes = eliminadas + comunes y después = nuevas + comunes; en consultar e inspeccionar no hay invariante,
+porque SQL puede combinar o repetir filas. Si una no cuadra, el paso queda <code>fallido</code> y no deja tablas. Los archivos
+de traza contienen valores de celdas: se cuidan igual que la planilla original.</p>
 
 <h2 id="agentes">Cómo se usa con un agente de IA</h2>
 <p>Puedes usarlo solo o pedirle a un agente (Claude Code, Codex u otro) que lo use por ti. El kit está pensado para que el agente
@@ -277,13 +288,13 @@ docs/TOOLS_INDEX.md y docs/PROJECT_STATUS.md. Reutiliza los comandos existentes.
 <h2 id="limites">Límites: números, memoria, privacidad</h2>
 <h3>Números</h3>
 <ul>
-  <li>Las sumas de <code>transformar</code> son exactas al dígito (decimales exactos). Las de <code>consultar</code> usan números de punto flotante de SQLite (REAL): unas 15–17 cifras; para sumas exactas al dígito usa <code>transformar</code>. El kit avisa cuando un número no cabe exacto.</li>
+  <li>Las sumas de <code>transformar</code> son exactas al dígito (decimales exactos). Las de <code>consultar</code> usan números de punto flotante de SQLite (REAL): unas 15–17 cifras; para sumas exactas al dígito usa <code>transformar</code>. El kit avisa cuando un <em>valor de entrada</em> tiene más cifras de las que caben en REAL, pero no cuando un <em>cálculo</em> acumula error: <code>SELECT 0.1 + 0.2</code> da <code>0.30000000000000004</code> con código 0 y sin aviso.</li>
   <li>En SQL hay que declarar los tipos (<code>--tipo t.horas=number</code>). Hay un detector que avisa del caso típico (texto con decimales sumado como texto), pero es heurístico: no avisa por columnas solo de enteros, puede dar falsos positivos y se apaga solo por encima de 200 000 filas (y lo dice).</li>
-  <li>No se adivinan fechas ambiguas, no se admiten separadores de miles ni notación científica en reglas, y un entero escrito <code>1.0</code> en una configuración se rechaza.</li>
+  <li>No se adivinan fechas ambiguas y no se admiten separadores de miles ni notación científica en reglas. Un entero escrito <code>1.0</code> se rechaza solo en los campos que exigen un entero (<code>sample</code>, <code>version</code>, <code>fila_encabezado</code>, <code>detector_max_filas</code>, números de fila); en un límite numérico de reglas (<code>"min": 1.0</code>) se acepta, porque ahí es un número.</li>
 </ul>
 <h3>Memoria y tamaño</h3>
 <ul>
-  <li>Carga la tabla entera en memoria: unos 2,5 KiB por fila. Con 100 000 filas usó entre 77 y 181 MiB; con 300 000 filas (medición de 1.2.0) unos 750 MiB. No sirve para millones de filas y no se agregó procesamiento distribuido porque ningún caso de este alcance lo necesita.</li>
+  <li>Carga la tabla entera en memoria: unos 2,5 KiB por fila en las dos mediciones hechas. Con 100 000 filas usó entre 77 y 181 MiB; con 300 000 filas (medición de 1.2.0) unos 750 MiB. El máximo real depende de las columnas, la operación y la RAM del equipo; con millones de filas no cabría en un portátil. No se agregó procesamiento distribuido: es una decisión de alcance (las planillas previstas son de ese tamaño), no un umbral demostrado.</li>
   <li>Escribir Excel es lo lento. Una receta escribe además cada tabla intermedia y su traza: unas 8 veces el tamaño de la entrada. <code>limpiar --apply</code> recupera el espacio.</li>
   <li>No lee Excel antiguo (<code>.xls</code>), ODS ni libros cifrados; no conserva fórmulas, macros ni colores.</li>
 </ul>

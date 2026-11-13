@@ -13,7 +13,7 @@ reemplaza otra. La misma receta sirve para otro archivo compatible cambiando sol
 ## Recetas de ejemplo
 
 Tres recetas completas en `recetas/`, con entradas ficticias en `examples/recetas/` y el resultado
-esperado **escrito a mano** en `examples/recetas/esperados/<receta>.json` (estado, filas por paso,
+esperado **en un archivo aparte** (`examples/recetas/esperados/<receta>.json`; el historial de Git no acredita que se escribiera antes de ejecutar el kit, ver `PROJECT_STATUS.md`) (estado, filas por paso,
 incidencias por código, filas clave). `tests/test_recetas_ejemplo.py` las ejecuta por la CLI y compara
 contra ese esperado, y repite cada una sobre un segundo archivo cambiando solo la ruta.
 
