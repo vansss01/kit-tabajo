@@ -3,7 +3,7 @@
 Actualizado: 2026-11-13. Versión 1.5.0 (cierre de la etapa 5; commits locales, sin push). Repositorio:
 `github.com/vansss01/kit-tabajo` (privado).
 1.4.1 a 1.5.0 están comprobadas **solo en local, Linux, Python 3.14.9**: 122 pruebas, Ruff y mypy con
-`scripts/check.py`, flujo `scripts/demo.py` y 98/98 mutaciones (`scripts/mutaciones.py`). No están
+`scripts/check.py`, flujo `scripts/demo.py` y 97/97 mutaciones (`scripts/mutaciones.py`). No están
 publicadas: la CI (`.github/workflows/check.yml`: Linux y Windows, Python 3.11 y 3.14, `check.py`,
 `demo.py`, instalación sin red y lanzadores) está al día con el código pero corrió por última vez sobre
 1.4.0; **Windows queda sin probar hasta el próximo push**. Sin dependencia de proveedores de IA.
@@ -27,7 +27,8 @@ ejecutar, bitacora, limpiar, catalogo, comprobar, resultados. Recetas de ejemplo
   producen las mismas filas e incidencias (validar, transformar, consolidar); el resumen `--json` de
   `ejecutar` no arrastra detalles y `resultados` respeta sus topes (30 pasos, 40 archivos, 15 códigos,
   100 incidencias, 200 caracteres) sobre una ejecución fabricada mayor; con `--ocultar-valores` ninguna
-  celda de las recetas de ejemplo llega a la terminal ni a los JSON. 12 mutaciones nuevas.
+  celda de las recetas de ejemplo llega a la terminal ni a los JSON. 11 mutaciones nuevas (el
+  mensaje del commit 5748805 dice 12: una resultó redundante y se retiró antes de commitear).
 - `scripts/medir.py`: conjunto generado con semilla (no se commitea), tiempos, memoria y tamaños;
   resultados y condiciones en `MEDICIONES.md`. No se añade procesamiento distribuido: 100 000 filas
   usan como máximo 181 MiB.
