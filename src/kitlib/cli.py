@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from kitlib import __version__, bitacora, recetas
+from kitlib import __version__, bitacora, receta_cli
 from kitlib.operations import compare, inspect_table, merge_tables, query, query_warnings, transform, validate
 from kitlib.runtime import ROOT, inside, public_message
 from kitlib.tableio import (Options, Table, csv_write, excel_write, fingerprint,
@@ -76,7 +76,7 @@ def parser():
     cmd.add_argument("--json", action="store_true", help="Resumen compacto JSON en stdout")
     cmd.set_defaults(verbose=False)
     bitacora.add_parser(sub)
-    recetas.add_parser(sub)
+    receta_cli.add_parser(sub)
     return p
 
 
@@ -362,7 +362,7 @@ def main(argv=None):
         if args.command == "bitacora":
             return bitacora.run(args)
         if args.command == "ejecutar":
-            return recetas.run(args)
+            return receta_cli.run(args)
         return execute(args)
     except Exception as exc:
         # No volcar valores de celdas, configuraciones ni traceback por terminal.

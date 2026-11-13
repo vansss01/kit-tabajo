@@ -146,7 +146,7 @@ MUTATIONS = [
      "reason = _exclusion(values, columns, conditions) if conditions else None",
      "reason = _exclusion(values, columns, conditions) if conditions and len(values) == len(columns) else None",
      ENCABEZADOS),
-    ("JSON acepta fila_encabezado", "src/kitlib/recetas.py",
+    ("JSON acepta fila_encabezado", "src/kitlib/receta_validacion.py",
      'elif entry.ruta.suffix.lower() == ".json" and (entry.opts.header_row != 1 or entry.opts.exclude_rows):',
      "elif False:", ENCABEZADOS),
     ("invariante de lectura ignora excluidas", "src/kitlib/recetas.py",
