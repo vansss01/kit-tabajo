@@ -1,0 +1,45 @@
+{
+  "_nota": "Esperados escritos a mano. turno_a.csv: filas 2 OT300 0007 2,5; 3 OT301 0012 1,5; 4 OT302 0042 4,0; 5 OT303 0007 1,0. turno_b_exportado.csv (columnas OT/Equipo/Fecha/Hrs/Estado): 2 OT302 idéntica a la de A; 3 OT303 con horas 3,0 (contradice 1,0 de A); 4 OT304 0012 2,0; 5 OT305 0042 0,5. Consolidar une 4 + 4 = 8. Duplicados: OT302 de B es idéntica → excluidas; OT303 (dos filas distintas, sin política para elegir) → conflictos, una incidencia por fila. Conservadas: OT300, OT301, OT302, OT304, OT305. Resumen solo con conservadas: 0007 = OT300 2,5; 0012 = OT301 1,5 + OT304 2,0 = 3,5; 0042 = OT302 4,0 + OT305 0,5 = 4,5.",
+  "receta": "recetas/consolidacion_turnos.json",
+  "principal": "examples/recetas/turno_a.csv",
+  "entradas": {},
+  "estado": "completada_con_incidencias",
+  "codigo_salida": 1,
+  "pasos": {
+    "adaptar": {"estado": "completado", "filas": {"resultado": 4}},
+    "union": {"estado": "completado", "filas": {"resultado": 8, "incidencias": 0}},
+    "repetidas": {"estado": "completado_con_incidencias",
+                  "filas": {"conservadas": 5, "excluidas": 1, "conflictos": 2, "incidencias": 2},
+                  "incidencias_por_codigo": {"conflicto_de_duplicados": 2}},
+    "resumen": {"estado": "completado", "filas": {"resultado": 3}},
+    "entrega": {"estado": "completado"}
+  },
+  "columnas": {
+    "01-adaptar/resultado.csv": {"orden": ["OT302", "OT303", "OT304", "OT305"]},
+    "03-repetidas/conservadas.csv": {"orden": ["OT300", "OT301", "OT302", "OT304", "OT305"]},
+    "03-repetidas/excluidas.csv": {"orden": ["OT302"], "__fila_origen": ["2"]},
+    "03-repetidas/conflictos.csv": {"orden": ["OT303", "OT303"], "horas": ["1,0", "3,0"], "__fila_origen": ["5", "3"]}
+  },
+  "tablas": {
+    "04-resumen/resultado.csv": [["equipo", "ordenes", "horas_totales"], ["0007", "1", "2.5"], ["0012", "2", "3.5"],
+                                 ["0042", "2", "4.5"]]
+  },
+  "exportados": ["05-entrega/consolidacion_turnos.xlsx"],
+  "otra_entrada": {
+    "_nota": "Semana 2: turno_a_semana_2.csv (OT400 0007 2,0; OT401 0042 5,0) y turno_b_semana_2_exportado.csv (OT402 0012 1,0; OT400 idéntica a la de A). Sin conflictos: una idéntica excluida no es incidencia.",
+    "principal": "examples/recetas/turno_a_semana_2.csv",
+    "entradas": {"turno_b": "examples/recetas/turno_b_semana_2_exportado.csv"},
+    "estado": "completada",
+    "codigo_salida": 0,
+    "pasos": {
+      "adaptar": {"estado": "completado", "filas": {"resultado": 2}},
+      "union": {"estado": "completado", "filas": {"resultado": 4, "incidencias": 0}},
+      "repetidas": {"estado": "completado", "filas": {"conservadas": 3, "excluidas": 1, "conflictos": 0, "incidencias": 0}},
+      "resumen": {"estado": "completado", "filas": {"resultado": 3}}
+    },
+    "tablas": {
+      "04-resumen/resultado.csv": [["equipo", "ordenes", "horas_totales"], ["0007", "1", "2.0"], ["0012", "1", "1.0"],
+                                   ["0042", "1", "5.0"]]
+    }
+  }
+}

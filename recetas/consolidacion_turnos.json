@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "nombre": "consolidacion_turnos",
+  "descripcion": "Une dos turnos: adapta los nombres de columnas del turno exportado, consolida, aparta órdenes repetidas (idénticas) y contradictorias (conflictos) y resume solo las conservadas.",
+  "entradas": {
+    "turno_a": {"principal": true, "delimiter": ";", "decimal": ","},
+    "turno_b": {"ruta": "../examples/recetas/turno_b_exportado.csv", "delimiter": ";", "decimal": ","}
+  },
+  "pasos": [
+    {"nombre": "adaptar", "op": "transformar", "entrada": "turno_b",
+     "plan": {"steps": [{"op": "rename", "columns": {"OT": "orden", "Equipo": "equipo", "Fecha": "fecha",
+                                                      "Hrs": "horas", "Estado": "estado"}}]}},
+    {"nombre": "union", "op": "consolidar", "entradas": ["turno_a", "adaptar.resultado"]},
+    {"nombre": "repetidas", "op": "duplicados", "entrada": "union.resultado", "clave": ["orden"],
+     "politica": {"incidencias": "separar"}},
+    {"nombre": "resumen", "op": "transformar", "entrada": "repetidas.conservadas", "opciones": {"decimal": ","},
+     "plan": {"steps": [
+       {"op": "group", "by": ["equipo"], "aggregates": [{"op": "count", "as": "ordenes"},
+                                                        {"op": "sum", "column": "horas", "as": "horas_totales"}]},
+       {"op": "sort", "columns": ["equipo"]}]}},
+    {"nombre": "entrega", "op": "exportar", "archivo": "consolidacion_turnos", "formatos": ["csv", "xlsx"],
+     "tablas": {"conservadas": "repetidas.conservadas", "conflictos": "repetidas.conflictos",
+                "excluidas": "repetidas.excluidas", "resumen": "resumen.resultado"}}
+  ]
+}
