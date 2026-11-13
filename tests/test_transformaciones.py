@@ -453,6 +453,20 @@ class EncabezadosTests(Base):
         self.assertEqual(preview["entradas"][0]["encabezado"], "invalido")
         self.assertIn("encabezado_vacio_o_duplicado", preview["entradas"][0]["motivo"])
 
+    def test_footer_condition_is_case_sensitive_with_real_values(self):
+        # Detenciones: "tipo" es parcial o total; el pie del exporte pone "Total" en esa columna.
+        # Fila 2 CAEX-01 total | 3 PALA-02 parcial | 4 CAEX-03 total | 5 pie "Total" con la suma.
+        source = self.write("detenciones.csv", "equipo;tipo;horas\nCAEX-01;total;8,0\nPALA-02;parcial;2,5\n"
+                                               "CAEX-03;total;4,0\n;Total;14,5\n")
+        recipe = {"version": 1, "salida": {"delimiter": ";"},
+                  "entradas": {"d": {"principal": True, **SEMI, "excluir_filas": [{"columna": "tipo", "igual": "Total"}]}},
+                  "pasos": [{"nombre": "p", "op": "transformar", "entrada": "d",
+                             "plan": {"steps": [{"op": "select", "columns": ["equipo", "tipo"]}]}}]}
+        run = Path(self.run_cli(recipe, source)["ruta_resultados"])
+        self.assertEqual(self.rows(run / "01-p" / "resultado.csv")[1:],
+                         [["CAEX-01", "total"], ["PALA-02", "parcial"], ["CAEX-03", "total"]])
+        self.assertEqual([r[2] for r in self.rows(run / "00-entradas" / "excluidas.csv")[1:]], ["5"])
+
     def test_xlsx_title_rows_and_total(self):
         from openpyxl import Workbook
         book = Workbook()

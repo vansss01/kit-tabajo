@@ -152,6 +152,9 @@ MUTATIONS = [
     ("invariante de lectura ignora excluidas", "src/kitlib/recetas.py",
      '"cumple": table.scanned == len(table.rows) + malformed + len(table.excluded)}',
      '"cumple": table.scanned >= 0}', ENCABEZADOS),
+    ("igual ignora mayúsculas", "src/kitlib/tableio.py",
+     'if "igual" in cond and text == cond["igual"]:', 'if "igual" in cond and text.lower() == cond["igual"].lower():',
+     ENCABEZADOS),
 ]
 
 
