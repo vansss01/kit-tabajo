@@ -93,3 +93,27 @@ tuvieran horas distintas, ninguna se elige: las dos van a `conflictos` para que 
   comprueba que entrada = suma de las salidas.
 - *Pisar datos es una decisión.* Sin `existentes` o `conservar` explícitos, el kit no
   sobrescribe ni descarta información distinta.
+
+## Etapa 4: contrato para agentes y SQL
+
+Un agente (o una persona nueva) que usa el kit no debería adivinar: qué comandos hay, qué admite
+una receta, qué significa un código de error o dónde están las incidencias de la ejecución de ayer.
+
+| Pieza | Problema real | Ejemplo mínimo |
+|---|---|---|
+| `catalogo` | El agente inventa una opción que no existe o una operación con otro nombre | `./kit catalogo` → lista exacta de comandos, operaciones, valores y códigos |
+| Esquema único | La documentación dice una cosa y el programa acepta otra | `schemas/receta.schema.json` sale de las mismas tablas que la validación; una prueba lo vigila |
+| `comprobar` | Ejecutar para descubrir una errata cuesta tiempo y deja carpetas fallidas | `./kit comprobar mi_receta.json` → `[salida_inexistente] p / entrada: …` y una sugerencia |
+| Errores con código | «No se completó la operación» no dice qué arreglar | `--json` → `{"codigo": "argumento_invalido", "campo": "--show", …}` |
+| `resultados` | Abrir carpetas y JSON a mano para ver por qué falló | `./kit resultados --incidencias valor_no_unico --n 5` |
+| `--ocultar-valores` | Pegar en un chat la salida con nombres o montos reales | `./kit consultar … --ocultar-valores` → conteos sin filas |
+| Tipos explícitos en SQL | `orden;horas` con `2,5` y `3,5`: `SUM(horas)` da **5** porque SQLite suma texto | `--tipo t.horas=number` → **6**; `flota.codigo` sigue con sus ceros |
+
+**Ideas clave**
+
+- *Una sola fuente de verdad.* Si el esquema y el validador fueran dos listas escritas a mano, un
+  día dirían cosas distintas; aquí uno se genera de la otra y una prueba compara ambos.
+- *Comprobar no es validar datos.* `comprobar` mira el JSON; `--vista-previa` mira además los
+  encabezados; solo `validar`/`ejecutar` miran las filas.
+- *Declarar en vez de adivinar.* El detector de SQL avisa de un caso típico, pero no entiende la
+  consulta: con tipos declarados no hace falta. Y para sumas exactas al dígito, `transformar`.

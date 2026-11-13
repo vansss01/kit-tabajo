@@ -82,6 +82,9 @@ terminal es siempre UTF-8. En Windows se usan los mismos CSV/JSON/XLSX.
 | `ejecutar` | Receta JSON: repite en orden pasos de los comandos anteriores, con manifiesto de estado |
 | `bitacora` | Anotaciones diarias de la práctica y borrador del informe |
 | `limpiar` | Lista o borra (`--apply`) ejecuciones y registros antiguos |
+| `catalogo` | Capacidades del kit en JSON (para agentes) |
+| `comprobar` | Revisa una receta, plan o reglas sin ejecutar nada |
+| `resultados` | Resumen, paso o incidencias de una ejecución, sin valores de celdas |
 
 Para aprender: [ejercicios con datos mineros ficticios](docs/EJERCICIOS.md) y
 [qué resuelve cada función nueva](docs/APRENDER.md).

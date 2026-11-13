@@ -4,6 +4,10 @@
    servidores, extensiones, Docker ni servicios de pago para usarlo.
 2. Lee `TOOLS_INDEX.md` para elegir una herramienta. Consulta solo el manual
    pertinente. Usa `python -B kit.py SUBCOMANDO --help` antes de reescribir código.
+   Para saber qué admite el kit sin leer código: `./kit catalogo` (JSON). Antes de ejecutar una
+   receta, plan o reglas que escribiste: `./kit comprobar ARCHIVO --json` (solo configuración);
+   esquemas en `schemas/`, códigos en `CODIGOS.md`. Para leer una ejecución: `./kit resultados`.
+   Con datos sensibles añade `--ocultar-valores` (ver la tabla de `DATA_POLICY.md`).
 3. Lanzador sin activar nada: `./kit COMANDO ...` en Linux, `kit COMANDO ...` en Windows
    (`kit.cmd`, usa `.venv-win`). Equivale a `python -B kit.py` con el Python local.
 4. Todas las escrituras controladas deben quedar dentro de KIT TABAJO en el disco

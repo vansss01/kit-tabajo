@@ -1,13 +1,32 @@
 # Estado del proyecto
 
-Actualizado: 2026-11-12. Versión 1.5.0-etapa3 (commits locales, sin push). Repositorio: `github.com/vansss01/kit-tabajo` (privado).
-1.4.1 a 1.5.0-etapa3 están comprobadas **solo en local, Linux, Python 3.14.9**: 87 pruebas, Ruff y
-mypy con `scripts/check.py`, flujo `scripts/demo.py` y 48/48 mutaciones (`scripts/mutaciones.py`). No están publicadas: la CI (Linux y Windows,
+Actualizado: 2026-11-13. Versión 1.5.0-etapa4 (commits locales, sin push). Repositorio: `github.com/vansss01/kit-tabajo` (privado).
+1.4.1 a 1.5.0-etapa4 están comprobadas **solo en local, Linux, Python 3.14.9**: 114 pruebas, Ruff y
+mypy con `scripts/check.py`, flujo `scripts/demo.py` y 86/86 mutaciones (`scripts/mutaciones.py`). No están publicadas: la CI (Linux y Windows,
 Python 3.11 y 3.14, instalación sin red y lanzadores) corrió por última vez sobre 1.4.0; Windows
 queda pendiente hasta el próximo push. Sin dependencia de proveedores de IA.
 
 Comandos: inspeccionar, comparar, consolidar, validar, transformar, exportar, consultar,
-ejecutar, bitacora, limpiar.
+ejecutar, bitacora, limpiar, catalogo, comprobar, resultados.
+
+## Cambios de 1.5.0-etapa4 (contrato para agentes y SQL)
+
+- `recetas.py` dividido en `receta_modelo`, `receta_validacion`, `receta_vista`, `receta_cli` y
+  `recetas` (ejecución), sin cambiar comportamiento.
+- `schemas/*.schema.json` generados desde las tablas de la validación (`esquemas.py`), con prueba de
+  equivalencia contra un intérprete independiente y reglas semánticas listadas (`ESQUEMAS.md`).
+- `catalogo` (JSON desde el código), `comprobar` (solo configuración), `resultados` (resumen, paso,
+  N incidencias con tope 100), registro único de códigos (`codigos.py`, `CODIGOS.md`).
+- Errores estructurados: con `--json` todo error trae `errores` con código, campo y sugerencia.
+- `--ocultar-valores` en comandos de tablas y `ejecutar`; tabla de salidas con valores en `DATA_POLICY`.
+- `consultar`: `--tipo TABLA.COLUMNA=number|string` (recetas: `tipos`); detector de texto numérico
+  configurable y con límite de filas (`detector_texto_numerico_omitido` al superarlo).
+- **Compatibilidad**: el validador de planes ahora rechaza al comprobar `convert` con `column` no
+  textual, `date_format` no textual, `value` de `filter` lista u objeto y `column` de agregado no
+  textual (antes fallaban o hacían algo sin sentido al ejecutar). Lo demás es aditivo (`errores` en
+  `--json`, opciones y comandos nuevos); la salida por defecto no cambia. Código Python que importaba
+  `cargar_receta`, `vista_previa`, `add_parser` o `run` desde `kitlib.recetas` debe usar los módulos
+  nuevos.
 
 ## Cambios de 1.5.0-etapa3 (transformaciones controladas)
 
@@ -109,6 +128,11 @@ ejecutar, bitacora, limpiar.
   sean idénticas (deduplicar antes). `normalize` no detecta por sí mismo claves unidas: solo
   las cuenta (`valores_unificados`); el choque se ve en `duplicados` o `validar`.
 - `replace` con `exclude` en `transformar` suelto no guarda las filas excluidas (como `filter`).
+- Esquemas: generados desde el código y vigilados por un corpus; un caso fuera del corpus podría
+  divergir. Reglas semánticas (referencias, columnas, archivos…) solo las comprueba el kit.
+  Un entero escrito `1.0` es entero para JSON Schema pero el kit lo rechaza.
+- El detector de texto numérico es heurístico: no avisa por columnas solo de enteros y puede dar
+  falsos positivos; por encima de su límite de filas no se ejecuta (y lo avisa). Declarar tipos.
 - Ejemplos y reglas son ficticios; adaptar reglas con quien conozca el proceso real.
 - `vendor/` (ruedas offline) es local y solo para Linux/Python 3.14; no está en Git.
 
