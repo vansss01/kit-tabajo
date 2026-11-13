@@ -30,6 +30,9 @@ Configuración JSON: `columns` es obligatorio. `unique_keys` es opcional.
   no vacío produce `valor_no_permitido`.
 - `decimal` y `date_format`: sobrescriben opciones de CLI para esa columna.
 - Propiedades desconocidas/tipos de regla inválidos son error, para evitar ignorar typos.
+- Una misma columna (o cualquier clave) escrita dos veces en un mismo objeto del JSON es error
+  (`clave_json_repetida`, código 2), también con `--rules` suelto: antes ganaba la última en
+  silencio. El esquema `schemas/reglas.schema.json` no puede expresarlo; lo comprueba el kit al leer.
 
 Resultados: validos e invalidos conservan valores originales; incidencias contiene
 código, fila, columna, origen y detalle estructural, sin volcar el valor inválido.
