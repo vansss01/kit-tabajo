@@ -296,7 +296,7 @@ docs/TOOLS_INDEX.md y docs/PROJECT_STATUS.md. Reutiliza los comandos existentes.
 <h3>Estado de verificación</h3>
 <ul>
   <li>Comprobado en Linux con Python 3.14: 122 pruebas automáticas, revisión de estilo y tipos (<code>scripts/check.py</code>), una demostración completa con aserciones (<code>scripts/demo.py</code>) y 97 mutaciones (se rompe el código a propósito de 97 maneras y se comprueba que alguna prueba lo detecte).</li>
-  <li><b>Windows no está probado para esta versión.</b> La integración continua (GitHub Actions, Linux y Windows, Python 3.11 y 3.14) está configurada y al día con el código, pero corrió por última vez sobre la 1.4.0: hasta el próximo <code>git push</code> no hay resultado real en Windows.</li>
+  <li><b>Probado también en Windows.</b> La integración continua (GitHub Actions, Linux y Windows, Python 3.11 y 3.14) pasó completa sobre el commit de la 1.5.0 el 13 de noviembre de 2026: pruebas, demostración, instalación sin red y lanzadores.</li>
   <li>Está probado con datos inventados. Las reglas reales las tendrías que escribir cuando conozcas los archivos de la empresa.</li>
 </ul>
 
@@ -337,8 +337,8 @@ tamaño; no una garantía. El detalle está en <code>docs/MEDICIONES.md</code>.<
   <tr><td><code>.venv/</code>, <code>vendor/</code></td><td>El Python propio del kit y sus dependencias guardadas para instalar sin internet</td></tr>
 </table>
 </div>
-<p>El código está respaldado en GitHub como repositorio privado: <code>github.com/vansss01/kit-tabajo</code>. Los cambios de la 1.5.0
-están commiteados en local y todavía no subidos.</p>
+<p>El código está respaldado en GitHub como repositorio privado: <code>github.com/vansss01/kit-tabajo</code>. La 1.5.0 está
+subida y su CI pasó en Linux y Windows.</p>
 
 <h2 id="plan">Plan de práctica</h2>
 <div class="tablewrap">
@@ -347,7 +347,7 @@ están commiteados en local y todavía no subidos.</p>
   <tr><td>1</td><td>Correr los 13 comandos con los ejemplos. Cambiar una regla de <code>examples/reglas.json</code> y ver qué pasa. Poder explicar cada comando con tus palabras. Leer el índice «¿qué comando uso para…?» de <code>docs/APRENDER.md</code>.</td></tr>
   <tr><td>2</td><td>Ejercicios 1 a 7 de <code>docs/EJERCICIOS.md</code>. Ejecutar las tres recetas con <code>--vista-previa</code> y luego de verdad; abrir <code>manifiesto.json</code> y encontrar por qué una fila quedó en <code>rechazadas</code> o en <code>conflictos</code>.</td></tr>
   <tr><td>3</td><td>Ejercicios 8 a 12 (SQL: SELECT, WHERE, GROUP BY, JOIN) declarando tipos. Copiar una receta y adaptarla a una planilla inventada por ti; escribir a mano el resultado esperado antes de correrla.</td></tr>
-  <tr><td>4</td><td>Usar la bitácora cada día. Hacer <code>git push</code> y mirar el resultado de la CI en Windows. Preparar las preguntas para el primer día: qué puedo instalar, qué datos puedo sacar, si se permite usar IA y con qué datos, qué herramientas usa el equipo.</td></tr>
+  <tr><td>4</td><td>Usar la bitácora cada día. Probar el kit en Windows por tu cuenta (<code>kit.cmd</code>). Preparar las preguntas para el primer día: qué puedo instalar, qué datos puedo sacar, si se permite usar IA y con qué datos, qué herramientas usa el equipo.</td></tr>
 </table>
 </div>
 

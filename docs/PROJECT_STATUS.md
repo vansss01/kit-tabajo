@@ -1,12 +1,11 @@
 # Estado del proyecto
 
-Actualizado: 2026-11-13. Versión 1.5.0 (cierre de la etapa 5; commits locales, sin push). Repositorio:
-`github.com/vansss01/kit-tabajo` (privado).
-1.4.1 a 1.5.0 están comprobadas **solo en local, Linux, Python 3.14.9**: 122 pruebas, Ruff y mypy con
-`scripts/check.py`, flujo `scripts/demo.py` y 97/97 mutaciones (`scripts/mutaciones.py`). No están
-publicadas: la CI (`.github/workflows/check.yml`: Linux y Windows, Python 3.11 y 3.14, `check.py`,
-`demo.py`, instalación sin red y lanzadores) está al día con el código pero corrió por última vez sobre
-1.4.0; **Windows queda sin probar hasta el próximo push**. Sin dependencia de proveedores de IA.
+Actualizado: 2026-11-13. Versión 1.5.0 (cierre de la etapa 5), publicada en `main` (commit f605d12).
+Repositorio: `github.com/vansss01/kit-tabajo` (privado).
+Comprobado en local (Linux, Python 3.14.9): 122 pruebas, Ruff y mypy con `scripts/check.py`, flujo
+`scripts/demo.py` y 97/97 mutaciones (`scripts/mutaciones.py`). La CI (`.github/workflows/check.yml`:
+`check.py`, `demo.py`, instalación sin red y lanzadores) pasó en **Linux y Windows con Python 3.11 y
+3.14** sobre ese commit (run 43480431875, 2026-11-13). Sin dependencia de proveedores de IA.
 
 Comandos: inspeccionar, comparar, consolidar, validar, transformar, exportar, consultar,
 ejecutar, bitacora, limpiar, catalogo, comprobar, resultados. Recetas de ejemplo: `recetas/`
