@@ -75,6 +75,7 @@
       var elegida = b.getAttribute("data-ruta") === ruta;
       b.classList.toggle("elegida", elegida);
       b.setAttribute("aria-pressed", elegida ? "true" : "false");
+      if (elegida && b.scrollIntoView) { b.scrollIntoView({ block: "nearest" }); }
     });
     var detalle = $("detalle-archivo");
     detalle.hidden = false;

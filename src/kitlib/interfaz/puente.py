@@ -373,9 +373,7 @@ class Puente:
         running = bool(record and record["hilo"].is_alive())
         steps = manifest.get("pasos", [])
         entries = manifest.get("entradas", {})
-        issues = sum(p.get("incidencias", 0) for p in steps) + sum(e.get("incidencias", 0) for e in entries.values())
-        warnings = (sum(p.get("advertencias", 0) for p in steps)
-                    + sum(e.get("advertencias", 0) for e in entries.values()))
+        issues, warnings = self._totales(folder, steps, entries)
         franja = self._franja(state, manifest, running, issues, warnings)
         result = self._base(name, state, franja, receta=manifest.get("receta", {}).get("nombre"),
                             codigo_salida=manifest.get("codigo_salida"), motivo=manifest.get("motivo"),
@@ -439,7 +437,7 @@ class Puente:
         source = step.get("usa", {}).get("entrada") or ", ".join(step.get("usa", {}).get("entradas", []) or [])
         counters = [{"etiqueta": "Entrada" + (f" ({source})" if source else ""), "valor": inv.get("entrada"),
                      "tipo": "neutro", "clave": "entrada"}]
-        counters += [{"etiqueta": k.replace("_", " "), "valor": v, "clave": k,
+        counters += [{"etiqueta": k.replace("_", " ").capitalize(), "valor": v, "clave": k,
                       "tipo": "rechazo" if k in SEPARATED else "correcto"} for k, v in parts]
         if inv.get("cumple") is True:
             total = inv.get("entrada") or 0
@@ -507,32 +505,49 @@ class Puente:
             return {}
         return {r["fila"]: r for r in _leer_csv(path, delimiter)}
 
+    @staticmethod
+    def _totales(folder, steps, entries):
+        """Incidencias y advertencias de la ejecución: las de report.json del kit si existe (ejecución terminada);
+        si no, las del manifiesto por entrada y paso, sumadas como hace el resumen de `./kit ejecutar`."""
+        report = _leer_json(folder / "report.json")
+        if isinstance(report, dict) and isinstance(report.get("incidencias"), int):
+            return report["incidencias"], report.get("advertencias", 0)
+        records = [*steps, *entries.values()]
+        return (sum(r.get("incidencias", 0) for r in records), sum(r.get("advertencias", 0) for r in records))
+
     def _pestana_incidencias(self, folder, manifest):
-        """Todas las incidencias de la ejecución (entradas y pasos, sin las copias de un paso exportar), agrupadas
-        por código con columna, filas y cantidad."""
-        exported = {p.get("carpeta") for p in manifest.get("pasos", []) if p.get("op") == "exportar"}
+        """Incidencias de la ejecución (entradas y pasos, sin las copias de un paso exportar) agrupadas por código.
+        La cantidad de cada código es la de `incidencias_por_codigo` del manifiesto; columnas y filas se listan
+        desde los `incidencias.json` del kit (hasta TOPE_FILAS por código)."""
+        steps = manifest.get("pasos", [])
+        exported = {p.get("carpeta") for p in steps if p.get("op") == "exportar"}
+        places = [("00-entradas", list(manifest.get("entradas", {}).values()))] + [
+            (p["carpeta"], [p]) for p in steps if p.get("carpeta") and p["carpeta"] not in exported]
         groups: dict[str, dict] = {}
-        total = 0
-        places = ["00-entradas"] + [p["carpeta"] for p in manifest.get("pasos", [])
-                                    if p.get("carpeta") and p["carpeta"] not in exported]
-        for place in places:
+        for place, records in places:
+            for record in records:
+                for code, amount in (record.get("incidencias_por_codigo") or {}).items():
+                    group = groups.setdefault(code, {"codigo": code, "cantidad": 0, "columnas": set(), "filas": [],
+                                                     "pasos": [], **{k: v for k, v in explicar(code).items()
+                                                                     if k in ("etiqueta", "que_paso", "que_hacer",
+                                                                              "conocido")}})
+                    group["cantidad"] += amount
+                    if place not in group["pasos"]:
+                        group["pasos"].append(place)
             for item in (_leer_json(folder / place / "incidencias.json") or {}).get("rows", []):
-                total += 1
-                code = item.get("codigo", "?")
-                group = groups.setdefault(code, {"codigo": code, "cantidad": 0, "columnas": set(), "filas": [],
-                                                 "paso": place, **{k: v for k, v in explicar(code).items()
-                                                                   if k in ("etiqueta", "que_paso", "que_hacer",
-                                                                            "conocido")}})
-                group["cantidad"] += 1
+                found = groups.get(item.get("codigo"))
+                if found is None:
+                    continue
                 if item.get("columna"):
-                    group["columnas"].add(item["columna"])
-                if len(group["filas"]) < TOPE_FILAS:
-                    group["filas"].append({"fila": item.get("fila"), "columna": item.get("columna"),
+                    found["columnas"].add(item["columna"])
+                if len(found["filas"]) < TOPE_FILAS:
+                    found["filas"].append({"fila": item.get("fila"), "columna": item.get("columna"),
                                            "detalle": item.get("detalle") or "", "origen": Path(item.get("origen") or "").name})
         listed = sorted(groups.values(), key=lambda g: -g["cantidad"])
         for group in listed:
             group["columnas"] = sorted(group["columnas"])
             group["mostradas"] = len(group["filas"])
+        total = sum(r.get("incidencias", 0) for _, records in places for r in records)
         return {"id": "incidencias", "titulo": "Incidencias", "conteo": total, "grupos": listed, "tope": TOPE_FILAS}
 
     def _pestana_resumen(self, folder, steps):

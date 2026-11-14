@@ -180,6 +180,13 @@ class RutasTests(unittest.TestCase):
     def test_inspect_reports_the_kit_numbers_and_uses_the_kit_delimiter_hint(self):
         info = self.puente.inspeccionar("examples/recetas/ordenes_semana_1.csv")
         self.assertEqual(info["delimitador"], ";")  # el kit sugirió --delimiter ';'
+        # Sin valores de celdas: el informe que deja inspeccionar no trae la muestra (--sample 0).
+        reports = list((self.root / "tmp" / "interfaz").rglob("report.json"))
+        self.assertEqual(len(reports), 2)  # primero con coma, luego con el delimitador sugerido
+        for report in reports:
+            text = report.read_text(encoding="utf-8")
+            for value in ("OT100", "OT105", "03/11/2026", "abierta"):
+                self.assertNotIn(value, text)
         self.assertEqual(info["tablas"], [{"hoja": None, "filas": 10, "alcance": "completo",
                                            "columnas": ["orden", "equipo", "fecha", "horas", "estado"]}])
 
@@ -364,6 +371,15 @@ class EstadosTests(unittest.TestCase):
         self.assertFalse(result["pie"]["original_sin_cambios"])  # sin audit.json no se afirma
         self.assertIsNone(result["pie"]["excel"])
 
+    def test_excel_button_only_when_the_run_wrote_an_xlsx(self):
+        recipe = json.loads((self.root / "recetas" / "revision_ordenes.json").read_text(encoding="utf-8"))
+        recipe["pasos"][3]["formatos"] = ["csv"]
+        result = ejecutar(self.puente, PRINCIPAL["revision_ordenes"], escribir_receta(self.root, "solo_csv", recipe))
+        self.assertEqual(result["estado"], "completada_con_incidencias")
+        self.assertIsNone(result["pie"]["excel"])
+        self.assertTrue(result["pie"]["original_sin_cambios"])
+        self.assertEqual(result["pie"]["carpeta"], "results/" + result["ejecucion"])
+
     def test_execution_error(self):
         receta = escribir_receta(self.root, "conversion", {
             "version": 1, "nombre": "conversion", "entradas": {"ordenes": {"principal": True, "delimiter": ";"}},
@@ -544,6 +560,13 @@ class ServidorTests(unittest.TestCase):
         self.assertEqual(status, 400)
         status, _ = self.json("POST", "/api/ejecutar", b"[1]")
         self.assertEqual(status, 400)
+        # JSON válido pero sin Content-Type JSON (lo que otra página podría enviar sin permiso previo): rechazado.
+        valid = json.dumps({"archivo": "examples/recetas/ordenes_semana_1.csv",
+                            "receta": "recetas/revision_ordenes.json"}).encode()
+        for kind in ("text/plain", "application/x-www-form-urlencoded", "multipart/form-data"):
+            with self.subTest(tipo=kind):
+                self.assertEqual(self.json("POST", "/api/ejecutar", valid, tipo=kind)[0], 400)
+        self.assertFalse((self.root / "results").exists() and any((self.root / "results").iterdir()))
         self.assertEqual(self.json("PUT", "/api/ejecutar", {})[0], 405)
 
     def test_routes_outside_allowed_folders_over_http(self):
@@ -624,7 +647,7 @@ class NucleoTests(unittest.TestCase):
 class SalidaSinCambiosTests(unittest.TestCase):
     """La salida por defecto (texto y --json) de los comandos existentes es idéntica a la de 1.5.1 (commit
     ffee2ac), con la misma entrada y el mismo --run-name. Necesita el historial de Git: en un clon superficial
-    (la CI usa uno) se omite. Diferencias declaradas y excluidas: `--help` general y `catalogo` listan el
+    se omite; la CI descarga el historial completo (fetch-depth: 0). Diferencias declaradas y excluidas: `--help` general y `catalogo` listan el
     comando nuevo `interfaz`, `--version` y `catalogo` dicen la versión nueva, y el error de comando
     desconocido añade `interfaz` a la lista de comandos válidos (comprobado abajo como única diferencia)."""
     COMMIT = "ffee2ac"
@@ -674,6 +697,7 @@ class SalidaSinCambiosTests(unittest.TestCase):
                                                 capture_output=True, text=True, encoding="utf-8")
                         text = (result.stdout + "\n--stderr--\n" + result.stderr).replace(str(tree), "<RAIZ>")
                         text = text.replace(str(tree).replace("\\", "/"), "<RAIZ>")
+                        text = text.replace(json.dumps(str(tree))[1:-1], "<RAIZ>")  # rutas escapadas en JSON (Windows)
                         outputs.append((result.returncode, text))
                     if command == ["comando_que_no_existe"]:
                         # Única diferencia admitida: la lista de comandos válidos nombra también `interfaz`.

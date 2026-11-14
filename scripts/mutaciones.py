@@ -32,6 +32,11 @@ ESQUEMAS = ["tests.test_esquemas.EquivalenciaTests.test_examples_and_valid_cases
 EJEMPLOS = ["tests.test_recetas_ejemplo"]
 COMPATIBILIDAD = ["tests.test_compatibilidad.CompatibilidadTests"]
 COMPACTO = ["tests.test_compatibilidad.CompactoTests"]
+I_SERVIDOR = ["tests.test_interfaz.ServidorTests"]
+I_RUTAS = ["tests.test_interfaz.RutasTests"]
+I_ESTADOS = ["tests.test_interfaz.EstadosTests"]
+I_EQUIV = ["tests.test_interfaz.EquivalenciaTests"]
+I_EXPLICA = ["tests.test_interfaz.ExplicacionesTests"]
 MUTATIONS = [
     # Etapa 2: trazabilidad
     ("incidencias con fila intermedia", "src/kitlib/traza.py",
@@ -311,6 +316,48 @@ MUTATIONS = [
     ("resultados sin recorte del detalle", "src/kitlib/contrato.py",
      "{k: (str(v)[:200] if isinstance(v, str) else v) for k, v in item.items()}", "{k: v for k, v in item.items()}",
      COMPACTO),
+    # 1.6.0-interfaz1: puente y servidor de la interfaz visual local
+    ("interfaz acepta cualquier token", "src/kitlib/interfaz/servidor.py",
+     "return bool(sent) and secrets.compare_digest(sent, self.servidor_kit.token)", "return True", I_SERVIDOR),
+    ("interfaz no comprueba Host", "src/kitlib/interfaz/servidor.py",
+     'return (self.headers.get("Host") or "") in self.servidor_kit.hosts_permitidos()', "return True", I_SERVIDOR),
+    ("interfaz con CORS permisivo", "src/kitlib/interfaz/servidor.py",
+     'self.send_header("X-Content-Type-Options", "nosniff")',
+     'self.send_header("Access-Control-Allow-Origin", "*")', I_SERVIDOR),
+    ("interfaz admite POST sin JSON", "src/kitlib/interfaz/servidor.py",
+     'if not (self.headers.get("Content-Type") or "").split(";")[0].strip() == "application/json":', "if False:",
+     I_SERVIDOR),
+    ("interfaz admite acciones por GET", "src/kitlib/interfaz/servidor.py", "            if path in RUTAS_POST:",
+     "            if False:", I_SERVIDOR),
+    ("interfaz lee fuera de las carpetas", "src/kitlib/interfaz/puente.py",
+     "if not any(candidate == b or candidate.is_relative_to(b) for b in bases):", "if False:", I_RUTAS + I_SERVIDOR),
+    ("interfaz sigue enlaces sin resolver", "src/kitlib/interfaz/puente.py",
+     "candidate = (self.raiz / Path(*pure.parts)).resolve()", "candidate = self.raiz / Path(*pure.parts)", I_RUTAS),
+    ("interfaz pisa una subida existente", "src/kitlib/interfaz/puente.py", 'with target.open("xb") as stream:',
+     'with target.open("wb") as stream:', I_RUTAS + I_SERVIDOR),
+    ("interfaz sin límite de subida", "src/kitlib/interfaz/puente.py", "        if len(data) > LIMITE_SUBIDA:",
+     "        if False:", I_RUTAS),
+    ("interfaz permite dos ejecuciones", "src/kitlib/interfaz/puente.py",
+     "if not self._candado.acquire(blocking=False):", "if not self._candado.acquire(blocking=False) and False:",
+     I_RUTAS + I_SERVIDOR),
+    ("interfaz inspecciona con muestra", "src/kitlib/interfaz/puente.py", '"--json", "--sample", "0",',
+     '"--json", "--sample", "3",', I_RUTAS),
+    ("interfaz muestra conservación sin invariante", "src/kitlib/interfaz/puente.py",
+     'if inv.get("cumple") is True:', "if True:", I_ESTADOS),
+    ("interfaz marca por posición y no por fila original", "src/kitlib/interfaz/puente.py",
+     'marks = by_origin.get((origin.get("fila_origen"), origin.get("archivo")), [])',
+     'marks = by_origin.get((str(index + 2), origin.get("archivo")), [])', I_EQUIV),
+    ("interfaz afirma original intacto sin auditoría", "src/kitlib/interfaz/puente.py",
+     '{"original_sin_cambios": audit.get("originales_sha256_sin_cambios") is True,',
+     '{"original_sin_cambios": True,', I_ESTADOS),
+    ("interfaz ofrece Excel inexistente", "src/kitlib/interfaz/puente.py",
+     'if name.endswith(".xlsx") and (folder / name).is_file():', "if True:", I_ESTADOS + I_EQUIV),
+    ("interfaz sin tope de filas", "src/kitlib/interfaz/puente.py",
+     'enumerate(table.get("rows", [])[:TOPE_FILAS])', 'enumerate(table.get("rows", []))', I_ESTADOS),
+    ("interfaz confunde fallida con incidencias", "src/kitlib/interfaz/puente.py",
+     'TITULO_FALLO.get(reason, "Fallida")', '"Completada con incidencias"', I_ESTADOS),
+    ("interfaz oculta el mensaje del kit en códigos sin entrada", "src/kitlib/interfaz/explicaciones.py",
+     '"que_paso": mensaje_kit or codigo,', '"que_paso": codigo,', I_EXPLICA),
 ]
 
 
