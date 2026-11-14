@@ -110,8 +110,13 @@ de los `*_procedencia.csv`. En recetas `inspeccionar` no incluye muestras salvo 
 | `report.json` de `inspeccionar` (`muestra`, `--sample` 3 por defecto) y su `--verbose` | Sí | `--ocultar-valores` o `--sample 0` |
 | `report.json` de un paso `inspeccionar` de receta con `sample` > 0 | Sí | `ejecutar --ocultar-valores` (fuerza 0) |
 | `bitacora --ver` | Tus propias notas | No usar `--ver` |
+| Pantalla de `./kit interfaz` (filas aceptadas, apartadas y resumen; celda marcada) | Sí, solo en este equipo (127.0.0.1) | No abrirla con datos que no deban verse; no compartir capturas |
 | Resto de terminal, `--json`, `report.json`, `audit.json`, `manifiesto.json`, `resultados`, `comprobar`, `catalogo` | No: códigos, conteos, filas, columnas, rutas | — |
 | Archivos de datos: `validos`, `invalidos`, tablas de pasos, `excluidas`, `cambios_celdas`, `cambios` de comparar, exportes | Sí, por naturaleza | No compartirlos; `--ocultar-valores` no los cambia |
+
+La interfaz (`tools/interfaz.md`) no envía nada fuera del equipo: escucha solo en 127.0.0.1, exige un token
+por sesión y no carga recursos externos. Inspecciona con `--sample 0`, y las copias subidas quedan en
+`data/interfaz-subidas/` (ignorada por Git como todo `data/`).
 
 `--ocultar-valores` existe en todos los comandos de tablas y en `ejecutar`; donde no hay nada que
 ocultar no cambia nada. Sin la opción el comportamiento es el de siempre. Una prueba con valores

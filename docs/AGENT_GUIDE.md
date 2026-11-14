@@ -1,7 +1,11 @@
 # Instrucciones comunes para cualquier agente
 
 1. Este es un kit Python local, independiente de IA. No instalar agentes, MCP,
-   servidores, extensiones, Docker ni servicios de pago para usarlo.
+   servidores, extensiones, Docker ni servicios de pago para usarlo. Única excepción (desde
+   1.6.0-interfaz1): `./kit interfaz`, un servidor HTTP local de la biblioteca estándar que escucha
+   solo en 127.0.0.1, exige un token por sesión, vive en `src/kitlib/interfaz/` (el núcleo no lo
+   importa) y se cierra con Ctrl+C. Sin dependencias, Node, CDN ni recursos externos. Como agente,
+   usa la CLI; la interfaz es para personas. Límites: `tools/interfaz.md`.
 2. Lee `TOOLS_INDEX.md` para elegir una herramienta. Consulta solo el manual
    pertinente. Usa `python -B kit.py SUBCOMANDO --help` antes de reescribir código.
    Para saber qué admite el kit sin leer código: `./kit catalogo` (JSON). Antes de ejecutar una

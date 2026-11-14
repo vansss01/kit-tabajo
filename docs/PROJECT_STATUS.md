@@ -1,16 +1,56 @@
 # Estado del proyecto
 
-Actualizado: 2026-11-13. Versión 1.5.1 (correcciones de la auditoría independiente de la 1.5.0), solo en el
-repositorio local: **no se ha subido** y su CI no ha corrido. Repositorio: `github.com/vansss01/kit-tabajo` (privado).
-Comprobado en local (Linux, Python 3.14.9): 126 pruebas, Ruff y mypy con `scripts/check.py`, flujo
-`scripts/demo.py` y 103/103 mutaciones (`scripts/mutaciones.py`). La última CI verde (`.github/workflows/check.yml`:
-`check.py`, `demo.py`, instalación sin red y lanzadores) es la de la **1.5.0** en Linux y Windows con Python 3.11 y
-3.14 (commit f605d12, run 43480431875, 2026-11-13); la 1.5.1 no está probada en Windows. Sin dependencia de
-proveedores de IA.
+Actualizado: 2026-11-14. Versión 1.6.0-interfaz1 (interfaz visual local), en commits locales **sin subir**: su CI
+no ha corrido. Repositorio: `github.com/vansss01/kit-tabajo` (privado). Comprobado en local (Linux, Python 3.14.9):
+164 pruebas, Ruff y mypy con `scripts/check.py`, flujo `scripts/demo.py` y 121/121 mutaciones
+(`scripts/mutaciones.py`). La última CI verde (`.github/workflows/check.yml`: `check.py`, `demo.py`, instalación sin
+red y lanzadores) es la de la **1.5.1** en Linux y Windows con Python 3.11 y 3.14 (commit ffee2ac, run 43556225008,
+2026-11-14); la 1.6.0-interfaz1 no está probada en Windows. Sin dependencia de proveedores de IA.
 
 Comandos: inspeccionar, comparar, consolidar, validar, transformar, exportar, consultar,
-ejecutar, bitacora, limpiar, catalogo, comprobar, resultados. Recetas de ejemplo: `recetas/`
+ejecutar, bitacora, limpiar, catalogo, comprobar, resultados, interfaz. Recetas de ejemplo: `recetas/`
 (revisión de órdenes, consolidación de turnos, enriquecimiento con flota).
+
+## Cambios de 1.6.0-interfaz1 (interfaz visual local)
+
+**Cambio de regla deliberado**: hasta 1.5.1 el proyecto prohibía servidores e interfaz gráfica. Desde esta versión
+se admite uno solo, con estos límites: servidor HTTP de la biblioteca estándar, solo en 127.0.0.1 y en un puerto
+libre, iniciado con `./kit interfaz` (o `kit interfaz`) y cerrado con Ctrl+C; sin dependencias, Node, frameworks,
+compilación, CDN ni recursos descargados; en un paquete aparte (`src/kitlib/interfaz/`) que el núcleo no importa.
+
+- **Puente** (`puente.py`): invoca la CLI (`kit.py`) igual que la terminal y lee lo que el kit escribió
+  (resumen `--json`, `manifiesto.json`, `audit.json`, tablas JSON, `*_procedencia.csv`, `incidencias.json`). No
+  valida, no transforma ni cuenta filas: entrega a la página un JSON listo para pintar. Se eligió la CLI y no las
+  funciones internas para que interfaz y `./kit ejecutar` sigan exactamente el mismo camino y una ejecución larga no
+  bloquee el servidor.
+- **Servidor** (`servidor.py`): token aleatorio por sesión en todas las peticiones, cabecera Host limitada a
+  `127.0.0.1:PUERTO` y `localhost:PUERTO`, sin CORS, acciones solo por POST con JSON, política de contenido estricta,
+  una ejecución a la vez (409), subidas hasta 20 MiB (413).
+- **Carpetas**: lee `data/`, `examples/`, `recetas/`, `results/`; escribe en `results/` (ejecuciones del kit),
+  `tmp/interfaz/` (inspecciones) y `data/interfaz-subidas/` (copias, sin pisar nada). Rechaza `..`, rutas absolutas y
+  enlaces que salgan.
+- **Pantalla**: archivo, receta (título = `nombre`, texto = `descripcion`, campos que el esquema ya tenía; entradas
+  adicionales listadas), vista previa real, ejecución; franja para cada estado del manifiesto; contadores del paso que
+  reparte filas; frase de conservación y barra solo si la invariante de partición consta como cumplida; pestañas por
+  salida, «Incidencias» y «Resumen»; fila original, celda culpable y motivo con explicación; tope de 200 filas por
+  pestaña; pie con huella del original, «Abrir carpeta» y «Exportar a Excel» solo si hay `.xlsx`.
+- **Explicaciones** (`explicaciones.py`): etiqueta y dos líneas por cada código de incidencia y advertencia del
+  catálogo; un código sin entrada muestra el código y el mensaje del kit.
+- **Pruebas**: `tests/test_interfaz.py` (38): puente, servidor (puerto libre, cada endpoint, token, Host, CORS,
+  métodos, rutas, subidas, concurrencia), estados (incluidas receta inválida, detenida por política, error de
+  ejecución, en curso, cortada e interrumpida), equivalencia con `./kit ejecutar` en las tres recetas de ejemplo,
+  marcado de celdas contra `incidencias.csv`, estáticos sin direcciones externas y salida de los comandos idéntica a
+  la 1.5.1 (necesita el historial de Git: la CI pasa a descargarlo con `fetch-depth: 0`; sin él se omite; en
+  Windows no se ha comprobado). Mutaciones: 103 → 121.
+- **Revisado a ojo** con capturas sin ventana de Firefox (1360 y 420 px): estado inicial y resultado con incidencias.
+  Las capturas destaparon dos fallos ya corregidos: `hidden` no ocultaba barra, frase y pie (reglas `display` lo
+  anulaban) y la lista de archivos empujaba las tarjetas Receta y Ejecutar fuera de la vista.
+- **No probado**: foco y navegación con teclado, arrastrar y soltar, subida desde el navegador, tablas anchas en ventana
+  estrecha, «Abrir carpeta»/«Exportar a Excel» con el explorador real (las pruebas sustituyen el abridor), otros
+  navegadores.
+- **Compatibilidad**: comando nuevo `interfaz`. La salida por defecto de los demás comandos es idéntica a la de 1.5.1
+  (comprobado con la instantánea ffee2ac), salvo que la lista de comandos de `--help`, `catalogo` y el error de
+  comando desconocido nombra también `interfaz`; `--version` y `catalogo` dicen `1.6.0-interfaz1`.
 
 ## Cambios de 1.5.1 (hallazgos de la auditoría independiente de la 1.5.0)
 
@@ -232,6 +272,9 @@ pueden demostrar desde este repositorio y que no se corrigen con código:
   falsos positivos; por encima de su límite de filas no se ejecuta (y lo avisa). Declarar tipos.
 - Ejemplos y reglas son ficticios; adaptar reglas con quien conozca el proceso real.
 - `vendor/` (ruedas offline) es local y solo para Linux/Python 3.14; no está en Git.
+- Interfaz: un solo usuario en este equipo; no cambia entradas adicionales de una receta (usar `--entrada` en la
+  terminal); no lista tablas JSON; muestra 200 filas por pestaña; subidas hasta 20 MiB. Su aspecto no se ha
+  comprobado en un navegador real de forma automática.
 
 Detalle de formatos: `DATA_POLICY.md`. Evidencia histórica de la versión 1.0.0, disco y
 verificación offline: `VERIFICATION.md` (no hace falta leerla para trabajar).

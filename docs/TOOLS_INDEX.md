@@ -23,6 +23,7 @@ códigos estables en `CODIGOS.md` y en `./kit catalogo`. La salida de texto no c
 | catalogo: capacidades en JSON | contrato.py, codigos.py, esquemas.py | (sin opciones) | [catálogo y comprobar](tools/comprobar.md) |
 | comprobar: receta/plan/reglas sin ejecutar | contrato.py | --tipo, --principal, --json | [catálogo y comprobar](tools/comprobar.md) |
 | resultados: resumen, paso o incidencias de una ejecución | contrato.py | EJECUCION, --paso, --incidencias CODIGO, --n (máx. 100) | [resultados](tools/resultados.md) |
+| interfaz: página local en el navegador para elegir archivo y receta, ejecutar y ver el resultado | interfaz/ (puente.py, servidor.py, estaticos/) | --puerto, --sin-abrir; Ctrl+C la cierra | [interfaz](tools/interfaz.md) |
 
 El resumen `--json` ya trae `incidencias_por_codigo`, `advertencias_por_codigo`, `conteos` y,
 al inspeccionar, `tablas` (columnas por hoja). Abrir `report.json` solo si falta la fila exacta.
@@ -51,6 +52,8 @@ Sumas exactas al dígito: `transformar`. Límites numéricos: manual de consulta
 Recetas de ejemplo listas para copiar (revisión de órdenes, consolidación de turnos, enriquecimiento
 con flota): `recetas/*.json`, entradas en `examples/recetas/`, esperados en archivos aparte en
 `examples/recetas/esperados/`; tabla en `tools/ejecutar.md` («Recetas de ejemplo»).
+Interfaz visual para personas sin terminal: `./kit interfaz` (solo 127.0.0.1, token por sesión, muestra valores de
+celdas en pantalla; lee `data/`, `examples/`, `recetas/`, `results/`). Un agente sigue usando la CLI.
 Flujo comprobado con aserciones: `python -B scripts/demo.py`.
 Verificación completa: `python -B scripts/check.py`. Mutaciones (comprueban que las pruebas detectan errores reales; lento): `python -B scripts/mutaciones.py [nombre]`.
 Los comandos de `REPORTE_KIT.html` se ejecutan en `tests/test_reporte.py`; auditoría externa de la 1.5.0: `AUDITORIA_1.5.0.md`.

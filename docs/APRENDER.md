@@ -146,6 +146,25 @@ produce unas 8 veces el tamaño de su entrada. Son cifras de un equipo concreto,
 - *Medir no es garantizar.* La tabla dice equipo, disco, tamaño y repeticiones; fuera de eso, hay que
   volver a medir.
 
+## Interfaz visual (1.6.0-interfaz1)
+
+**Problema.** El supervisor o un compañero no usa la terminal, pero necesita correr la receta del lunes
+y entender por qué se apartaron filas. Mandarle comandos y rutas de CSV no sirve.
+
+**Qué hace.** `./kit interfaz` abre una página en tu navegador, solo en este equipo. Tres tarjetas:
+1 Archivo (eliges uno o arrastras una copia), 2 Receta, 3 Ejecutar (o «Vista previa» primero). Debajo
+aparece el resultado: una franja que dice si terminó bien, con incidencias o falló y por qué; cuántas
+filas entraron y cuántas fueron a cada salida («3 + 7 = 10. Ninguna fila se perdió», solo si el kit lo
+comprobó); y las filas apartadas con su número de fila original, la celda culpable marcada y el motivo.
+Al pulsar el motivo se lee qué pasó y qué hacer.
+
+**Por qué es de fiar.** La página no calcula nada: ejecuta el mismo `./kit ejecutar` y muestra lo que
+el kit escribió en el manifiesto. Una prueba comprueba que interfaz y terminal dan el mismo resultado.
+
+**Ejemplo mínimo.** `./kit interfaz` → elige `examples/recetas/ordenes_semana_1.csv` → receta
+`revision_ordenes` → «Ejecutar». Verás 10 de entrada, 3 aceptadas y 7 rechazadas; en la fila original 5
+la fecha `03/11/2026` aparece marcada como «tipo o fecha inválida». Cierra con Ctrl+C.
+
 ## ¿Qué comando uso para…? (sin saber Excel)
 
 | Quiero… | Comando o paso | Manual |
@@ -175,3 +194,4 @@ produce unas 8 veces el tamaño de su entrada. Son cifras de un equipo concreto,
 | Saber qué puede hacer el kit o qué significa un código | `catalogo`, `CODIGOS.md` | `tools/comprobar.md` |
 | Anotar lo que hice hoy y armar el borrador del informe | `bitacora` | `tools/bitacora.md` |
 | Borrar resultados viejos | `limpiar` (lista) y `limpiar --apply` (borra) | `tools/limpiar.md` |
+| Correr una receta sin terminal y ver las filas apartadas con su motivo | `./kit interfaz` | `tools/interfaz.md` |

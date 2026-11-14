@@ -1,6 +1,7 @@
 # KIT TABAJO
 
-Kit personal de terminal para una primera práctica de Ingeniería en Computación.
+Kit personal de terminal, con una interfaz visual local opcional (`./kit interfaz`), para una primera
+práctica de Ingeniería en Computación.
 Procesa archivos y tablas localmente. Funciona sin IA, cuentas, API keys ni servicios
 pagados. Codex, Claude Code u otro agente pueden usar los mismos comandos.
 
@@ -85,6 +86,12 @@ terminal es siempre UTF-8. En Windows se usan los mismos CSV/JSON/XLSX.
 | `catalogo` | Capacidades del kit en JSON (para agentes) |
 | `comprobar` | Revisa una receta, plan o reglas sin ejecutar nada |
 | `resultados` | Resumen, paso o incidencias de una ejecución, sin valores de celdas |
+| `interfaz` | Página local en el navegador: elegir archivo y receta, ejecutar y ver el resultado |
+
+**Sin terminal**: `./kit interfaz` (Windows: `kit interfaz`) abre en el navegador una página que usa
+el kit por debajo: eliges un archivo y una receta, pulsas «Ejecutar» y ves cuántas filas pasaron, cuáles
+se apartaron y por qué, con la celda culpable marcada. Escucha solo en 127.0.0.1 con un token por sesión
+y se cierra con Ctrl+C. Manual: [interfaz](docs/tools/interfaz.md).
 
 Para aprender: [ejercicios con datos mineros ficticios](docs/EJERCICIOS.md),
 [qué resuelve cada función nueva y qué comando usar para cada cosa](docs/APRENDER.md) y las tres
