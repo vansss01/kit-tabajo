@@ -158,6 +158,13 @@ def parser(estructurado=False):
     receta_cli.add_parser(sub)
     contrato.add_parsers(sub)
     contrato.add_results_parser(sub)
+    # Interfaz visual local: solo se definen aquí sus argumentos; el módulo kitlib.interfaz se importa
+    # únicamente al ejecutar el comando, así el núcleo del kit no depende de él.
+    ui = sub.add_parser("interfaz", help="Abrir la interfaz visual local en el navegador (solo 127.0.0.1)",
+                        description="Inicia un servidor HTTP local en 127.0.0.1 con un token de sesión y abre la "
+                                    "página en el navegador. Termina con Ctrl+C. Manual: docs/tools/interfaz.md")
+    ui.add_argument("--puerto", type=int, default=0, help="Puerto en 127.0.0.1 (predeterminado: uno libre)")
+    ui.add_argument("--sin-abrir", action="store_true", help="No abrir el navegador; solo mostrar la URL")
     return p
 
 
@@ -483,6 +490,9 @@ def main(argv=None):
             return receta_cli.run(args)
         if args.command in ("catalogo", "comprobar", "resultados"):
             return contrato.run(args, parser)
+        if args.command == "interfaz":
+            from kitlib.interfaz import servidor
+            return servidor.run(args)
         return execute(args)
     except Exception as exc:
         # No volcar valores de celdas, configuraciones ni traceback por terminal.

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>KIT TABAJO</title>
+<link rel="stylesheet" href="/estaticos/interfaz.css?token={{TOKEN}}">
+</head>
+<body>
+<header class="cabecera">
+  <div class="marca">
+    <h1>KIT TABAJO</h1>
+    <span class="pildora" id="version" aria-label="Versión del kit">…</span>
+  </div>
+  <div class="local" id="local">
+    <svg class="candado" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
+      <rect x="3" y="7" width="10" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    </svg>
+    <span id="local-texto">Todo local · tus archivos no salen de este equipo</span>
+  </div>
+</header>
+
+<main class="contenido">
+  <aside class="columna" aria-label="Pasos">
+    <section class="tarjeta paso" aria-labelledby="t-archivo">
+      <h2 id="t-archivo"><span class="numero" aria-hidden="true">1</span>Archivo</h2>
+      <div class="zona-subida" id="zona-subida" tabindex="0" role="button"
+           aria-label="Subir un archivo: arrastra aquí o pulsa para elegir">
+        <span>Arrastra un archivo aquí o</span>
+        <label class="enlace" for="entrada-archivo">elige uno</label>
+        <input type="file" id="entrada-archivo" accept=".csv,.xlsx,.xlsm" hidden>
+      </div>
+      <p class="secundario pequeno" id="aviso-subida">La subida guarda una copia dentro de data/interfaz-subidas/. Tu archivo original no se toca.</p>
+      <ul class="lista" id="lista-archivos" aria-label="Archivos disponibles"></ul>
+      <div class="detalle-archivo" id="detalle-archivo" hidden></div>
+    </section>
+
+    <section class="tarjeta paso" aria-labelledby="t-receta">
+      <h2 id="t-receta"><span class="numero" aria-hidden="true">2</span>Receta</h2>
+      <ul class="lista recetas" id="lista-recetas" aria-label="Recetas disponibles"></ul>
+      <p class="secundario pequeno" id="otras-entradas"></p>
+    </section>
+
+    <section class="tarjeta paso" aria-labelledby="t-ejecutar">
+      <h2 id="t-ejecutar"><span class="numero" aria-hidden="true">3</span>Ejecutar</h2>
+      <p class="secundario pequeno" id="resumen-eleccion">Elige un archivo y una receta.</p>
+      <div class="botones">
+        <button type="button" class="boton" id="boton-vista" disabled>Vista previa</button>
+        <button type="button" class="boton primario" id="boton-ejecutar" disabled>Ejecutar</button>
+      </div>
+      <p class="secundario pequeno" id="estado-ejecucion" role="status" aria-live="polite"></p>
+    </section>
+  </aside>
+
+  <section class="zona" aria-label="Resultado">
+    <div class="franja neutro" id="franja" role="status" aria-live="polite">
+      <span class="icono" aria-hidden="true"></span>
+      <div class="franja-texto">
+        <strong id="franja-titulo">Conectando con el kit…</strong>
+        <span id="franja-detalle" class="secundario"></span>
+        <ul id="franja-errores" class="errores" hidden></ul>
+      </div>
+    </div>
+
+    <div class="contadores" id="contadores"></div>
+    <div class="barra" id="barra" hidden></div>
+    <p class="conservacion secundario pequeno" id="conservacion" hidden></p>
+
+    <div class="pestanas" id="pestanas" role="tablist" hidden></div>
+    <div class="tarjeta tabla-tarjeta" id="panel" role="tabpanel" hidden>
+      <p class="aviso-tope secundario pequeno" id="aviso-tope" hidden></p>
+      <div class="tabla-caja"><table class="tabla" id="tabla"></table></div>
+    </div>
+
+    <section class="tarjeta vista-previa" id="vista-previa" hidden aria-label="Vista previa"></section>
+
+    <footer class="pie" id="pie" hidden>
+      <span class="secundario pequeno" id="pie-original"></span>
+      <div class="botones">
+        <button type="button" class="boton" id="boton-carpeta">Abrir carpeta</button>
+        <button type="button" class="boton" id="boton-excel" hidden>Exportar a Excel</button>
+      </div>
+    </footer>
+  </section>
+</main>
+<script src="/estaticos/interfaz.js?token={{TOKEN}}" defer></script>
+</body>
+</html>
